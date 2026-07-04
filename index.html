@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Rock Flippers</title>
+    <link rel="stylesheet" type="text/css" href="./style.css">
+    </link>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.js"></script>
+    <script type="text/javascript" src="./assetmanager.js"></script>
+    <script type="text/javascript" src="./histogram.js"></script>
+    <script type="text/javascript" src="./graph.js"></script>
+    <script type="text/javascript" src="./gameengine.js"></script>
+    <script type="text/javascript" src="./util.js"></script>
+    <script type="text/javascript" src="./params.js"></script>
+    <script type="text/javascript" src="./datamanager.js"></script>
+    <script type="text/javascript" src="./agent.js"></script>
+    <script type="text/javascript" src="./puzzlebox.js"></script>
+    <script type="text/javascript" src="./qlearner.js"></script>
+    <script type="text/javascript" src="./main.js"></script>
+</head>
+
+<body>
+    <canvas id="gameWorld" width="800" height="800"></canvas>
+    <div id="controlPanel">
+        <div id="db" class="db-status">Database</div>
+        <div id="frameRate" class="frame-rate">Tick</div>
+        <div id="parameters">
+
+            <div class="parameter-section">
+            </div>
+
+            <button type="button" onclick="reset()">Reset Simulation</button>
+        </div>
+
+        <div id="options">
+        </div>
+    </div>
+</body>
+
+</html>

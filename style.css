@@ -1,0 +1,182 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    align-items: flex-start; /* Align items at the top */
+    font-size: 12px; /* Reduced font size for compactness */
+    margin: 0; /* Remove default margin */
+}
+
+#gameWorld {
+    border: 1px solid black;
+    background-color: white;
+    margin-right: 15px; /* Reduced margin for compactness */
+}
+
+#controlPanel {
+    display: flex;
+    flex-direction: column; /* Stack child elements vertically */
+    width: 500px; /* Reduced width for compactness */
+}
+
+#parameters {
+    border: 2px solid #03ecd3;
+    padding: 8px; /* Reduced padding for compactness */
+    background-color: #f9f9f9;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 10px;
+    display: flex;
+    flex-wrap: wrap;  /* Allows items to wrap onto the next line */
+    justify-content: space-between; /* Spaces out the sections nicely */
+}
+
+#parameters p {
+    text-align: center;
+    margin-top: 0;
+    font-weight: bold;
+    font-size: 14px; /* Slightly smaller font */
+}
+
+#parameters label {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+}
+
+#parameters input {
+    width: calc(100% - 10px); /* Adjusted for reduced padding */
+    padding: 2px;
+    box-sizing: border-box;
+    font-size: 12px;
+}
+
+#parameters button {
+    margin-top: 10px; /* Reduced spacing */
+    width: 100%;
+    padding: 5px;
+    background-color: #007bff;
+    color: white;
+    border: 1px solid blue;
+    cursor: pointer;
+    font-size: 14px; /* Slightly smaller font */
+}
+
+#parameters button:hover {
+    background-color: #0056b3;
+}
+
+.parameter-section {
+    border: 1px solid #ddd;
+    padding: 5px; /* Reduced padding for compactness */
+    margin-bottom: 8px; /* Reduced spacing between sections */
+    background-color: #f1f1f1;
+    flex: 1 1 45%; /* Grow and shrink, but base width at 45% */
+    margin: 5px; /* Adjust margins as necessary */
+}
+
+.parameter-section h3 {
+    text-align: center;
+    margin: 0 0 5px 0;
+    font-size: 13px; /* Slightly smaller header font */
+    font-weight: bold;
+    color: #333;
+}
+
+#options {
+    margin-top: 5px; /* Reduced spacing */
+    font-size: 12px; /* Smaller font for compactness */
+}
+
+#options input {
+    margin-right: 5px;
+}
+
+#options label {
+    margin-right: 10px;
+}
+
+/* Default style */
+.db-status {
+    border: 1px solid black;
+    text-align: center;
+    padding: 5px;
+    margin-bottom: 8px; /* Reduced spacing */    
+    margin-left: 100px; /* Reduced spacing */
+    margin-right: 100px; /* Reduced spacing */
+    font-size: 12px; /* Smaller font */
+}
+
+.db-connected {
+    background-color: #28a745; /* Bootstrap success color */
+    border: 1px solid black;
+}
+
+.db-disconnected {
+    background-color: #dc3545; /* Bootstrap danger color */
+    border: 1px solid black;
+}
+
+.pattern-controls {
+    margin-bottom: 8px;
+    border: 1px solid #ddd;
+    padding: 5px;
+    background-color: #f9f9f9;
+}
+
+.pattern-params {
+    margin-top: 5px;
+    padding-left: 10px;
+}
+
+.pattern-description {
+    font-size: 0.75em;
+    font-style: italic;
+    margin: 2px 0;
+    color: #666;
+}
+
+.parameter-control {
+    margin: 3px 0;
+    display: flex;
+    align-items: center;
+}
+
+.parameter-control label {
+    font-size: 0.85em;
+    flex: 1;
+    margin-right: 5px;
+}
+
+.parameter-control input {
+    width: 70px;
+    padding: 2px;
+    font-size: 0.85em;
+}
+
+/* Additional compact styles for the parameter section */
+.parameter-section h3 {
+    font-size: 0.9em;
+    margin: 3px 0;
+}
+
+.parameter-section h4 {
+    font-size: 0.85em;
+    margin: 2px 0;
+}
+
+/* Make the containers more compact */
+#spatialPatternParams, #temporalPatternParams {
+    border-top: 1px dotted #ccc;
+    padding-top: 3px;
+}
+
+#frameRate {
+    border: 1px solid black;
+    background-color: darkkhaki;
+    text-align: center;
+    padding: 5px;
+    margin-bottom: 8px;    
+    margin-left: 100px; 
+    margin-right: 100px; 
+    font-size: 12px; 
+}
+
