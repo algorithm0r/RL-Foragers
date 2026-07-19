@@ -8,15 +8,16 @@
 DEVPLAN Stage 2 — Receptive-field learners + confidence coupling  `[ ACTIVE ]`
 
 ## State
-Stage 1 complete: `GridForager` (N×N toroidal food grid, 9 actions, +N/0/−1 reward) + one flat
-tabular Q-learner run in-browser and headless. smoke PASS (1×1 learner learns to eat). Flat
-baseline characterised headless: 3×3 learns (steps-to-clear 15→10, ~4.6k Q-states); 5×5 hits
-the combinatorial wall (185k Q-states, steps-to-clear stuck ~300) — the floor Stage 2 must beat.
+Stage 1 complete + receptive-field decoupled from arena size: `GridForager` (toroidal
+`gridN`×`gridN` arena, `receptiveField` window sensed independently → partial observability) +
+one tabular Q-learner, in-browser (window footprint drawn) and headless. smoke PASS (eat-reflex,
+decoupling, clean partial-obs run). Default is now the realistic regime: 10×10 arena, 5×5 window,
+sparse food (density 0.1).
 
 ## Metrics
-- 1×1: Q(food,eat)=1.00 vs Q(food,move)=−0.10, best action = eat ✓
-- 3×3: mean steps-to-clear 15.2 → ~10 over 200k ticks; 4.6k Q-states
-- 5×5: mean steps-to-clear 561 → 304 (barely); 185k Q-states (~1 new state/step)
+- Eat reflex (1×1): Q(food,eat)=1.00 vs Q(food,move)=−0.10, best = eat ✓
+- Fully-observable wall: 5×5 window=arena → 185k Q-states, steps-to-clear stuck ~300
+- Partial obs (10×10 arena): 1×1 win →~500 stc / 18 states; 3×3 →~140 / 2.4k; 5×5 →~155 / 89k
 
 ## Branches
 - `main`

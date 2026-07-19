@@ -3,6 +3,21 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-18 — Decouple receptive field from arena size (partial observability)
+**Done:** `receptiveField` is now independent of `gridN` — `senseState()` reads a fixed window
+(torus wraparound) instead of clamping to the arena, so the agent roams a large arena seeing only
+its window. New defaults are the realistic regime: 10×10 arena, 5×5 window, sparse food (0.1).
+Observer now draws the sensed window footprint; HUD splits arena vs window; `PARAM_SCHEMA` exposes
+both. This introduces partial observability + perceptual aliasing (ties to the Stage-4 U-Tree
+lineage).
+**Changed:** `params.js` (split gridN/receptiveField + schema), `world.js` (senseState no clamp),
+`observer.js` (window footprint + HUD), `smoketest.mjs` (added decoupling + partial-obs asserts).
+**State:** smoke PASS — eat-reflex ✓, decoupled=true (state length = window² for arenas 6/8/10/4),
+10×10/5×5 clean (477 states in 2k ticks). Headless learning on 10×10 (~10 food): window 1×1 →
+steps-to-clear ~500 (18 states, the blind-forager floor), 3×3 → ~140 (2.4k states), 5×5 → ~155
+(89k states) — 3×3 already matches 5×5 with a 36× smaller table; the case for the layered cascade.
+**Next:** Stage 2 — L1/L3/L5 receptive-field learners + count-weighted confidence coupling.
+
 ## 2026-07-18 — Stage 1: GridForager + flat tabular learner
 **Done:** replaced the demo model. `GridForager` (`world.js`) — N×N toroidal food grid, agent
 always at the view center (torus wraparound → translation-invariant state), 9 actions (8 moves +

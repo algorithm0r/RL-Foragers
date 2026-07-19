@@ -43,10 +43,11 @@ var World = class World {
     return this.grid[((this.ay + dy) % N + N) % N][((this.ax + dx) % N + N) % N];
   }
 
-  // the agent-centered receptive-field window, as a bit string. Stage 1: window clamped to the
-  // full grid, so the flat learner sees everything (centered on itself).
+  // the agent-centered receptive-field window, as a bit string. The window is INDEPENDENT of the
+  // arena size (torus wraparound handles reads near the edge), so a small window on a large arena
+  // yields partial observability — the agent sees only what's near it.
   senseState() {
-    const r = (Math.min(PARAMETERS.receptiveField, this.N) - 1) >> 1;
+    const r = (PARAMETERS.receptiveField - 1) >> 1;
     let s = '';
     for (let dy = -r; dy <= r; dy++) {
       for (let dx = -r; dx <= r; dx++) s += this.cell(dx, dy);

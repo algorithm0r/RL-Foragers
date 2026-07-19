@@ -19,6 +19,17 @@ var Observer = class Observer {
       }
     }
 
+    // the receptive-field footprint the learner actually senses (wraps with the torus)
+    const r = (PARAMETERS.receptiveField - 1) >> 1;
+    ctx.strokeStyle = 'rgba(127,209,255,0.45)';
+    ctx.lineWidth = 1;
+    for (let dy = -r; dy <= r; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
+        const gx = ((w.ax + dx) % N + N) % N, gy = ((w.ay + dy) % N + N) % N;
+        ctx.strokeRect(gx * cell + 1.5, gy * cell + 1.5, cell - 3, cell - 3);
+      }
+    }
+
     // the forager
     ctx.fillStyle = '#f32e26';
     ctx.beginPath();
@@ -30,7 +41,8 @@ var Observer = class Observer {
     ctx.font = "14px 'Consolas', monospace";
     let ty = 24;
     const line = (s) => { ctx.fillText(s, board + 16, ty); ty += 20; };
-    line('grid    ' + N + '×' + N);
+    line('arena   ' + N + '×' + N);
+    line('window  ' + PARAMETERS.receptiveField + '×' + PARAMETERS.receptiveField);
     line('episode ' + w.episodes);
     line('food    ' + w.foodRemaining + ' / ' + w.initialFood);
     line('steps   ' + w.steps);

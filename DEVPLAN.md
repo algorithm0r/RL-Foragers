@@ -17,11 +17,13 @@ statistical predictability of tabular methods that a neural net would throw away
 ## Built
 - Engine v2 scaffold (vanilla-JS canvas, model/view split, vendored DB client, headless
   `runner.mjs` + `smoketest.mjs`, main-realm loader — no `vm`).
-- **Stage 1: `GridForager` + flat tabular learner.** Toroidal N×N food grid, 9 actions, the
-  +N/0/−1 reward, one flat Q-learner (per-entry visit counts already stored for Stage 2). Runs
-  in-browser; smoketest asserts a 1×1 learner learns to eat. Empirically confirms the wall:
-  3×3 learns (steps-to-clear 15→10, ~4.6k Q-states); 5×5 drowns (185k Q-states, ~1 new state
-  per step, steps-to-clear stuck ~300) — the baseline the layered learner must beat.
+- **Stage 1: `GridForager` + single tabular learner.** Toroidal `gridN`×`gridN` food arena, 9
+  actions, the +N/0/−1 reward, one Q-learner (per-entry visit counts already stored for Stage 2),
+  with a **`receptiveField` window decoupled from arena size** (partial observability). Runs
+  in-browser (window footprint drawn); smoketest asserts eat-reflex + decoupling + a clean
+  partial-obs run. Two regimes measured: fully observable (window=arena) 5×5 drowns at 185k
+  Q-states (the combinatorial wall); partial obs (10×10 arena) 3×3 window learns local nav with a
+  ~2.4k table — the baseline the layered learner must beat.
 - Legacy letters-puzzle Q-learner lives only in the initial commit (`51e9fc5`) as reference.
 
 ## Not yet built
@@ -30,9 +32,16 @@ statistical predictability of tabular methods that a neural net would throw away
 ---
 
 ## The environment — `GridForager`
-- **Grid:** N×N, **toroidal**. The agent is always at the **center** of its view (moving
-  re-centers the torus), so absolute position is *not* part of the state — translation
-  invariance is baked in, which is exactly what makes the receptive-field abstraction sound.
+- **Arena:** `gridN`×`gridN`, **toroidal**, any size (10×10 is the realistic default). The agent
+  is always at the **center of its view** (moving re-centers the torus), so absolute position is
+  *not* part of the state — translation invariance is baked in, which is what makes the
+  receptive-field abstraction sound.
+- **Window ≠ arena (decoupled).** The learner senses only a `receptiveField`-sized window, set
+  independently of `gridN`. Window < arena ⇒ **partial observability**: most windows are empty
+  (navigating emptiness is part of the fail state), and two different arenas can look identical
+  through the window — **perceptual aliasing**, which is exactly the POMDP regime the Stage-4
+  learned-filter lineage (U-Tree / selective perception) addresses. Set `receptiveField ≥ gridN`
+  to recover fully-observable mode.
 - **Cells are multi-channel bit-vectors** from day one, even though only one channel is used
   first: `food` (0/1) now; `agent`, `predator`, `prey` reserved. This is deliberate — the
   long-term goal (learn which *bits* of a cell are relevant per sub-behavior) needs channels
@@ -42,12 +51,15 @@ statistical predictability of tabular methods that a neural net would throw away
   failed eats); clearing the board → **`+N`** where N = food count at episode start. So `eat`
   (0) strictly dominates a wasted move (−1) locally — a built-in gradient toward eating that
   exists *before* the terminal bonus — and the −1/step pressures efficient navigation.
-- **Episode:** ends when all food eaten (ship +N, new random grid) or at a step cutoff.
-- **Curriculum sizes:** 1×1 (trivial: eat-if-food), 3×3, 5×5 — progressively harder.
+- **Episode:** ends when all food eaten (ship +N, new random arena) or at a step cutoff.
 
 ## The learners — nested receptive fields
-Each is a tabular Q-table over its own **abstracted** state (the bit pattern within its window),
-storing **mean Q *and a visit count* per (state, action)** — the count is the confidence signal.
+The L1/L3/L5 layers differ only by **window size** (1×1 / 3×3 / 5×5) — they all run on the **same
+arena**. Each is a tabular Q-table over its own **abstracted** state (the bit pattern within its
+window), storing **mean Q *and a visit count* per (state, action)** — the count is the confidence
+signal. Empirically (10×10, ~10 food): the 1×1 eats-on-contact but random-walks (steps-to-clear
+~500), 3×3 learns local navigation with a ~2.4k-state table (~140), 5×5's reach costs an 89k-state
+table for no gain (~155) — the case for combining them rather than picking one.
 
 | Layer | Receptive field | State size | Learns |
 |------|------|------|------|

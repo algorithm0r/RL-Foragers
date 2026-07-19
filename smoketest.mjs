@@ -1,7 +1,9 @@
-// No-DB sanity run. Trains the flat learner on the trivial 1×1 grid and asserts it LEARNS the
-// one thing that has to be true — "if food is under you, eat" — then checks the default 5×5
-// grid runs without error. Prints the numbers that belong in the DEVLOG entry. Non-zero on fail.
+// No-DB sanity run. Asserts the three things that must hold, then prints the numbers that
+// belong in the DEVLOG entry. Non-zero exit on failure.
 //   node smoketest.mjs
+//   A) eat reflex: on a 1×1 arena the learner learns "food underfoot → eat"
+//   B) decoupling: the sensed-state length is receptiveField², INDEPENDENT of arena size
+//   C) partial obs: a small window on a large arena runs clean and populates the Q-table
 //
 // Loads the SAME browser sim files into the MAIN V8 realm via indirect eval (NOT vm — see
 // conventions §4: vm adds a ~7-10x hot-loop tax on per-tick global reads, which RL leans on).
@@ -19,36 +21,37 @@ for (const f of ['util.js', 'params.js', 'engine.js', 'qlearner.js', 'agent.js',
 
 const { PARAMETERS: P, World, GameEngine } = globalThis;
 
-// --- Invariant A: on a 1×1 grid, the learner must learn to EAT when food is present ---
-P.gridN = 1;
-P.receptiveField = 1;
+// --- A: on a 1×1 arena, the learner must learn to EAT when food is present ---
+P.gridN = 1; P.receptiveField = 1;
 const world = new World(800, 600);
 const engine = new GameEngine();
 for (let t = 1; t <= 5000; t++) { engine.tick = t; world.update(engine); }
-
 const L = world.agent.learner;
-const qEat = L.getQ('1', World.EAT);
-const qMove = L.getQ('1', 0);
-const best = L.bestAction('1');
-const learnedToEat = best === World.EAT && qEat > qMove;
-const cleared = world.episodes > 100; // the trivial board should be cleared many times over 5000 ticks
+const qEat = L.getQ('1', World.EAT), qMove = L.getQ('1', 0), best = L.bestAction('1');
+const learnedToEat = best === World.EAT && qEat > qMove && world.episodes > 100;
 
-// --- Invariant B: the default 5×5 grid runs without throwing and populates the Q-table ---
-P.gridN = 5;
-P.receptiveField = 7;
-let ranClean = true;
-try {
-  const w5 = new World(800, 600);
-  const e5 = new GameEngine();
-  for (let t = 1; t <= 1000; t++) { e5.tick = t; w5.update(e5); }
-  ranClean = w5.agent.learner.Q.size > 0;
-} catch (err) {
-  ranClean = false;
-  console.error('5×5 run threw:', err.message);
+// --- B: window size fixes the state length regardless of arena size (decoupling) ---
+let decoupled = true;
+for (const [N, rf] of [[6, 1], [8, 3], [10, 5], [4, 5]]) {
+  P.gridN = N; P.receptiveField = rf;
+  const w = new World(800, 600);
+  if (w.senseState().length !== rf * rf) { decoupled = false; break; }
 }
 
-const ok = learnedToEat && cleared && ranClean;
-console.log('smoke: 1×1 Q(food,eat)=' + qEat.toFixed(3) + ' Q(food,move)=' + qMove.toFixed(3) +
-  ' best=' + best + '(eat=' + World.EAT + ') episodes=' + world.episodes +
-  ' | 5×5 clean=' + ranClean + ' -> ' + (ok ? 'PASS' : 'FAIL'));
+// --- C: a 5×5 window on a 10×10 arena (partial observability) runs clean & learns state ---
+P.gridN = 10; P.receptiveField = 5;
+let ranClean = true, states5 = 0;
+try {
+  const w = new World(800, 600), e = new GameEngine();
+  for (let t = 1; t <= 2000; t++) { e.tick = t; w.update(e); }
+  states5 = w.agent.learner.Q.size;
+  ranClean = states5 > 0;
+} catch (err) { ranClean = false; console.error('partial-obs run threw:', err.message); }
+
+const ok = learnedToEat && decoupled && ranClean;
+console.log('smoke: A eat Q(food,eat)=' + qEat.toFixed(3) + ' vs Q(move)=' + qMove.toFixed(3) +
+  ' best=' + best + ' (eat=' + World.EAT + ')' +
+  ' | B decoupled=' + decoupled +
+  ' | C 10×10/5×5 clean=' + ranClean + ' states=' + states5 +
+  ' -> ' + (ok ? 'PASS' : 'FAIL'));
 process.exit(ok ? 0 : 1);
