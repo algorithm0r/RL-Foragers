@@ -1,41 +1,40 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-    <meta charset="utf-8">
-    <title>Rock Flippers</title>
-    <link rel="stylesheet" type="text/css" href="./style.css">
-    </link>
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.js"></script>
-    <script type="text/javascript" src="./assetmanager.js"></script>
-    <script type="text/javascript" src="./histogram.js"></script>
-    <script type="text/javascript" src="./graph.js"></script>
-    <script type="text/javascript" src="./gameengine.js"></script>
-    <script type="text/javascript" src="./util.js"></script>
-    <script type="text/javascript" src="./params.js"></script>
-    <script type="text/javascript" src="./datamanager.js"></script>
-    <script type="text/javascript" src="./agent.js"></script>
-    <script type="text/javascript" src="./puzzlebox.js"></script>
-    <script type="text/javascript" src="./qlearner.js"></script>
-    <script type="text/javascript" src="./main.js"></script>
+  <meta charset="utf-8">
+  <title>rllayers</title>
+  <style>
+    body { margin: 0; background: #11151c; color: #cdd2da; font-family: system-ui, sans-serif; display: flex; }
+    #controlPanel { width: 240px; padding: 14px; box-sizing: border-box; }
+    #controlPanel h3 { margin: 0 0 10px; }
+    .ctl { display: block; margin: 10px 0; font-size: 13px; }
+    .ctl input { width: 100%; }
+    button { background: #2b6cf6; color: #fff; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+    #status { font-size: 12px; color: #8a8f98; margin-top: 12px; }
+    canvas { background: #0b0e13; display: block; }
+  </style>
 </head>
-
 <body>
-    <canvas id="gameWorld" width="800" height="800"></canvas>
-    <div id="controlPanel">
-        <div id="db" class="db-status">Database</div>
-        <div id="frameRate" class="frame-rate">Tick</div>
-        <div id="parameters">
+  <div id="controlPanel">
+    <h3>rllayers</h3>
+    <button onclick="reset()">Reset</button>
+    <div id="status"></div>
+  </div>
+  <canvas id="gameWorld" width="800" height="600"></canvas>
 
-            <div class="parameter-section">
-            </div>
-
-            <button type="button" onclick="reset()">Reset Simulation</button>
-        </div>
-
-        <div id="options">
-        </div>
-    </div>
+  <!-- socket.io client (for the standard DB client in socket mode) -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <!-- sim core, in dependency order; main.js last -->
+  <script src="src/util.js"></script>
+  <script src="src/params.js"></script>
+  <script src="src/db.js"></script>
+  <script src="src/engine.js"></script>
+  <script src="src/agent.js"></script>
+  <script src="src/world.js"></script>
+  <script src="src/observer.js"></script>
+  <script src="src/charts.js"></script>
+  <script src="src/datamanager.js"></script>
+  <script src="src/ui.js"></script>
+  <script src="src/main.js"></script>
 </body>
-
 </html>
