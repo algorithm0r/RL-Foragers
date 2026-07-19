@@ -5,21 +5,20 @@
 **Verified:** 2026-07-18 (scaffold) — last cold audit (`/audit`); the State section is trusted only as of this date
 
 ## Stage
-GridForager-v2 (central-place foraging) built — resolving the ranged-sensing fork before Stage 3.
+Modular environment (feature toggles + UI) done — next: relevance filtering, then Stage 3.
 
 ## State
-Stages 1–2 + UCB done. Environment rebuilt as **GridForager-v2**: cells empty/food/water/shelter/pit,
-11 actions (moves+eat+drink+rest), reward = rewardPerUnit·min(food,water) banked at `rest` (ends
-episode), pit = terminal death; observation augmented with shelter bearing + satiety. Layers
-generalized to **feature filters**: pure spatial `window` layers + an `internal` (bearing+satiety)
-strategic layer, same confidence coupling. Mechanics unit-tested; smoke PASS. **Open gap:** the agent
-learns the safe half (avoid pits ~10-15% death, home + rest ~65%) but **under-gathers (banked ≈ 0.1)**
-— blind to food/water at range. Needs a ranged-sensing decision.
+Stages 1–2 + UCB done, and the environment is now **modular via feature toggles** (checkboxes in the
+UI): base = food-sweep (v1); `+water` (2nd resource, drink); `+shelter` (rest ends day, banked-reward
+metric, adds bearing/satiety + INT layer); `+pits` (terminal death). Action set, metric, INT layer and
+observation all adapt to the flags. Layers restored to `[1,3,5]`. Two agents (flat/layered) share one
+`act()` contract; UCB exploration; confidence coupling. smoke PASS (per-toggle mechanics + base learning).
 
 ## Metrics
-- v2 (8×8, F5 W5 P3, layered [1,3]+INT, UCB): death ~10-15%, rest ~65%, **banked reward ≈ 0.1** (gathering gap)
-- Coupling correctly down-weights the 5×5 categorical layer to ~0 (dead weight → dropped)
-- (v1 results still valid: layered UCB ≈ 43 steps-to-clear vs flat ≈ 119/126, oracle ≈ 40)
+- Base sweep (8×8, F6, layered [1,3,5], UCB): steps-to-clear 32 → **21** ≈ oracle
+- +water sweep: ~69 steps; shelter modes under-gather (~0.4 banked) — ranged-sensing gap
+- **pits-only → 97% death** (catastrophic UCB, no shelter escape); +water+shelter+pits → ~59%
+- Coupling still down-weights the 5×5 categorical layer (~0) under multi-type cells — relevance filter next
 
 ## Branches
 - `main`
@@ -32,8 +31,8 @@ learns the safe half (avoid pits ~10-15% death, home + rest ~65%) but **under-ga
 - Learning-rule variants (combined-bootstrap, residual) still to test.
 
 ## Next action
-Resolve the ranged-sensing fork (resource bearings vs per-channel binary windows vs memory) so the
-agent can actually gather; then Stage 3.
+Implement relevance filtering (G-algorithm-style per-layer feature masks: start ignoring all cells,
+attend only cells that change value) so [1,3,5] stays useful under multi-type cells. Then Stage 3.
 
 ## Blockers
 - none

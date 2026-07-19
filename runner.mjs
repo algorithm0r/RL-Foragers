@@ -44,15 +44,16 @@ for (let r = 0; r < reps; r++) {
     engine.tick = t;
     world.update(engine);
     if (t % P.reportingPeriod === 0) {
-      samples.push({ tick: t, meanReward: world.meanReward(), deathRate: world.deathRate(), episodes: world.episodes });
+      samples.push({ tick: t, metric: world.metric(), deathRate: world.deathRate(), episodes: world.episodes });
     }
   }
   const pkt = db.packet(P, {
-    run, samples, finalMeanReward: world.meanReward(), finalDeathRate: world.deathRate(),
-    episodes: world.episodes, rested: world.rested, died: world.died,
+    run, samples, metricLabel: world.metricLabel(), finalMetric: world.metric(),
+    finalDeathRate: world.deathRate(), episodes: world.episodes,
+    cleared: world.cleared, rested: world.rested, died: world.died,
   });
   const res = await db.insert(collection || run, pkt);
-  console.log(run + ': episodes=' + world.episodes + ' meanReward=' + world.meanReward().toFixed(2) +
-    ' deaths=' + (world.deathRate() * 100).toFixed(0) + '%  saved=' + JSON.stringify(res));
+  console.log(run + ': episodes=' + world.episodes + ' ' + world.metricLabel() + '=' +
+    world.metric().toFixed(2) + ' deaths=' + (world.deathRate() * 100).toFixed(0) + '%  saved=' + JSON.stringify(res));
 }
 await db.close();

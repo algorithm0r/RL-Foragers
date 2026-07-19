@@ -40,7 +40,7 @@ var LayeredAgent = class LayeredAgent {
     this.layers = PARAMETERS.layers.map((size) => ({
       kind: 'window', size, r: (size - 1) >> 1, label: 'L' + size, learner: new QLearner(nActions),
     }));
-    if (PARAMETERS.strategicLayer) {
+    if (PARAMETERS.strategicLayer && PARAMETERS.enableShelter) { // only meaningful when there's a home to return to
       this.layers.push({ kind: 'internal', label: 'INT', learner: new QLearner(nActions) });
     }
     this.lastWeights = this.layers.map(() => 0); // instrumentation: last coupling weights

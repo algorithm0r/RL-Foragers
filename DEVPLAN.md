@@ -31,13 +31,12 @@ statistical predictability of tabular methods that a neural net would throw away
 - **Count-based UCB exploration** (replaces ε-greedy): `argmax_a [Q + ucbC·√(ln N_s / n_{s,a})]`,
   reusing the coupling's visit counts; the layered bonus is confidence-weighted across layers.
   Auto-annealing, no schedule. ~43 steps-to-clear (c=1) vs ε-greedy 48 — ~1.1× the ~40 oracle.
-- **GridForager-v2 (central-place foraging).** Cells empty/food/water/shelter(×1)/pit; 11 actions
-  (moves+eat+drink+rest); reward = rewardPerUnit·min(food,water) banked at `rest`; pit = death.
-  Observation augmented with shelter bearing + satiety. Layers generalized from spatial scales to
-  **feature filters** (pure `window` layers + an `internal` bearing/satiety strategic layer) — this
-  is the hand-designed form of the Stage-4 learned filters, and it keeps the state count bounded.
-  Mechanics tested; agent reliably learns pit-avoidance + homing + rest (death ~10-15%), but
-  **under-gathers (banked ≈0.1)** — blind to food/water at range. Ranged sensing is the open fork.
+- **Modular environment (feature toggles + UI checkboxes).** Build up from the base and study each
+  addition: base = food-sweep (v1, steps-to-clear, 9 actions) → `+water` (drink, 10) → `+shelter`
+  (rest ends day, banked-reward metric, +bearing/satiety +INT layer, 11) → `+pits` (terminal death).
+  Action set / metric / INT layer / observation all adapt to the flags. Layers = feature filters
+  (pure `window` layers + optional `internal` bearing/satiety). Base sweep learns near-optimally
+  (32→21 steps ≈ oracle). Shelter modes still under-gather; pits-only = 97% death (catastrophic UCB).
 - Legacy letters-puzzle Q-learner lives only in the initial commit (`51e9fc5`) as reference.
 
 ## Not yet built

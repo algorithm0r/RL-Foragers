@@ -44,11 +44,15 @@ var Observer = class Observer {
     let ty = 22;
     const line = (s) => { ctx.fillText(s, board + 16, ty); ty += 19; };
     const A = w.agent;
-    line('arena   ' + N + '×' + N + '  (F' + PARAMETERS.nFood + ' W' + PARAMETERS.nWater + ' P' + PARAMETERS.nPits + ')');
+    const feat = 'food' + (PARAMETERS.enableWater ? '+water' : '') + (PARAMETERS.enableShelter ? '+shelter' : '') + (PARAMETERS.enablePits ? '+pits' : '');
+    line('model   ' + feat);
+    line('arena   ' + N + '×' + N + '   agent ' + (A.layers ? 'layered' : 'flat'));
     if (A.layers) line('layers  ' + A.layers.map((L) => L.label).join(' '));
     else line('window  ' + PARAMETERS.receptiveField + '×' + PARAMETERS.receptiveField);
-    line('episode ' + w.episodes + '  rest ' + w.rested + '  die ' + w.died);
-    line('carrying  food ' + w.food + '  water ' + w.water);
+    let ep = 'episode ' + w.episodes + (PARAMETERS.enableShelter ? '  rest ' + w.rested : '  clear ' + w.cleared);
+    if (PARAMETERS.enablePits) ep += '  die ' + w.died;
+    line(ep);
+    if (PARAMETERS.enableShelter || PARAMETERS.enableWater) line('carrying food ' + w.food + (PARAMETERS.enableWater ? '  water ' + w.water : ''));
     line('steps   ' + w.steps + ' / ' + PARAMETERS.maxStepsPerEpisode);
     if (A.layers) {
       let qs = 0; for (const L of A.layers) qs += L.learner.Q.size;
@@ -58,9 +62,9 @@ var Observer = class Observer {
       line('Q-states ' + A.learner.Q.size);
     }
     ty += 6;
-    line('mean banked reward   death rate');
+    line(w.metricLabel() + (PARAMETERS.enablePits ? '     death' : ''));
     ctx.font = "20px 'Consolas', monospace";
-    ctx.fillStyle = '#7fd1ff'; ctx.fillText(w.episodes === 0 ? '—' : w.meanReward().toFixed(2), board + 16, ty);
-    ctx.fillStyle = '#e0894a'; ctx.fillText(w.episodes === 0 ? '—' : (w.deathRate() * 100).toFixed(0) + '%', board + 176, ty);
+    ctx.fillStyle = '#7fd1ff'; ctx.fillText(w.episodes === 0 ? '—' : w.metric().toFixed(2), board + 16, ty);
+    if (PARAMETERS.enablePits) { ctx.fillStyle = '#e0894a'; ctx.fillText((w.deathRate() * 100).toFixed(0) + '%', board + 176, ty); }
   }
 };

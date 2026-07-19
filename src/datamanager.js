@@ -20,8 +20,8 @@ var DataManager = class DataManager {
 
   update(engine) {
     if (engine.tick % PARAMETERS.reportingPeriod === 0) {
-      const m = this.world.meanReward();
-      this.samples.push({ tick: engine.tick, meanReward: m, deathRate: this.world.deathRate(), episodes: this.world.episodes });
+      const m = this.world.metric(); // adapts to the mode (steps-to-clear or banked reward)
+      this.samples.push({ tick: engine.tick, metric: m, metricLabel: this.world.metricLabel(), deathRate: this.world.deathRate(), episodes: this.world.episodes });
       if (this.graph && this.world.episodes > 0) this.graph.push(m);
     }
     if (!this.flushed && engine.tick >= PARAMETERS.epoch) {
@@ -35,9 +35,11 @@ var DataManager = class DataManager {
     const pkt = this.db.packet(PARAMETERS, {
       run: this.run,
       samples: this.samples,
-      finalMeanReward: this.world.meanReward(),
+      metricLabel: this.world.metricLabel(),
+      finalMetric: this.world.metric(),
       finalDeathRate: this.world.deathRate(),
       episodes: this.world.episodes,
+      cleared: this.world.cleared,
       rested: this.world.rested,
       died: this.world.died,
     });

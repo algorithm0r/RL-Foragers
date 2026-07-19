@@ -7,7 +7,7 @@ function reset() {
   gameEngine.clear();
   const cv = gameEngine.ctx.canvas;
   world = new World(cv.width, cv.height);
-  const graph = new LineGraph(cv.width - 190, cv.height - 110, 180, 90, 'banked reward');
+  const graph = new LineGraph(cv.width - 190, cv.height - 110, 180, 90, world.metricLabel());
   db = createDB(PARAMETERS.db);
   dataManager = new DataManager(world, db, graph);
   gameEngine.add(world);

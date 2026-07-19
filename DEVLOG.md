@@ -3,6 +3,26 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-19 — Modular environment: feature toggles + UI checkboxes
+**Done:** made the environment features TOGGLES so we build up from the base model and study each
+addition, and added checkbox controls (should have done this before hardwiring v2). `world.js` is now
+feature-flag driven: base = food-only sweep (clear all food, metric = steps-to-clear, 9 actions);
+`enableWater` adds a 2nd resource + `drink` (10 actions, clear food AND water); `enableShelter` adds
+`rest` (11 actions, day ends at rest banking rewardPerUnit·(min(food,water)|food), metric = banked
+reward, + bearing/satiety sense + INT layer); `enablePits` adds terminal death. Action set + metric +
+INT layer + observation augmentation all adapt to the flags. Restored layers `[1,3,5]` (dropping the
+5×5 was wrong — its value is marginal, not average). `ui.js` renders checkboxes from `PARAM_SCHEMA`
+(`type:'checkbox'`, with onVal/offVal so the agent flat/layered flip is a checkbox too).
+**Changed:** `world.js` (full modular rewrite), `params.js` (enable* flags + checkbox schema),
+`agent.js` (INT layer gated on shelter), `ui.js` (checkbox support), `observer.js`/`datamanager.js`/
+`main.js`/`runner.mjs` (mode-adaptive metric), `smoketest.mjs` (per-toggle mechanics + base learning).
+**State:** smoke PASS. All toggle combos run; structure adapts (acts 9/10/11, INT only with shelter,
+metric switches). Base sweep learns near-optimally (steps-to-clear 32→21 ≈ oracle). Findings: +water
+sweep 69 steps; shelter modes still under-gather (~0.4 banked, the ranged-sensing gap); **pits-only =
+97% death** (catastrophic UCB with no shelter escape) — a vivid safe-exploration motivator.
+**Next:** relevance filtering (G-algorithm-style per-layer feature masks) so wide layers stay useful
+without exploding — the thing that makes [1,3,5] coherent under multi-type cells.
+
 ## 2026-07-18 — GridForager-v2 (central-place foraging) + feature-filter layers
 **Done:** rebuilt the environment as central-place foraging. Cells are empty/food/water/shelter(×1)/
 pit; 11 actions (8 moves + eat + drink + rest); reward = rewardPerUnit·min(food,water) banked at
