@@ -85,7 +85,9 @@ var PARAM_SCHEMA = [
   { key: 'nFood', label: 'Food', min: 0, max: 30, step: 1, resets: true },
   { key: 'nWater', label: 'Water', min: 0, max: 30, step: 1, resets: true },
   { key: 'nPits', label: 'Pits', min: 0, max: 12, step: 1, resets: true },
-  { key: 'ucbC', label: 'Explore c', min: 0, max: 4, step: 0.1 },
+  { key: 'explore', label: 'UCB (uncheck = ε-greedy)', type: 'checkbox', onVal: 'ucb', offVal: 'egreedy' },
+  { key: 'ucbC', label: 'UCB explore c', min: 0, max: 4, step: 0.1 },
+  { key: 'epsilon', label: 'ε-greedy ε', min: 0, max: 1, step: 0.01 },
   { key: 'alpha', label: 'Learn α', min: 0.01, max: 1, step: 0.01 },
   { key: 'updatesPerDraw', label: 'Speed', min: 1, max: 500, step: 1 },
 ];
