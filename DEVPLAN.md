@@ -31,9 +31,20 @@ statistical predictability of tabular methods that a neural net would throw away
 - **Count-based UCB exploration** (replaces ε-greedy): `argmax_a [Q + ucbC·√(ln N_s / n_{s,a})]`,
   reusing the coupling's visit counts; the layered bonus is confidence-weighted across layers.
   Auto-annealing, no schedule. ~43 steps-to-clear (c=1) vs ε-greedy 48 — ~1.1× the ~40 oracle.
+- **GridForager-v2 (central-place foraging).** Cells empty/food/water/shelter(×1)/pit; 11 actions
+  (moves+eat+drink+rest); reward = rewardPerUnit·min(food,water) banked at `rest`; pit = death.
+  Observation augmented with shelter bearing + satiety. Layers generalized from spatial scales to
+  **feature filters** (pure `window` layers + an `internal` bearing/satiety strategic layer) — this
+  is the hand-designed form of the Stage-4 learned filters, and it keeps the state count bounded.
+  Mechanics tested; agent reliably learns pit-avoidance + homing + rest (death ~10-15%), but
+  **under-gathers (banked ≈0.1)** — blind to food/water at range. Ranged sensing is the open fork.
 - Legacy letters-puzzle Q-learner lives only in the initial commit (`51e9fc5`) as reference.
 
 ## Not yet built
+- **Ranged resource sensing (immediate fork):** the v2 agent can't navigate to food/water it can't
+  see. Options — (a) resource *bearings* (scent-gradient, like the shelter bearing; ABM-plausible,
+  cheap, learnable); (b) per-channel *binary* windows (keeps vision, but ranged binary windows still
+  generalize poorly); (c) *memory* of resource locations (U-Tree/POMDP; hardest). Decide before Stage 3.
 - Experiment #1 harness (Stage 3): controls (subsumption, 1×1-only), seeds, DB sweeps, curves.
 - Learning-rule variants (combined-bootstrap, residual); learned filters (Stage 4); multi-agent
   stochastic worlds + hunting (Stage 5).

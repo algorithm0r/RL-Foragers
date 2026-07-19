@@ -20,8 +20,8 @@ var DataManager = class DataManager {
 
   update(engine) {
     if (engine.tick % PARAMETERS.reportingPeriod === 0) {
-      const m = this.world.meanStepsToClear();
-      this.samples.push({ tick: engine.tick, meanStepsToClear: m, episodes: this.world.episodes });
+      const m = this.world.meanReward();
+      this.samples.push({ tick: engine.tick, meanReward: m, deathRate: this.world.deathRate(), episodes: this.world.episodes });
       if (this.graph && this.world.episodes > 0) this.graph.push(m);
     }
     if (!this.flushed && engine.tick >= PARAMETERS.epoch) {
@@ -35,8 +35,11 @@ var DataManager = class DataManager {
     const pkt = this.db.packet(PARAMETERS, {
       run: this.run,
       samples: this.samples,
-      finalMeanStepsToClear: this.world.meanStepsToClear(),
+      finalMeanReward: this.world.meanReward(),
+      finalDeathRate: this.world.deathRate(),
       episodes: this.world.episodes,
+      rested: this.world.rested,
+      died: this.world.died,
     });
     try {
       const res = await this.db.insert(this.run, pkt);

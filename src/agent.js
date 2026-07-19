@@ -33,17 +33,23 @@ var FlatAgent = class FlatAgent {
 var LayeredAgent = class LayeredAgent {
   constructor(nActions) {
     this.nActions = nActions;
-    // one learner per window size; radius r = (size-1)/2
+    // Layers are different FEATURE FILTERS, not just spatial scales. Spatial 'window' layers sense a
+    // pure local window (reflexes/navigation that GENERALIZE across bearing/satiety); an optional
+    // 'internal' layer senses ONLY shelter-bearing + satiety (the homing/rest decision) in its own
+    // tiny state space. Keeping them separate is what stops the state count from exploding.
     this.layers = PARAMETERS.layers.map((size) => ({
-      size, r: (size - 1) >> 1, learner: new QLearner(nActions),
+      kind: 'window', size, r: (size - 1) >> 1, label: 'L' + size, learner: new QLearner(nActions),
     }));
+    if (PARAMETERS.strategicLayer) {
+      this.layers.push({ kind: 'internal', label: 'INT', learner: new QLearner(nActions) });
+    }
     this.lastWeights = this.layers.map(() => 0); // instrumentation: last coupling weights
     this.lastAction = null;
   }
 
   viewRadius() {
     let m = 0;
-    for (const L of this.layers) if (L.r > m) m = L.r;
+    for (const L of this.layers) if (L.kind === 'window' && L.r > m) m = L.r;
     return m;
   }
 
@@ -51,8 +57,11 @@ var LayeredAgent = class LayeredAgent {
   // is trusted; a layer facing a novel (low-count) state contributes little.
   confidence(count) { return count / (count + PARAMETERS.confidenceK); }
 
-  // each layer's abstract state (window slice) at the agent's current position
-  statesFor(world) { return this.layers.map((L) => world.senseWindow(L.r)); }
+  // each layer's abstract state: a pure local window ('window' layers) or the internal bearing+satiety
+  // code ('internal' layer). No cross-augmentation → the spatial reflexes stay reusable.
+  statesFor(world) {
+    return this.layers.map((L) => (L.kind === 'window' ? world.senseWindow(L.r) : world.internalCode()));
+  }
 
   // confidence-weighted combined Q over actions. Returns {q:[...], weights:[...] normalized}.
   combine(states) {

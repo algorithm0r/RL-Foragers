@@ -3,6 +3,32 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-18 — GridForager-v2 (central-place foraging) + feature-filter layers
+**Done:** rebuilt the environment as central-place foraging. Cells are empty/food/water/shelter(×1)/
+pit; 11 actions (8 moves + eat + drink + rest); reward = rewardPerUnit·min(food,water) banked at
+`rest` on the shelter (ends episode); entering a pit is terminal death (−pitPenalty); −1/step.
+Observation augmented with a shelter **bearing** (path-integration home vector) + bucketed **satiety**.
+Mechanics unit-tested (eat/drink/rest/pit) — all pass.
+**Architecture:** generalized layers from spatial scales to **feature filters**: `window` layers sense
+a pure local window (reflexes that generalize), plus an optional `internal` (strategic) layer that
+senses ONLY bearing+satiety (the homing/rest decision) in its own tiny state space. Same confidence
+coupling. `world.internalCode()`; `PARAMETERS.strategicLayer`.
+**Findings (the interesting part):**
+- Augmenting *every* layer with bearing+satiety re-exploded the state count (~1 new state/tick, 1.1M
+  and climbing) and killed generalization. Splitting into a dedicated internal layer fixed it
+  (Q-states bounded ~30k).
+- 5-type categorical cells make a 5×5 window ~5^25 → the coupling auto-down-weights it to ~0 (dead
+  weight); dropped L5, default layers `[1,3]`.
+- With the internal bearing + pit-avoiding L3, the agent reliably learns the SAFE half: death ~10–15%,
+  rests ~65%. But **banked reward ≈ 0.1** — it under-gathers, because with a 1×1/3×3 window it is
+  BLIND to food/water at range (shelter has a bearing, resources don't) and can't reach both types.
+- UCB's optimism is unsafe near pits (must try "move into pit" once per novel state); the internal
+  layer + generalizing L3 kept deaths low anyway.
+**State:** smoke PASS on the honest invariant (mechanics + decoupling + death<30% + rests>40%). Banked
+reward reported (~0.1), not asserted — the gathering gap is the next decision.
+**Next:** ranged resource sensing — resource bearings (scent gradient) vs per-channel binary windows
+vs memory. A modeling fork for Chris. γ raised to 0.95; rewardPerUnit 50.
+
 ## 2026-07-18 — Count-based UCB exploration (replaces ε-greedy)
 **Done:** added UCB action selection — `argmax_a [Q + ucbC·√(ln N_state / n_{state,action})]`,
 reusing the visit counts already tracked for the coupling; untried pairs get ∞ (tried first). For
