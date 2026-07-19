@@ -28,6 +28,9 @@ statistical predictability of tabular methods that a neural net would throw away
   its own Q-table; combined by `w_L ∝ count/(count+K)` for the behaviour policy; per-layer
   weights drawn in the HUD. **~2× better than any flat window** (56 vs 119/126 steps-to-clear on
   10×10); eat routes to L1; L5 auto-down-weighted on states it hasn't seen.
+- **Count-based UCB exploration** (replaces ε-greedy): `argmax_a [Q + ucbC·√(ln N_s / n_{s,a})]`,
+  reusing the coupling's visit counts; the layered bonus is confidence-weighted across layers.
+  Auto-annealing, no schedule. ~43 steps-to-clear (c=1) vs ε-greedy 48 — ~1.1× the ~40 oracle.
 - Legacy letters-puzzle Q-learner lives only in the initial commit (`51e9fc5`) as reference.
 
 ## Not yet built
@@ -86,6 +89,23 @@ Q(s,a) = Σ_L  w_L(s) · Q_L(φ_L(s), a),   w_L(s) ∝ count_L(φ_L(s))   (norma
   toward). Confidence-normalization lets the well-informed layer dominate instead of being
   diluted. A **residual** variant (L1 = prior, L3/L5 learn corrections) is the boosting-style
   alternative and is a Stage-3 condition.
+
+## Exploration — count-based UCB (not ε-greedy)
+`select = argmax_a [ Q(s,a) + ucbC·√(ln N_state / n_{state,action}) ]`. Under-sampled ("unsettled")
+actions get a bonus; settled ones ~0; untried ones are tried first (∞). It reuses the coupling's
+visit counts, auto-anneals (no schedule), and explores *toward genuine uncertainty* instead of
+random. For the layered agent the bonus is **confidence-weighted across layers** (same weights as
+the value combination) so we don't chase the uncertainty of a down-weighted, never-settling
+fine-window layer. `ucbC ≈ 1` is the sweet spot (c=2 over-explores). ε-greedy kept for baselines.
+
+## Benchmarks — clean sweep of 10 food on a 10×10 torus (king moves, `eat` is its own turn)
+Simulated oracles, to scale the learners against:
+- **Hard floor 10** (unavoidable eat-turns) · full-vision optimal ≈ 25 · full-vision greedy ≈ **30**.
+- **5×5-window greedy ≈ 40** — the *fair* target under our partial observability · blind random ≈ 450.
+- Our agents: **layered+UCB ≈ 43**, layered+ε-greedy ≈ 48, flat window-3/5 ≈ 119/126, 1×1 ≈ 500.
+  → layered is ~1.1× the windowed oracle; any flat single window is ~3×.
+- Note: ~1/3 of the oracle's cost is the separate `eat` action. Folding eat into "enter a food
+  cell" would drop the floor to ~20/~30 — a design lever if that fits the ABM use case.
 
 ---
 

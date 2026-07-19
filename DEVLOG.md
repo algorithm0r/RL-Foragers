@@ -3,6 +3,21 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-18 — Count-based UCB exploration (replaces ε-greedy)
+**Done:** added UCB action selection — `argmax_a [Q + ucbC·√(ln N_state / n_{state,action})]`,
+reusing the visit counts already tracked for the coupling; untried pairs get ∞ (tried first). For
+the layered agent the exploration bonus is **confidence-weighted across layers** (same weights as
+the value combination), so it doesn't chase the uncertainty of a down-weighted, never-settling
+fine-window layer. Auto-annealing (no ε schedule). ε-greedy kept for baselines (`PARAMETERS.explore`).
+Also computed the oracle benchmark ladder (10 food, 10×10 torus): floor 10, full-vision greedy ~30,
+5×5-window greedy ~40, random ~450 — recorded in DEVPLAN.
+**Changed:** `qlearner.js` (ucbBonus + selectUCB), `agent.js` (both agents use UCB when enabled;
+LayeredAgent.selectUCB confidence-weighted), `params.js` (explore/ucbC), `PARAM_SCHEMA` (Explore c).
+**State:** smoke PASS. Headless (10×10, ~10 food, 250k ticks): layered **UCB c=1 → 43 steps-to-clear
+vs ε-greedy 48** (c=2 over-explores → 56). 43 is ~1.1× the ~40 windowed-greedy oracle — the 56→40
+gap the flat ε tax was causing is essentially closed, with no schedule.
+**Next:** environment expansion (GridForager-v2) — water/shelter/pits/rest + bearing/satiety obs.
+
 ## 2026-07-18 — Stage 2: layered agent (L1/L3/L5) + count-based confidence coupling
 **Done:** added a `LayeredAgent` — one QLearner per receptive-field window size (`PARAMETERS.layers`
 = [1,3,5]), each learning independently on its own abstracted transition, combined at decision time

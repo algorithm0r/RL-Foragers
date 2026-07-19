@@ -53,6 +53,26 @@ var QLearner = class QLearner {
     return this.bestAction(state);
   }
 
+  // UCB exploration bonus for (state, action): big when the pair is under-sampled ("unsettled"),
+  // → 0 as it settles. Never-tried pairs return Infinity so they're tried first (optimism).
+  ucbBonus(state, action, c) {
+    const n = this.getCount(state, action);
+    if (n === 0) return Infinity;
+    return c * Math.sqrt(Math.log(this.getStateCount(state) + 1) / n);
+  }
+
+  // UCB action selection: argmax_a [ Q(s,a) + ucbBonus ], random tie-break (handles ∞ ties)
+  selectUCB(state, c) {
+    let m = -Infinity;
+    const best = [];
+    for (let a = 0; a < this.nActions; a++) {
+      const v = this.getQ(state, a) + this.ucbBonus(state, a, c);
+      if (v > m) { m = v; best.length = 0; best.push(a); }
+      else if (v === m) best.push(a);
+    }
+    return best[randomInt(best.length)];
+  }
+
   // Q(s,a) ← Q(s,a) + α[r + γ·maxₐ' Q(s',a') − Q(s,a)]; nextState === null means terminal (no bootstrap)
   learn(state, action, reward, nextState) {
     const k = this.key(state, action);

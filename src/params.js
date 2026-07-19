@@ -32,8 +32,18 @@ var PARAMETERS = {
   // --- tabular Q-learning ---
   alpha: 0.1,             // learning rate
   gamma: 0.9,             // discount
-  epsilon: 0.1,           // ε-greedy exploration
   defaultQ: 0,            // Q for unseen (state, action) pairs
+
+  // --- exploration ---
+  // 'ucb': optimism under uncertainty — pick argmax_a [ Q(s,a) + ucbC·√(ln N_state / n_state,action) ].
+  //        Under-sampled ("unsettled") actions get a bonus; well-sampled ones ~0. Auto-anneals, no
+  //        schedule, and reuses the SAME visit counts the layered coupling weights by. Untried (s,a)
+  //        get an infinite bonus (tried first). For the layered agent the bonus is confidence-weighted
+  //        across layers, so we don't chase never-settling fine-window states.
+  // 'egreedy': legacy ε-random (kept for baselines).
+  explore: 'ucb',
+  ucbC: 1.0,              // UCB exploration constant (higher = explore longer)
+  epsilon: 0.1,           // only used when explore = 'egreedy'
 
   // --- engine ---
   updatesPerDraw: 20,     // fast-forward: sim updates per rendered frame (learning is fast, drawing slow)
@@ -57,7 +67,7 @@ var PARAM_SCHEMA = [
   { key: 'gridN', label: 'Arena N', min: 1, max: 20, step: 1, resets: true },
   { key: 'receptiveField', label: 'Window', min: 1, max: 9, step: 2, resets: true },
   { key: 'foodDensity', label: 'Food density', min: 0.02, max: 1, step: 0.02, resets: true },
-  { key: 'epsilon', label: 'Explore ε', min: 0, max: 1, step: 0.01 },
+  { key: 'ucbC', label: 'Explore c', min: 0, max: 4, step: 0.1 },
   { key: 'alpha', label: 'Learn α', min: 0.01, max: 1, step: 0.01 },
   { key: 'gamma', label: 'Discount γ', min: 0, max: 0.99, step: 0.01 },
   { key: 'updatesPerDraw', label: 'Speed', min: 1, max: 500, step: 1 },

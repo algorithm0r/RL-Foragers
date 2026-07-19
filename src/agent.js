@@ -19,7 +19,9 @@ var FlatAgent = class FlatAgent {
 
   act(world) {
     const state = world.senseState();
-    const action = this.learner.select(state);
+    const action = PARAMETERS.explore === 'ucb'
+      ? this.learner.selectUCB(state, PARAMETERS.ucbC)
+      : this.learner.select(state);
     const outcome = world.applyAction(action);
     const nextState = outcome.done ? null : world.senseState();
     this.learner.learn(state, action, outcome.reward, nextState);
@@ -76,11 +78,35 @@ var LayeredAgent = class LayeredAgent {
     return best[randomInt(best.length)];
   }
 
+  // UCB over the combined Q with a confidence-WEIGHTED exploration bonus: each layer's uncertainty
+  // counts only as much as we rely on it (same weights as the value combination), so we don't chase
+  // the uncertainty of a down-weighted, never-settling fine-window layer. An untried (state,action)
+  // in any relied-on layer forces that action (infinite bonus → tried first).
+  selectUCB(states, combined) {
+    const c = PARAMETERS.ucbC, w = combined.weights, q = combined.q;
+    let m = -Infinity; const best = [];
+    for (let a = 0; a < this.nActions; a++) {
+      let bonus = 0, forced = false;
+      for (let i = 0; i < this.layers.length; i++) {
+        if (w[i] === 0) continue;
+        const learner = this.layers[i].learner;
+        if (learner.getCount(states[i], a) === 0) { forced = true; break; }
+        bonus += w[i] * learner.ucbBonus(states[i], a, c);
+      }
+      const v = forced ? Infinity : q[a] + bonus;
+      if (v > m) { m = v; best.length = 0; best.push(a); }
+      else if (v === m) best.push(a);
+    }
+    return best[randomInt(best.length)];
+  }
+
   act(world) {
     const states = this.statesFor(world);
     const combined = this.combine(states);
     this.lastWeights = combined.weights;
-    const action = Math.random() < PARAMETERS.epsilon ? randomInt(this.nActions) : this.argmax(combined.q);
+    const action = PARAMETERS.explore === 'ucb'
+      ? this.selectUCB(states, combined)
+      : (Math.random() < PARAMETERS.epsilon ? randomInt(this.nActions) : this.argmax(combined.q));
 
     const outcome = world.applyAction(action);
     const nextStates = outcome.done ? null : this.statesFor(world);
