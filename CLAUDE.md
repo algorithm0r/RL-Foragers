@@ -6,7 +6,10 @@
 3. `DEVPLAN.md` — the current `[ ACTIVE ]` stage
 
 ## What this is
-
+Layered / receptive-field tabular Q-learning for forager agents in discrete toroidal grid
+worlds — a reusable, reliable policy-learning component for the agent-based models we build.
+See `DEVPLAN.md` for the architecture (nested 1×1/3×3/5×5 learners combined by count-based
+confidence) and the staged roadmap.
 
 ## Stack (never violate)
 - Vanilla JS + Canvas. No build step, no framework, no modules. `<script>` tags load

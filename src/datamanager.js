@@ -1,7 +1,10 @@
 'use strict';
-// Samples the world's metric every reportingPeriod ticks, feeds the live graph, and ships
-// a self-describing packet (full PARAMETERS + samples) to the DB at epoch. The packet()
-// helper (db.js) embeds PARAMETERS verbatim so every run reconstructs from its own record.
+// Samples the world's metric every reportingPeriod ticks, feeds the live graph, and ships a
+// self-describing packet (full PARAMETERS + samples) to the DB at epoch. The packet() helper
+// (db.js) embeds PARAMETERS verbatim so every run reconstructs from its own record.
+//
+// Metric: mean steps-to-clear (EMA over completed episodes) plus the episode count — the
+// learning curve. Lower steps-to-clear = a better forager.
 //
 // NOTE: in the browser this auto-flushes at epoch (fire-and-forget, errors logged). The
 // headless runner (runner.mjs) drives ticks and flushes explicitly so it can await the write.
@@ -17,9 +20,9 @@ var DataManager = class DataManager {
 
   update(engine) {
     if (engine.tick % PARAMETERS.reportingPeriod === 0) {
-      const m = this.world.meanX();
-      this.samples.push({ tick: engine.tick, meanX: m });
-      if (this.graph) this.graph.push(m);
+      const m = this.world.meanStepsToClear();
+      this.samples.push({ tick: engine.tick, meanStepsToClear: m, episodes: this.world.episodes });
+      if (this.graph && this.world.episodes > 0) this.graph.push(m);
     }
     if (!this.flushed && engine.tick >= PARAMETERS.epoch) {
       this.flushed = true;
@@ -30,7 +33,10 @@ var DataManager = class DataManager {
   async flush() {
     if (!this.db) return { ok: false };
     const pkt = this.db.packet(PARAMETERS, {
-      run: this.run, samples: this.samples, finalMeanX: this.world.meanX(),
+      run: this.run,
+      samples: this.samples,
+      finalMeanStepsToClear: this.world.meanStepsToClear(),
+      episodes: this.world.episodes,
     });
     try {
       const res = await this.db.insert(this.run, pkt);

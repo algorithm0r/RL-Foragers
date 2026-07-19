@@ -21,7 +21,7 @@ const ticksOverride = parseInt(flag('ticks', '0'), 10);
 // class X`, so once the leading 'use strict' directive is stripped the top-level names attach
 // to globalThis and read as fast native globals (no vm proxy → no inlining penalty).
 const indirectEval = eval; // aliased → indirect eval runs in the global (sloppy) realm
-for (const f of ['util.js', 'params.js', 'engine.js', 'agent.js', 'world.js']) {
+for (const f of ['util.js', 'params.js', 'engine.js', 'qlearner.js', 'agent.js', 'world.js']) {
   let src = readFileSync(path.join(__dirname, 'src', f), 'utf8');
   src = src.replace(/^\s*(['"])use strict\1;?/, '');
   indirectEval(src);
@@ -43,10 +43,15 @@ for (let r = 0; r < reps; r++) {
   for (let t = 1; t <= limit; t++) {
     engine.tick = t;
     world.update(engine);
-    if (t % P.reportingPeriod === 0) samples.push({ tick: t, meanX: world.meanX() });
+    if (t % P.reportingPeriod === 0) {
+      samples.push({ tick: t, meanStepsToClear: world.meanStepsToClear(), episodes: world.episodes });
+    }
   }
-  const pkt = db.packet(P, { run, samples, finalMeanX: world.meanX() });
+  const pkt = db.packet(P, {
+    run, samples, finalMeanStepsToClear: world.meanStepsToClear(), episodes: world.episodes,
+  });
   const res = await db.insert(collection || run, pkt);
-  console.log(run + ': finalMeanX=' + world.meanX().toFixed(3) + '  saved=' + JSON.stringify(res));
+  console.log(run + ': episodes=' + world.episodes + ' meanStepsToClear=' +
+    world.meanStepsToClear().toFixed(2) + '  saved=' + JSON.stringify(res));
 }
 await db.close();

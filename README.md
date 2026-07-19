@@ -1,6 +1,7 @@
 # rllayers
 
-
+Layered / receptive-field tabular Q-learning for forager agents in discrete toroidal grid
+worlds — a reusable, reliable policy-learning component for agent-based models.
 
 A browser-based agent-based simulation (vanilla JS + Canvas, no build step), scaffolded from
 the shared engine v2.

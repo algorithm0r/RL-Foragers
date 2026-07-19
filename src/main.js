@@ -7,14 +7,14 @@ function reset() {
   gameEngine.clear();
   const cv = gameEngine.ctx.canvas;
   world = new World(cv.width, cv.height);
-  const graph = new LineGraph(10, 10, 200, 80, 'mean X');
+  const graph = new LineGraph(cv.width - 190, cv.height - 110, 180, 90, 'steps to clear');
   db = createDB(PARAMETERS.db);
   dataManager = new DataManager(world, db, graph);
   gameEngine.add(world);
   gameEngine.add(new Observer(world));
   gameEngine.add(dataManager);
   gameEngine.add(graph);
-  if (typeof setStatus === 'function') setStatus('running — ' + world.agents.length + ' agents');
+  if (typeof setStatus === 'function') setStatus('foraging — ' + world.N + '×' + world.N + ' grid');
 }
 
 window.onload = function () {

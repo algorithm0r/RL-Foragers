@@ -16,12 +16,16 @@ statistical predictability of tabular methods that a neural net would throw away
 
 ## Built
 - Engine v2 scaffold (vanilla-JS canvas, model/view split, vendored DB client, headless
-  `runner.mjs` + `smoketest.mjs`). Demo "drifters" model still in place — Stage 1 replaces it.
+  `runner.mjs` + `smoketest.mjs`, main-realm loader — no `vm`).
+- **Stage 1: `GridForager` + flat tabular learner.** Toroidal N×N food grid, 9 actions, the
+  +N/0/−1 reward, one flat Q-learner (per-entry visit counts already stored for Stage 2). Runs
+  in-browser; smoketest asserts a 1×1 learner learns to eat. Empirically confirms the wall:
+  3×3 learns (steps-to-clear 15→10, ~4.6k Q-states); 5×5 drowns (185k Q-states, ~1 new state
+  per step, steps-to-clear stuck ~300) — the baseline the layered learner must beat.
 - Legacy letters-puzzle Q-learner lives only in the initial commit (`51e9fc5`) as reference.
 
 ## Not yet built
-- Everything below. The grid-forager environment, the receptive-field learners, the coupling,
-  and the Experiment #1 harness.
+- The receptive-field learners (L1/L3/L5), the confidence coupling, and the Experiment #1 harness.
 
 ---
 
@@ -69,21 +73,20 @@ Q(s,a) = Σ_L  w_L(s) · Q_L(φ_L(s), a),   w_L(s) ∝ count_L(φ_L(s))   (norma
 
 ## Stages
 
-### Stage 1 — `GridForager` environment + one flat tabular learner  [ ACTIVE ]
+### Stage 1 — `GridForager` environment + one flat tabular learner  [ DONE ]
 Replace the demo. Multi-channel toroidal grid, 9 actions, the reward above, one flat Q-learner
 over the full window as the (deliberately weak) baseline.
-- [ ] `params.js`: grid size N, channels, reward constants (+N / 0 / −1), α, γ, ε, step cutoff;
-      add `PARAM_SCHEMA` entries.
-- [ ] `world.js`: torus state, food spawn, `eat`/move dynamics, reward, episode reset.
-- [ ] `agent.js`: sense window → pick action → act → learn.
-- [ ] `qlearner.js` (new file — add to `index.html` script tags **and** the vm load lists in
-      `smoketest.mjs`/`runner.mjs`): tabular Q with per-entry visit counts, ε-greedy.
-- [ ] `observer.js`: draw the grid + agent + food; `datamanager.js`: metric = steps-to-clear.
+- [x] `params.js`: grid size N, reward constants (+N / 0 / −1), α, γ, ε, step cutoff;
+      `PARAM_SCHEMA` entries. (Channels deferred — single food bit for now.)
+- [x] `world.js`: torus state, food spawn, `eat`/move dynamics, reward, episode reset.
+- [x] `agent.js`: sense window → pick action → act → learn.
+- [x] `qlearner.js` (new file — added to `index.html` script tags **and** the main-realm load
+      lists in `smoketest.mjs`/`runner.mjs`): tabular Q with per-entry visit counts, ε-greedy.
+- [x] `observer.js`: draws grid + agent + food + HUD; `datamanager.js`: metric = steps-to-clear.
 **Done when:** an agent forages a toroidal food grid in-browser, and `smoketest.mjs` asserts a
-real invariant (e.g. a 1×1 learner clears a food-present board within a bounded number of steps),
-not the demo drift check.
+real invariant (a 1×1 learner learns to eat). ✓ smoke PASS; 3×3/5×5 learning verified headless.
 
-### Stage 2 — Receptive-field learners + confidence coupling  [ PLANNED ]
+### Stage 2 — Receptive-field learners + confidence coupling  [ ACTIVE ]
 Add L1/L3/L5 abstractions over the same world, plus the count-weighted combination.
 - [ ] receptive-field state extractors `φ_L` (window slice of the torus).
 - [ ] count-weighted Q combination for action selection and the TD target.
