@@ -20,7 +20,7 @@ var Observer = class Observer {
     }
 
     // the receptive-field footprint the learner actually senses (wraps with the torus)
-    const r = (PARAMETERS.receptiveField - 1) >> 1;
+    const r = w.agent.viewRadius();
     ctx.strokeStyle = 'rgba(127,209,255,0.45)';
     ctx.lineWidth = 1;
     for (let dy = -r; dy <= r; dy++) {
@@ -41,12 +41,20 @@ var Observer = class Observer {
     ctx.font = "14px 'Consolas', monospace";
     let ty = 24;
     const line = (s) => { ctx.fillText(s, board + 16, ty); ty += 20; };
+    const A = w.agent;
     line('arena   ' + N + '×' + N);
-    line('window  ' + PARAMETERS.receptiveField + '×' + PARAMETERS.receptiveField);
+    if (A.layers) line('windows ' + A.layers.map((L) => L.size).join(' / '));
+    else line('window  ' + PARAMETERS.receptiveField + '×' + PARAMETERS.receptiveField);
     line('episode ' + w.episodes);
     line('food    ' + w.foodRemaining + ' / ' + w.initialFood);
     line('steps   ' + w.steps);
-    line('Q-states ' + w.agent.learner.Q.size);
+    if (A.layers) {
+      let qs = 0; for (const L of A.layers) qs += L.learner.Q.size;
+      line('Q-states ' + qs);
+      line('weights ' + A.layers.map((L, i) => 'L' + L.size + ':' + A.lastWeights[i].toFixed(2)).join(' '));
+    } else {
+      line('Q-states ' + A.learner.Q.size);
+    }
     ty += 6;
     line('mean steps-to-clear');
     ctx.fillStyle = '#7fd1ff';

@@ -6,11 +6,15 @@
 var QLearner = class QLearner {
   constructor(nActions) {
     this.nActions = nActions;
-    this.Q = new Map();       // "state|action" -> value
-    this.counts = new Map();  // "state|action" -> times updated (confidence)
+    this.Q = new Map();           // "state|action" -> value
+    this.counts = new Map();      // "state|action" -> times updated
+    this.stateCounts = new Map(); // "state" -> times updated in that state (the coupling's confidence signal)
   }
 
   key(state, action) { return state + '|' + action; }
+
+  // how many updates this learner has made in `state` (summed over actions) — its "known-ness"
+  getStateCount(state) { return this.stateCounts.get(state) || 0; }
 
   getQ(state, action) {
     const v = this.Q.get(this.key(state, action));
@@ -56,5 +60,6 @@ var QLearner = class QLearner {
     const target = nextState === null ? reward : reward + PARAMETERS.gamma * this.maxQ(nextState);
     this.Q.set(k, cur + PARAMETERS.alpha * (target - cur));
     this.counts.set(k, (this.counts.get(k) || 0) + 1);
+    this.stateCounts.set(state, (this.stateCounts.get(state) || 0) + 1);
   }
 };

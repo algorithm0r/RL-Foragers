@@ -24,10 +24,16 @@ statistical predictability of tabular methods that a neural net would throw away
   partial-obs run. Two regimes measured: fully observable (window=arena) 5×5 drowns at 185k
   Q-states (the combinatorial wall); partial obs (10×10 arena) 3×3 window learns local nav with a
   ~2.4k table — the baseline the layered learner must beat.
+- **Stage 2: layered agent (L1/L3/L5) + count-based confidence coupling.** Each window size is
+  its own Q-table; combined by `w_L ∝ count/(count+K)` for the behaviour policy; per-layer
+  weights drawn in the HUD. **~2× better than any flat window** (56 vs 119/126 steps-to-clear on
+  10×10); eat routes to L1; L5 auto-down-weighted on states it hasn't seen.
 - Legacy letters-puzzle Q-learner lives only in the initial commit (`51e9fc5`) as reference.
 
 ## Not yet built
-- The receptive-field learners (L1/L3/L5), the confidence coupling, and the Experiment #1 harness.
+- Experiment #1 harness (Stage 3): controls (subsumption, 1×1-only), seeds, DB sweeps, curves.
+- Learning-rule variants (combined-bootstrap, residual); learned filters (Stage 4); multi-agent
+  stochastic worlds + hunting (Stage 5).
 
 ---
 
@@ -98,28 +104,37 @@ over the full window as the (deliberately weak) baseline.
 **Done when:** an agent forages a toroidal food grid in-browser, and `smoketest.mjs` asserts a
 real invariant (a 1×1 learner learns to eat). ✓ smoke PASS; 3×3/5×5 learning verified headless.
 
-### Stage 2 — Receptive-field learners + confidence coupling  [ ACTIVE ]
-Add L1/L3/L5 abstractions over the same world, plus the count-weighted combination.
-- [ ] receptive-field state extractors `φ_L` (window slice of the torus).
-- [ ] count-weighted Q combination for action selection and the TD target.
-- [ ] instrument the per-layer weights so we can *see* `eat` routing to L1.
-**Done when:** the layered agent reliably clears 3×3, and logged weights show L1 dominating the
-`eat` decision while L3/L5 dominate navigation.
+### Stage 2 — Receptive-field learners + confidence coupling  [ DONE ]
+L1/L3/L5 learners over the same arena, combined by count-based confidence.
+- [x] receptive-field state extractors `φ_L` — `world.senseWindow(r)`, one call per layer.
+- [x] count-based confidence coupling for action selection: `Q(s,a)=Σ w_L·Q_L`, with
+      `w_L ∝ count_L/(count_L+K)` normalized. Each layer LEARNS independently (bootstraps on its
+      own next-state max); the combined value is the behaviour policy. (Combined-bootstrap and
+      residual learning-rule variants deferred to Stage 3.)
+- [x] per-layer weights instrumented (`agent.lastWeights`, drawn in the HUD).
+**Done when:** the layered agent reliably clears the arena and weights route `eat` to L1 while
+L3/L5 drive navigation. ✓ smoke PASS; headless (10×10, ~10 food): layered **56** steps-to-clear
+vs flat **119/126** (~2×); eat routed to L1; rare-state weights L1/L3/L5 = 0.41/0.41/0.18
+(L5 auto-down-weighted when it hasn't seen the pattern).
 
-### Stage 3 — Experiment #1: layered vs flat on 5×5  [ PLANNED ]
-The headline question: **can the layered learner navigate/clear 5×5 that flat tabular can't?**
-Conditions, all sharing the same world + reward:
-- (A) **flat 5×5 tabular** — expected floor (random policy on random grids).
+### Stage 3 — Experiment #1: layered vs flat  [ ACTIVE ]
+The headline question: **does the layered learner forage a partially-observed arena better than
+any single window?** Preliminary Stage-2 evidence says yes (layered 56 vs flat 119/126 steps-to-
+clear on 10×10); Stage 3 makes it rigorous — multiple seeds, learning curves, DB packets, controls.
+Conditions, all sharing the same world + reward (default 10×10, sparse food, partial obs):
+- (A) **flat single-window** — the floors: window 3 (cheap, ~119) and window 5 (~126, huge table).
 - (B) **1×1-only** = eat-reflex + random walk — the *informative* floor (never wastes an `eat`).
 - (C) **subsumption control** — fixed priority (L1 eat → L3 near-nav → L5) instead of learned
       weighting; isolates "does the *confidence weighting* matter, vs. just reusing sub-policies."
-- (D) **layered + count-confidence** — the treatment.
+- (D) **layered + count-confidence** — the treatment (Stage 2).
 - (E, optional) **model-based abstracted value iteration** — strong single-agent-deterministic
       baseline (dynamics are analytically known on the torus). Guards against beating a straw man.
-- [ ] `runner.mjs` sweeps over condition × grid size × seed → self-describing packets to DB.
+- Learning-rule axis for (D): independent per-layer bootstrap (current) vs combined-bootstrap
+  (factored target) vs residual (L1 prior → L3/L5 corrections).
+- [ ] `runner.mjs` sweeps over condition × arena/window × seed → self-describing packets to DB.
 - [ ] metrics: steps-to-clear and food-per-1000-steps vs training episodes; learning curves.
-**Done when:** curves for A–D (E optional) are saved to the DB and the layered-vs-flat comparison
-is decisive, with the subsumption control separating "layering" from "confidence weighting."
+**Done when:** curves for A–D (E optional) are saved to the DB and the comparison is decisive,
+with the subsumption control separating "layering" from "confidence weighting."
 
 ### Stage 4 — Learned filters: which *bits* matter  [ PLANNED ]
 Move from fixed receptive fields to **learned relevance** — the G-algorithm / U-Tree lineage:

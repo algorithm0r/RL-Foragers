@@ -10,7 +10,7 @@ var World = class World {
   constructor(width, height) {
     this.width = width;   // canvas px (Observer uses these to scale; the sim itself is grid-based)
     this.height = height;
-    this.agent = new Agent(World.NUM_ACTIONS); // the policy/learner (see agent.js), loaded before us
+    this.agent = makeAgent(World.NUM_ACTIONS); // flat or layered per PARAMETERS.agent (see agent.js)
     this.episodes = 0;    // completed (cleared) episodes
     this.emaSteps = null; // EMA of steps-to-clear — the learning-curve metric (lower = better)
     this.spawn();
@@ -43,16 +43,20 @@ var World = class World {
     return this.grid[((this.ay + dy) % N + N) % N][((this.ax + dx) % N + N) % N];
   }
 
-  // the agent-centered receptive-field window, as a bit string. The window is INDEPENDENT of the
-  // arena size (torus wraparound handles reads near the edge), so a small window on a large arena
-  // yields partial observability — the agent sees only what's near it.
-  senseState() {
-    const r = (PARAMETERS.receptiveField - 1) >> 1;
+  // the agent-centered window of radius r, as a bit string. INDEPENDENT of arena size (torus
+  // wraparound handles reads near the edge) — a small window on a large arena is partial
+  // observability. The layered agent calls this once per layer; the flat agent via senseState().
+  senseWindow(r) {
     let s = '';
     for (let dy = -r; dy <= r; dy++) {
       for (let dx = -r; dx <= r; dx++) s += this.cell(dx, dy);
     }
     return s;
+  }
+
+  // the flat agent's single window (radius from PARAMETERS.receptiveField)
+  senseState() {
+    return this.senseWindow((PARAMETERS.receptiveField - 1) >> 1);
   }
 
   // apply an action index. 0..7 = the 8 moves (World.DIRS), 8 = eat. Returns {reward, done}.

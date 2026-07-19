@@ -5,29 +5,30 @@
 **Verified:** 2026-07-18 (scaffold) — last cold audit (`/audit`); the State section is trusted only as of this date
 
 ## Stage
-DEVPLAN Stage 2 — Receptive-field learners + confidence coupling  `[ ACTIVE ]`
+DEVPLAN Stage 3 — Experiment #1: layered vs flat (controls + DB sweeps)  `[ ACTIVE ]`
 
 ## State
-Stage 1 complete + receptive-field decoupled from arena size: `GridForager` (toroidal
-`gridN`×`gridN` arena, `receptiveField` window sensed independently → partial observability) +
-one tabular Q-learner, in-browser (window footprint drawn) and headless. smoke PASS (eat-reflex,
-decoupling, clean partial-obs run). Default is now the realistic regime: 10×10 arena, 5×5 window,
-sparse food (density 0.1).
+Stages 1–2 complete. `GridForager` (toroidal arena, receptive-field window decoupled from arena →
+partial observability) with two agents sharing one `act()` contract: **flat** (single window) and
+**layered** (L1/L3/L5, each its own Q-table, combined by count-based confidence). Runs in-browser
+(window footprint + per-layer weights in HUD) and headless. smoke PASS (A flat eat-reflex, B
+decoupling, C partial-obs, D layered clears + eat/navigate routing).
 
 ## Metrics
-- Eat reflex (1×1): Q(food,eat)=1.00 vs Q(food,move)=−0.10, best = eat ✓
-- Fully-observable wall: 5×5 window=arena → 185k Q-states, steps-to-clear stuck ~300
-- Partial obs (10×10 arena): 1×1 win →~500 stc / 18 states; 3×3 →~140 / 2.4k; 5×5 →~155 / 89k
+- Layered vs flat (10×10, ~10 food, 300k ticks): **layered 56** steps-to-clear vs flat window-3 **119** / window-5 **126** (~2×)
+- Eat routing: food underfoot → argmax=eat (L1); food one-step-East → moves East (not eat)
+- Confidence weights L1/L3/L5: common state 0.33/0.33/0.33; rare 5×5 (L5 seen 23×) → 0.41/0.41/0.18
 
 ## Branches
 - `main`
 
 ## Open
-- Stage 2: add L1/L3/L5 receptive-field extractors + count-weighted Q combination.
+- Stage 3: subsumption + 1×1-only controls, multi-seed DB sweeps in `runner.mjs`, learning curves.
+- Learning-rule variants (combined-bootstrap, residual) still to test.
 - Multi-channel cells still deferred (single food bit today).
 
 ## Next action
-DEVPLAN Stage 2 — build the receptive-field state extractors `φ_L` and the confidence coupling.
+DEVPLAN Stage 3 — add the subsumption + 1×1-only agents, then a seed sweep to the DB.
 
 ## Blockers
 - none

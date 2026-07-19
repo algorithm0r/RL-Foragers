@@ -12,10 +12,17 @@ var PARAMETERS = {
   foodDensity: 0.1,       // P(cell starts as food). Low + big arena → sparse food, lots of empty space
   maxStepsPerEpisode: 2000, // step cutoff → abandon + respawn (guards against endless wandering)
 
-  // --- agent receptive field (decoupled from gridN) ---
-  // Odd window side the learner senses, centered on the agent. Set >= gridN to recover the
-  // fully-observable "sees the whole arena" mode; set < gridN for realistic partial observability.
-  receptiveField: 5,      // e.g. 1 / 3 / 5 — also the L1/L3/L5 window sizes of the Stage-2 stack
+  // --- agent architecture ---
+  agent: 'layered',       // 'flat' (Stage-1 baseline, one window) | 'layered' (Stage 2: L1/L3/L5 + confidence)
+
+  // flat agent: the single odd window side it senses, centered on the agent. >= gridN recovers
+  // fully-observable mode; < gridN is realistic partial observability. (Unused when agent='layered'.)
+  receptiveField: 5,
+
+  // layered agent: one Q-learner per window size, combined by count-based confidence weighting:
+  //   Q(s,a) = Σ_L w_L·Q_L(φ_L,a),  w_L ∝ conf(count_L(φ_L)),  conf(c) = c/(c+confidenceK)  (normalized)
+  layers: [1, 3, 5],      // receptive-field window sizes (odd, ascending) — L1 eat-reflex → L5 long-range
+  confidenceK: 30,        // saturation of the count→confidence curve; higher = slower to trust a layer
 
   // --- reward (as specified): eat=0, everything else=-1, clearing the board=+N (initial food) ---
   rewardEat: 0,           // a successful eat that does NOT clear the board
