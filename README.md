@@ -7,8 +7,9 @@ the shared engine v2.
 
 ## Run
 - **Browser:** open `index.html`.
-- **Headless batch:** `node runner.mjs --reps 50` — runs the same sim core via `vm` and writes
-  self-describing packets to MongoDB through the research Server.
+- **Headless batch:** `node runner.mjs --reps 50` — runs the same sim core in the main V8 realm
+  (indirect `eval`, not `vm` — avoids vm's hot-loop tax; see `~/.claude/conventions.md` §4) and
+  writes self-describing packets to MongoDB through the research Server.
 - **Smoke test:** `node smoketest.mjs` — no DB; asserts the model invariant and prints metrics.
 
 ## Layout

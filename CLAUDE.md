@@ -12,8 +12,11 @@
 - Vanilla JS + Canvas. No build step, no framework, no modules. `<script>` tags load
   `src/` in dependency order (`main.js` last).
 - **Shared things are top-level `var`** — including `var Foo = class Foo {}`. This is what
-  lets the SAME `src/` files run in the browser AND headless via `vm` (a bare `class`/`const`
-  is block-scoped and invisible in the vm context). Never fork the sim core.
+  lets the SAME `src/` files run in the browser AND headless: the runners strip `'use strict'`
+  and load them into the **main V8 realm via indirect `eval`** (not `vm`), where top-level
+  `var` attaches to `globalThis` (a bare `class`/`const` would be block-scoped and never
+  attach). Main-realm, not `vm`, because `vm` adds a ~7-10x hot-loop tax on per-tick global
+  reads and we never need its sandbox isolation (conventions §4). Never fork the sim core.
 - **All DOM lives in `ui.js` + `index.html`.** Sim classes (`world`, `agent`, `observer`,
   `datamanager`) touch zero DOM — that's what keeps them headless-safe.
 - **Model/view split:** the world holds state and never draws; the `Observer` renders it.
