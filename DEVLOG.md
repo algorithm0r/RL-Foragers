@@ -3,6 +3,28 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-20 — K-type sweep: the subsumption result FLIPS — a complementary trade
+**Done:** generalized the sweep to K resource types (each a distinct collect action → 8+K actions,
+(K+1)^cells states, base36 cell encoding). Swept K∈{1,2,5,10} (N=12, density 0.2, 3 seeds):
+confidence-weighted vs subsumption vs U-Tree, 13579 layers. → `types` collection.
+**Results — steps-to-clear (oracle flat ~77; degradation = learning):**
+- confidence (QL): 88/95/108/119 · subsumption: 82/91/128/201 · U-Tree: 117/497/1440/1027
+- Q-states: QL 458k→565k · subs 9.6k→33k · UT 3k→6.6k.
+**The finding — subsumption flips, and it's a genuine trade:**
+- Confidence-weighting **degrades gracefully** with K (88→119, near oracle) — its richer blended
+  representation learns the K-way type→action mapping.
+- Subsumption **degrades faster** (82→201), losing by K=5. Its arbitration only asks "is there *a*
+  goal in view", never *which type* → the whole type→action burden falls on the per-band Q.
+- U-Tree collapses (over-compression can't hold K types × K actions).
+**Complementary trade (the payoff):** DENSITY sweep → subsumption wins (bounds state count, 33-80×
+fewer); K-TYPE sweep → confidence-weighting wins (handles action richness). **Neither dominates —
+concentration favors subsumption's state-efficiency; response-diversity favors confidence-weighting's
+expressiveness.** Actionable ABM rule: few types + dense → subsumption; many types → confidence.
+(QLearner stayed robust at 565k states — tabular doesn't drown.)
+**Changed:** `world.js` (K-type sweep, base36 cells), `params.js` (nTypes), `agent.js` (hasGoal),
+`scale.mjs` (--types axis, K-type oracle), `smoketest.mjs`.
+**Next:** the ABM endgame (multi-agent / hunting) — the axis this all de-risks.
+
 ## 2026-07-20 — Subsumption control + density sweep: it's the LAYERING, not the weighting
 **Done:** built `SubsumptionAgent` (fixed-priority arbitration: narrowest window layer with a goal in
 view acts, else widest wanders; only the active layer learns → each layer's Q bounded to its band).
