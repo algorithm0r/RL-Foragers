@@ -47,6 +47,10 @@ var LayeredAgent = class LayeredAgent {
     }
     this.lastWeights = this.layers.map(() => 0); // instrumentation: last coupling weights
     this.lastAction = null;
+    // optional experience replay (Dyna-Q): re-apply stored transitions each step to speed value
+    // propagation, matching the DQN's update budget. Value-only (learnQ), so the confidence counts
+    // still reflect REAL visitation. This is the control for "was the DQN's edge budget or representation?"
+    this.replay = PARAMETERS.qReplay ? { buf: new Array(PARAMETERS.qReplayCap), pos: 0, filled: 0, cap: PARAMETERS.qReplayCap, seen: 0 } : null;
   }
 
   viewRadius() {
@@ -75,6 +79,22 @@ var LayeredAgent = class LayeredAgent {
     for (let i = 0; i < this.layers.length; i++) {
       this.layers[i].learner.learn(states[i], action, reward, nextStates ? nextStates[i] : null);
     }
+  }
+
+  // replay update: fit Q only (no count bump), so replayed repeats don't fake visitation
+  replayTransition(states, action, reward, nextStates) {
+    for (let i = 0; i < this.layers.length; i++) {
+      const L = this.layers[i].learner;
+      (L.learnQ ? L.learnQ : L.learn).call(L, states[i], action, reward, nextStates ? nextStates[i] : null);
+    }
+  }
+
+  // store the real transition, then re-apply qReplayK sampled transitions (Dyna-Q planning steps)
+  doReplay(states, action, reward, nextStates) {
+    const R = this.replay;
+    R.buf[R.pos] = { states, action, reward, nextStates }; R.pos = (R.pos + 1) % R.cap; if (R.filled < R.cap) R.filled++;
+    if (++R.seen < PARAMETERS.qReplayWarmup) return;
+    for (let b = 0; b < PARAMETERS.qReplayK; b++) { const s = R.buf[randomInt(R.filled)]; this.replayTransition(s.states, s.action, s.reward, s.nextStates); }
   }
 
   // confidence-weighted combined Q over actions. Returns {q:[...], weights:[...] normalized}.
@@ -134,6 +154,7 @@ var LayeredAgent = class LayeredAgent {
     const outcome = world.applyAction(action);
     const nextStates = outcome.done ? null : this.statesFor(world);
     this.learnTransition(states, action, outcome.reward, nextStates);
+    if (this.replay) this.doReplay(states, action, outcome.reward, nextStates);
     this.lastAction = action;
     return outcome;
   }

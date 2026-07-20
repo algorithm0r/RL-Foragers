@@ -69,10 +69,20 @@ var PARAMETERS = {
   dqnBatch: 32,           // minibatch size per gradient step
   dqnReplay: 20000,       // experience-replay capacity (ring buffer)
   dqnTargetSync: 1000,    // steps between target-network copies
+  dqnTrainEvery: 1,       // gradient step every N env steps (1 = every tick, 32 = matched to 1 update/step budget)
   dqnWarmup: 1000,        // steps of pure exploration to fill the buffer before learning
   dqnEpsStart: 1.0,       // ε at step 0 (anneals linearly)
   dqnEpsEnd: 0.05,        // ε floor
   dqnEpsDecaySteps: 60000, // steps to anneal ε from start to floor
+
+  // --- tabular experience replay (Dyna-Q) — the budget-matched control for the DQN comparison ---
+  // Give the tabular layered agent DQN-style replay: each real step, re-apply qReplayK stored
+  // transitions (value-only, so visit counts stay honest). Tests whether the DQN's edge was the
+  // 32:1 update budget (replay closes the gap) or genuine generalization (replay plateaus below it).
+  qReplay: false,
+  qReplayK: 32,           // replayed transitions re-applied per real step
+  qReplayCap: 20000,      // replay buffer capacity
+  qReplayWarmup: 1000,    // real steps before replay kicks in
 
   // --- tabular Q-learning ---
   alpha: 0.1,             // learning rate

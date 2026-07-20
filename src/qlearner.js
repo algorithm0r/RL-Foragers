@@ -75,12 +75,20 @@ var QLearner = class QLearner {
     return best[randomInt(best.length)];
   }
 
-  // Q(s,a) ← Q(s,a) + α[r + γ·maxₐ' Q(s',a') − Q(s,a)]; nextState === null means terminal (no bootstrap)
-  learn(state, action, reward, nextState) {
+  // Q(s,a) ← Q(s,a) + α[r + γ·maxₐ' Q(s',a') − Q(s,a)]; nextState === null means terminal (no bootstrap).
+  // The pure VALUE update, no bookkeeping — this is what experience replay re-applies (Dyna-Q), so
+  // replayed repeats don't inflate the visit counts that drive the confidence signal.
+  learnQ(state, action, reward, nextState) {
     const k = this.key(state, action);
     const cur = this.getQ(state, action);
     const target = nextState === null ? reward : reward + PARAMETERS.gamma * this.maxQ(nextState);
     this.Q.set(k, cur + PARAMETERS.alpha * (target - cur));
+  }
+
+  // a REAL experienced transition: fit Q and bump the visit counts (state-count = the coupling's confidence)
+  learn(state, action, reward, nextState) {
+    this.learnQ(state, action, reward, nextState);
+    const k = this.key(state, action);
     this.counts.set(k, (this.counts.get(k) || 0) + 1);
     this.stateCounts.set(state, (this.stateCounts.get(state) || 0) + 1);
   }

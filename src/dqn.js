@@ -117,7 +117,7 @@ var DQNAgent = class DQNAgent {
     const nidx = outcome.done ? null : this.encode(world);
     this.store(idx, action, outcome.reward, nidx, outcome.done);
     this.steps++;
-    if (this.filled >= this.warmup) this.trainStep();
+    if (this.filled >= this.warmup && this.steps % PARAMETERS.dqnTrainEvery === 0) this.trainStep();
     if (this.steps % this.sync === 0) this.syncTarget();
     this.lastAction = action;
     return outcome;
