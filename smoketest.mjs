@@ -56,9 +56,9 @@ for (const [N, rf] of [[6, 1], [8, 3], [10, 5]]) {
   if (new World(800, 600).senseWindow((rf - 1) >> 1).length !== rf * rf) { decoupled = false; break; }
 }
 
-// --- L: the base food-sweep model learns under GREEDY + strategic init (gather=+1, defaultQ=0) ---
-base(); P.agent = 'layered'; P.layers = [1, 3, 5]; P.explore = 'greedy'; P.rewardGather = 1; P.defaultQ = 0;
-P.gridN = 8; P.nFood = 6; P.maxStepsPerEpisode = 500;
+// --- L: the base food-sweep model learns under the default ε-greedy 0.01 (gather=+1, defaultQ=0) ---
+base(); P.agent = 'layered'; P.layers = [1, 3, 5]; P.explore = 'egreedy'; P.epsilon = 0.01;
+P.rewardGather = 1; P.defaultQ = 0; P.gridN = 8; P.nFood = 6; P.maxStepsPerEpisode = 500;
 const wL = new World(800, 600), eL = new GameEngine();
 for (let t = 1; t <= 400000; t++) { eL.tick = t; wL.update(eL); }
 const late = wL.meanStepsToClear();

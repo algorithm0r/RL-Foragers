@@ -40,6 +40,7 @@ const CONDITIONS = [
   { name: 'flat-w5', over: { agent: 'flat', receptiveField: 5 } },
   { name: 'layered-13', over: { agent: 'layered', layers: [1, 3] } },
   { name: 'layered-135', over: { agent: 'layered', layers: [1, 3, 5] } },
+  { name: 'layered-1357', over: { agent: 'layered', layers: [1, 3, 5, 7] } },
 ];
 const REFERENCES = [
   { name: 'oracle-greedy', policy: greedyPolicy },

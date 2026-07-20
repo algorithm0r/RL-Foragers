@@ -49,17 +49,17 @@ var PARAMETERS = {
   defaultQ: 0,            // Q for unseen (state, action) pairs
 
   // --- exploration ---
-  // 'greedy':  pure argmax of Q. Exploration comes from the STRATEGIC INIT: unvisited (s,a) return
-  //            defaultQ=0, which sits in the value gap — so untried actions beat known-bad wandering
-  //            (explore) but lose to a learned good action (the reflex is never overridden). No bonus,
-  //            no forcing. Apt for this (deterministic) world; the default.
-  // 'ucb':     optimism via a count bonus, argmax_a [ Q + ucbC·√(ln N_state / n_state,action) ]; untried
-  //            (s,a) forced first. Scale-free but its forcing can override a confident reflex — kept for
-  //            comparison.
-  // 'egreedy': ε-random (kept for baselines).
-  explore: 'greedy',
+  // 'egreedy': ε-random exploration — the DEFAULT (ε=0.01). Stage-3 prelim (N=5) found foraging is a
+  //            COVERAGE problem (you must visit every food cell), so SUSTAINED randomness beats fading
+  //            optimism: a 1% ε reliably learns across every architecture (5/5), where greedy locks into
+  //            deterministic torus loops and UCB anneals into a fixed path that never covers the arena.
+  // 'ucb':     optimism via a count bonus, argmax_a [ Q + ucbC·√(ln N_state / n_state,action) ]. Slightly
+  //            tighter for the layered agent (40.6±1.6 vs egreedy 42.7±7.3) but fails the weaker agents.
+  // 'greedy':  pure argmax; exploration only from the strategic init (defaultQ=0 in the value gap).
+  //            Reflex-safe but unreliable on the full task (deterministic loops). Kept for comparison.
+  explore: 'egreedy',
   ucbC: 1.0,              // UCB exploration constant (higher = explore longer); only when explore='ucb'
-  epsilon: 0.1,           // ε-random rate; only when explore='egreedy'
+  epsilon: 0.01,          // ε-random rate; only when explore='egreedy'
 
   // --- engine ---
   updatesPerDraw: 20,     // fast-forward: sim updates per rendered frame (learning is fast, drawing slow)
