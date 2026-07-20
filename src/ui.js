@@ -136,24 +136,27 @@ function renderQView(w, ctx) {
     ctx.fillText('1×1 Q-view — enable a 1×1 layer', 8, 18);
     return;
   }
-  // shared colour scale = actual min→max of the shown Q (not symmetric-around-0), so a near-zero
-  // best action (eat ≈ 0, cancelled by discounted travel cost) still reads as the top of the range.
-  let mn = Infinity, mx = -Infinity;
-  for (const st of ['0', '1']) for (let a = 0; a < 9; a++) { const q = L1.getQ(st, a); if (q < mn) mn = q; if (q > mx) mx = q; }
+  // colour is normalized PER STATE (each grid to its own action range), so it shows the DECISION
+  // within a state (green = best action) independent of the state's overall value level.
   ctx.fillStyle = '#8a8f98'; ctx.font = '11px sans-serif';
-  ctx.fillText('1×1 layer Q  (centre=eat, ring=moves)', 8, 12);
-  ctx.fillStyle = '#5a5f68'; ctx.font = '10px monospace';
-  ctx.fillText('Q ' + mn.toFixed(1) + ' … ' + mx.toFixed(1) + '  (this plot)', 8, 26);
-  drawQGrid(ctx, L1, '0', Q_COL_L, Q_ROW, 'no food', mn, mx, 50);
-  drawQGrid(ctx, L1, '1', Q_COL_R, Q_ROW, 'food', mn, mx, 50);
+  ctx.fillText('1×1 layer Q  (centre=eat, ring=moves; colour = Q per state)', 8, 12);
+  drawQGrid(ctx, L1, '0', Q_COL_L, Q_ROW, 'no food', 50);
+  drawQGrid(ctx, L1, '1', Q_COL_R, Q_ROW, 'food', 50);
 }
 
-function drawQGrid(ctx, L1, state, x0, y0, label, mn, mx, cell) {
+function drawQGrid(ctx, L1, state, x0, y0, label, cell) {
   const EAT = 8;
-  let best = 0, bestQ = -Infinity;
-  for (let a = 0; a < 9; a++) { const q = L1.getQ(state, a); if (q > bestQ) { bestQ = q; best = a; } }
+  // per-state range over the 9 actions (visited only)
+  let mn = Infinity, mx = -Infinity, best = 0, bestQ = -Infinity;
+  for (let a = 0; a < 9; a++) {
+    if (L1.getCount(state, a) === 0) continue;
+    const q = L1.getQ(state, a);
+    if (q < mn) mn = q; if (q > mx) mx = q;
+    if (q > bestQ) { bestQ = q; best = a; }
+  }
+  if (mn === Infinity) { mn = 0; mx = 1; }
   ctx.fillStyle = '#cdd2da'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
-  ctx.fillText(label, x0 + 1.5 * cell, y0 - 4);
+  ctx.fillText(label + '  [' + mn.toFixed(1) + '…' + mx.toFixed(1) + ']', x0 + 1.5 * cell, y0 - 4);
   for (let row = 0; row < 3; row++) {
     for (let col = 0; col < 3; col++) {
       const dx = col - 1, dy = row - 1;
@@ -161,7 +164,7 @@ function drawQGrid(ctx, L1, state, x0, y0, label, mn, mx, cell) {
       if (dx !== 0 || dy !== 0) { a = -1; for (let i = 0; i < 8; i++) if (World.DIRS[i][0] === dx && World.DIRS[i][1] === dy) { a = i; break; } }
       const q = L1.getQ(state, a);
       const px = x0 + col * cell, py = y0 + row * cell;
-      ctx.fillStyle = qColorRange(q, mn, mx);
+      ctx.fillStyle = L1.getCount(state, a) > 0 ? qColorRange(q, mn, mx) : '#242a33';
       ctx.fillRect(px + 1, py + 1, cell - 2, cell - 2);
       if (a === best) { ctx.strokeStyle = '#7fd1ff'; ctx.lineWidth = 2; ctx.strokeRect(px + 2, py + 2, cell - 4, cell - 4); }
       else if (a === EAT) { ctx.strokeStyle = '#e8b23a'; ctx.lineWidth = 1; ctx.strokeRect(px + 2, py + 2, cell - 4, cell - 4); }
@@ -210,21 +213,22 @@ function renderQ3View(w, ctx) {
   ctx.textAlign = 'left';
   if (!L3) { ctx.fillStyle = '#5a5f68'; ctx.font = '11px monospace'; ctx.fillText('3×3 Q-view — enable a 3×3 layer', 8, 18); return; }
   q3Precompute();
-  let mn = Infinity, mx = -Infinity, seen = 0;
-  for (const S of [Q3_STATE0, Q3_STATE1]) for (let k = 0; k < 256; k++) for (let a = 0; a < 9; a++) {
-    if (L3.getCount(S[k], a) > 0) { const q = L3.getQ(S[k], a); if (q < mn) mn = q; if (q > mx) mx = q; seen++; }
-  }
-  if (seen === 0) { mn = 0; mx = 1; }
   ctx.fillStyle = '#8a8f98'; ctx.font = '11px sans-serif';
   ctx.fillText('3×3 layer Q — action × 256 surround configs (0→8 food)', 8, 12);
   ctx.fillStyle = '#5a5f68'; ctx.font = '10px monospace';
-  ctx.fillText('Q ' + mn.toFixed(1) + ' … ' + mx.toFixed(1) + '  (this plot)   grey = unexplored', 8, 26);
-  drawQ3Panel(ctx, L3, Q3_STATE0, Q_COL_L, Q_ROW, 'no food', mn, mx);
-  drawQ3Panel(ctx, L3, Q3_STATE1, Q_COL_R, Q_ROW, 'food', mn, mx);
+  ctx.fillText('colour = Q per state (green = best action)   grey = unexplored', 8, 26);
+  drawQ3Panel(ctx, L3, Q3_STATE0, Q_COL_L, Q_ROW, 'no food');
+  drawQ3Panel(ctx, L3, Q3_STATE1, Q_COL_R, Q_ROW, 'food');
 }
 
-function drawQ3Panel(ctx, L3, STATES, px0, py0, label, mn, mx) {
+function drawQ3Panel(ctx, L3, STATES, px0, py0, label) {
   const cfgPx = 3, cellW = 16 * cfgPx, gap = 5, EAT = 8;
+  // per-STATE (per-config) colour range: for each config, min/max over its 9 actions (visited only)
+  const cmn = new Float64Array(256).fill(Infinity), cmx = new Float64Array(256).fill(-Infinity);
+  for (let k = 0; k < 256; k++) {
+    const st = STATES[k];
+    for (let a = 0; a < 9; a++) if (L3.getCount(st, a) > 0) { const q = L3.getQ(st, a); if (q < cmn[k]) cmn[k] = q; if (q > cmx[k]) cmx[k] = q; }
+  }
   ctx.fillStyle = '#cdd2da'; ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
   ctx.fillText(label, px0, py0 - 3);
   for (let arow = 0; arow < 3; arow++) {
@@ -235,7 +239,7 @@ function drawQ3Panel(ctx, L3, STATES, px0, py0, label, mn, mx) {
       const cx = px0 + acol * (cellW + gap), cy = py0 + arow * (cellW + gap);
       for (let k = 0; k < 256; k++) {
         const st = STATES[k];
-        ctx.fillStyle = L3.getCount(st, a) > 0 ? qColorRange(L3.getQ(st, a), mn, mx) : '#242a33';
+        ctx.fillStyle = L3.getCount(st, a) > 0 ? qColorRange(L3.getQ(st, a), cmn[k], cmx[k]) : '#242a33';
         ctx.fillRect(cx + (k & 15) * cfgPx, cy + (k >> 4) * cfgPx, cfgPx, cfgPx);
       }
       ctx.strokeStyle = a === EAT ? '#e8b23a' : '#333'; ctx.lineWidth = 1;
