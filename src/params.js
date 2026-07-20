@@ -33,6 +33,16 @@ var PARAMETERS = {
                           // homing/rest decision), so the spatial window layers stay pure reflexes
   confidenceK: 30,        // saturation of the count→confidence curve; higher = slower to trust a layer
 
+  // --- relevance filtering (U-Tree per window layer) ---
+  // Swap each window layer's flat QLearner for a U-Tree that keys Q on a decision tree over the window
+  // cells: starts ignoring all cells, splits a leaf on a cell only when its value predicts the target
+  // (relevance). Keeps wide windows cheap; relevance is conditional. (Internal/strategic layer unaffected.)
+  relevanceFilter: false,
+  utreeMinSamples: 200,   // min leaf visits before it's considered for a split
+  utreeMinChild: 15,      // min samples per candidate cell-value-action to trust it
+  utreeSplitThreshold: 0.5, // min spread (Q units) of mean-target across a cell's values to split on it
+  utreeCheckInterval: 200,  // test a leaf for splitting every N updates
+
   // --- reward: gather=+1 (eat/drink), any other action=-1, clear/rest bonus, pit = death ---
   // rewardGather ≈ |rewardStep| is deliberate: it puts "about to gather" just above 0 and "searching"
   // just below 0, so the Q-value gap straddles zero and defaultQ=0 is the strategic exploration
@@ -85,6 +95,7 @@ var PARAM_SCHEMA = [
   { key: 'enableWater', label: '+ Water (2nd resource)', type: 'checkbox' },
   { key: 'enableShelter', label: '+ Shelter (rest ends day)', type: 'checkbox' },
   { key: 'enablePits', label: '+ Pits (death)', type: 'checkbox' },
+  { key: 'relevanceFilter', label: 'Relevance filter (U-Tree)', type: 'checkbox' },
   // sliders
   { key: 'gridN', label: 'Arena N', min: 4, max: 20, step: 1, resets: true },
   { key: 'nFood', label: 'Food', min: 0, max: 30, step: 1, resets: true },

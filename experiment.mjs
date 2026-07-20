@@ -12,7 +12,7 @@ const { createDB } = require('./src/db.js');
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const indirectEval = eval;
-for (const f of ['util.js', 'params.js', 'engine.js', 'qlearner.js', 'agent.js', 'world.js']) {
+for (const f of ['util.js', 'params.js', 'engine.js', 'qlearner.js', 'utree.js', 'agent.js', 'world.js']) {
   indirectEval(readFileSync(path.join(__dirname, 'src', f), 'utf8').replace(/^\s*(['"])use strict\1;?/, ''));
 }
 const { PARAMETERS: P, World, GameEngine } = globalThis;
@@ -30,10 +30,13 @@ const BASE = {
   agent: 'layered', layers: [1, 3, 5], enableWater: false, enableShelter: false, enablePits: false,
   gridN: 10, nFood: 10, maxStepsPerEpisode: 1200, alpha: 0.1, gamma: 0.95, confidenceK: 30,
   rewardStep: -1, rewardGather: 1, defaultQ: 0, explore: 'greedy', ucbC: 1, epsilon: 0.1,
+  relevanceFilter: false, utreeSplitThreshold: 0.5,
 };
 BASE.explore = flag('explore', BASE.explore);         // --explore greedy|ucb|egreedy (learned conditions)
 BASE.epsilon = parseFloat(flag('epsilon', BASE.epsilon)); // --epsilon (egreedy random rate)
 BASE.ucbC = parseFloat(flag('ucbC', BASE.ucbC));          // --ucbC (UCB constant)
+BASE.relevanceFilter = argv.includes('--utree');          // --utree (U-Tree relevance filter on window layers)
+BASE.utreeSplitThreshold = parseFloat(flag('utreeThresh', BASE.utreeSplitThreshold));
 const CONDITIONS = [
   { name: 'flat-w1', over: { agent: 'flat', receptiveField: 1 } },
   { name: 'flat-w3', over: { agent: 'flat', receptiveField: 3 } },
@@ -71,8 +74,8 @@ function randomPolicy(w) { return Math.floor(Math.random() * w.actions.length); 
 
 function qStates(w) {
   const A = w.agent;
-  if (A.layers) return A.layers.reduce((s, L) => s + L.learner.Q.size, 0);
-  if (A.learner) return A.learner.Q.size;
+  if (A.layers) return A.layers.reduce((s, L) => s + L.learner.numStates(), 0);
+  if (A.learner) return A.learner.numStates();
   return 0;
 }
 
@@ -109,7 +112,7 @@ async function main() {
     const pkt = db.packet(P, {
       experiment: 'stage3-prelim', condition: j.name, rep: j.rep, seed,
       explore: j.policy ? 'reference' : (P.explore === 'egreedy' ? 'egreedy-' + P.epsilon : P.explore),
-      isReference: !!j.policy, ticks: TICKS,
+      filter: (!j.policy && P.relevanceFilter) ? 'utree' : 'none', isReference: !!j.policy, ticks: TICKS,
       final: res.final, cleared: res.cleared, qStates: res.qStates, curve: res.curve,
     });
     const ins = await db.insert(COLL, pkt);

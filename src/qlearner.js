@@ -16,6 +16,8 @@ var QLearner = class QLearner {
   // how many updates this learner has made in `state` (summed over actions) — its "known-ness"
   getStateCount(state) { return this.stateCounts.get(state) || 0; }
 
+  numStates() { return this.stateCounts.size; } // distinct abstract states seen (matches UTreeLearner)
+
   getQ(state, action) {
     const v = this.Q.get(this.key(state, action));
     return v === undefined ? PARAMETERS.defaultQ : v;

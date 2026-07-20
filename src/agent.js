@@ -38,7 +38,8 @@ var LayeredAgent = class LayeredAgent {
     // 'internal' layer senses ONLY shelter-bearing + satiety (the homing/rest decision) in its own
     // tiny state space. Keeping them separate is what stops the state count from exploding.
     this.layers = PARAMETERS.layers.map((size) => ({
-      kind: 'window', size, r: (size - 1) >> 1, label: 'L' + size, learner: new QLearner(nActions),
+      kind: 'window', size, r: (size - 1) >> 1, label: 'L' + size,
+      learner: PARAMETERS.relevanceFilter ? new UTreeLearner(nActions) : new QLearner(nActions),
     }));
     if (PARAMETERS.strategicLayer && PARAMETERS.enableShelter) { // only meaningful when there's a home to return to
       this.layers.push({ kind: 'internal', label: 'INT', learner: new QLearner(nActions) });

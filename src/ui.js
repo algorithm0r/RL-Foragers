@@ -91,7 +91,7 @@ function renderStats(w) {
   if (P.enablePits) L.push('died     ' + w.died + '  (' + (w.deathRate() * 100).toFixed(0) + '%)');
   if (P.enableShelter || P.enableWater) L.push('carrying food ' + w.food + (P.enableWater ? '  water ' + w.water : ''));
   L.push('steps    ' + w.steps + ' / ' + P.maxStepsPerEpisode);
-  const qs = A.layers ? A.layers.reduce((s, l) => s + l.learner.Q.size, 0) : A.learner.Q.size;
+  const qs = A.layers ? A.layers.reduce((s, l) => s + l.learner.numStates(), 0) : A.learner.numStates();
   L.push('Q-states ' + qs.toLocaleString());
   if (A.layers) L.push('weights  ' + A.layers.map((l, i) => l.label + ':' + A.lastWeights[i].toFixed(2)).join(' '));
   L.push('');

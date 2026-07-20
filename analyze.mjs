@@ -21,7 +21,7 @@ await c.close();
 
 const groups = new Map();
 for (const d of docs) {
-  const key = (d.explore || '?') + ' / ' + d.condition;
+  const key = (d.explore || '?') + ' / ' + d.condition + (d.filter === 'utree' ? ' [utree]' : '');
   if (!groups.has(key)) groups.set(key, []);
   groups.get(key).push(d);
 }
