@@ -1,7 +1,7 @@
-// Scale sweep: does relevance filtering (U-Tree) degrade LESS than flat QLearner as the raw state
-// count grows with arena size? layered-1357 / layered-13579, QLearner vs U-Tree, across N∈{10,14,20},
-// food at density 0.1, maxSteps ∝ N². egreedy 0.01. Oracle anchor per size. → 'scale' collection.
-//   node scale.mjs [--reps N] [--ticks N] [--sizes 10,14,20] [--collection scale]
+// Scale + resources sweep: QLearner vs U-Tree as (a) the arena grows and (b) cells gain values.
+// resources=1 → binary food sweep (2^k per window); resources=2 → food+water sweep, 3-valued cells
+// (3^k per window) — the memory-ceiling test for U-Tree, no shelter/rest confound. Pushed-up layers.
+//   node scale.mjs [--reps N] [--ticks N] [--sizes 10,14,20] [--resources 1,2] [--collection scale]
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
@@ -23,10 +23,11 @@ const TICKS = parseInt(flag('ticks', '300000'), 10);
 const SAMPLE = parseInt(flag('sample', '5000'), 10);
 const COLL = flag('collection', 'scale');
 const SIZES = flag('sizes', '10,14,20').split(',').map(Number);
+const RESOURCES = flag('resources', '1,2').split(',').map(Number);
 const DENSITY = 0.1;
 
 const BASE = {
-  agent: 'layered', enableWater: false, enableShelter: false, enablePits: false,
+  agent: 'layered', enableShelter: false, enablePits: false,
   alpha: 0.1, gamma: 0.95, confidenceK: 30, rewardStep: -1, rewardGather: 1, defaultQ: 0,
   explore: 'egreedy', epsilon: 0.01,
   utreeMinSamples: 200, utreeMinChild: 15, utreeSplitThreshold: 0.3, utreeCheckInterval: 150,
@@ -41,26 +42,31 @@ const CONFIGS = [
 const SEED0 = 12345;
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function tdir(a, b, N) { const d = (b - a + N) % N; return d === 0 ? 0 : (d <= N - d ? 1 : -1); }
+
+// full-vision greedy forager, food + water: consume what's underfoot, else head to nearest resource
 function greedyPolicy(w) {
-  const EAT = w.actions.indexOf('eat');
-  if (w.cell(0, 0) === World.FOOD) return EAT;
+  const here = w.cell(0, 0);
+  if (here === World.FOOD) return w.actions.indexOf('eat');
+  if (here === World.WATER) return w.actions.indexOf('drink');
   const N = w.N; let best = Infinity, bx = 0, by = 0;
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
-    if (w.grid[y][x] !== World.FOOD) continue;
+    const t = w.grid[y][x];
+    if (t !== World.FOOD && t !== World.WATER) continue;
     const ddx = Math.min((x - w.ax + N) % N, (w.ax - x + N) % N), ddy = Math.min((y - w.ay + N) % N, (w.ay - y + N) % N);
     const d = Math.max(ddx, ddy); if (d < best) { best = d; bx = x; by = y; }
   }
-  if (best === Infinity) return EAT;
+  if (best === Infinity) return 0;
   const sx = tdir(w.ax, bx, N), sy = tdir(w.ay, by, N);
   for (let i = 0; i < 8; i++) if (World.DIRS[i][0] === sx && World.DIRS[i][1] === sy) return i;
-  return EAT;
+  return 0;
 }
 function qStates(w) { return w.agent.layers ? w.agent.layers.reduce((s, L) => s + L.learner.numStates(), 0) : 0; }
 
-function runOne(N, cfg, seed, policy) {
-  const food = Math.max(1, Math.round(N * N * DENSITY)), maxSteps = N * N * 10;
+function runOne(N, res, cfg, seed, policy) {
+  const items = Math.max(2, Math.round(N * N * DENSITY));
+  const food = res === 2 ? Math.round(items / 2) : items, water = res === 2 ? items - Math.round(items / 2) : 0;
   Object.assign(P, BASE, {
-    gridN: N, nFood: food, maxStepsPerEpisode: maxSteps,
+    gridN: N, nFood: food, nWater: water, enableWater: res === 2, maxStepsPerEpisode: N * N * 10,
     layers: cfg ? cfg.layers : [1, 3, 5, 7], relevanceFilter: cfg ? cfg.utree : false,
   });
   Math.random = mulberry32(seed);
@@ -71,30 +77,30 @@ function runOne(N, cfg, seed, policy) {
     e.tick = t; w.update(e);
     if (t % SAMPLE === 0) curve.push({ tick: t, stc: +w.meanStepsToClear().toFixed(1), cleared: w.cleared });
   }
-  return { food, maxSteps, final: +w.meanStepsToClear().toFixed(1), cleared: w.cleared, qStates: qStates(w), curve };
+  return { food, water, final: +w.meanStepsToClear().toFixed(1), cleared: w.cleared, qStates: qStates(w), curve };
 }
 
 async function main() {
   const db = createDB({ transport: 'direct', mongoUrl: P.db.mongoUrl, db: flag('db', 'rllayers') });
   const jobs = [];
-  for (const N of SIZES) {
-    for (const cfg of CONFIGS) for (let r = 0; r < REPS; r++) jobs.push({ N, cfg, rep: r, policy: null });
-    for (let r = 0; r < Math.min(2, REPS); r++) jobs.push({ N, cfg: { name: 'oracle' }, rep: r, policy: greedyPolicy });
+  for (const N of SIZES) for (const res of RESOURCES) {
+    for (const cfg of CONFIGS) for (let r = 0; r < REPS; r++) jobs.push({ N, res, cfg, rep: r, policy: null });
+    for (let r = 0; r < Math.min(2, REPS); r++) jobs.push({ N, res, cfg: { name: 'oracle' }, rep: r, policy: greedyPolicy });
   }
   console.log('scale: ' + jobs.length + ' runs, ' + TICKS + ' ticks each → ' + COLL);
   let n = 0;
   for (const j of jobs) {
     const seed = SEED0 + j.rep, t0 = Date.now();
-    const res = runOne(j.N, j.policy ? null : j.cfg, seed, j.policy);
-    db.config.run = 'N' + j.N + '-' + j.cfg.name + '-r' + j.rep;
+    const res = runOne(j.N, j.res, j.policy ? null : j.cfg, seed, j.policy);
+    db.config.run = 'N' + j.N + '-r' + j.res + '-' + j.cfg.name + '-s' + j.rep;
     const pkt = db.packet(P, {
-      experiment: 'scale', N: j.N, config: j.cfg.name, rep: j.rep, seed,
-      food: res.food, maxSteps: res.maxSteps, isReference: !!j.policy,
+      experiment: 'scale', N: j.N, resources: j.res, config: j.cfg.name, rep: j.rep, seed,
+      food: res.food, water: res.water, isReference: !!j.policy,
       final: res.final, cleared: res.cleared, qStates: res.qStates, curve: res.curve,
     });
     const ins = await db.insert(COLL, pkt);
     n++;
-    console.log('  [' + n + '/' + jobs.length + '] N=' + j.N + ' ' + j.cfg.name + ' r' + j.rep +
+    console.log('  [' + n + '/' + jobs.length + '] N=' + j.N + ' r' + j.res + ' ' + j.cfg.name + ' s' + j.rep +
       ' → final=' + res.final + ' cleared=' + res.cleared + ' qStates=' + res.qStates.toLocaleString() +
       ' (' + ((Date.now() - t0) / 1000).toFixed(0) + 's, ok=' + ins.ok + ')');
   }
