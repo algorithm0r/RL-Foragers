@@ -3,6 +3,23 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-19 — layered-1357: wider reach helps under ε, hurts under UCB
+**Done:** flipped default exploration to **egreedy ε=0.01** (params + smoke). Added `layered-1357`
+([1,3,5,7]) and ran it N=5 under both good modes.
+**Results (steps-to-clear, oracle ≈ 29.5):**
+- **layered-1357 + egreedy-0.01 = 32.8 ± 0.4, 5/5 — the new best (~1.1× oracle, very tight).**
+- layered-1357 + ucb = 58.6 ± 1.3, 5/5 — the 7×7 HURTS under UCB.
+- (vs layered-135: egreedy 42.7 ± 7.3, ucb 40.6 ± 1.6.)
+**The finding:** adding the 7×7 helps under ε (42.7→32.8, extra reach cuts blind wandering) but hurts
+under UCB (40.6→58.6). Why: the 7×7 is almost always in a novel state (2^49), so UCB's novelty-forcing
+keeps exploring through it (198k Q-states, thrashing) instead of exploiting; ε's fixed rate doesn't
+(106k). So **ε scales gracefully with wider layers; UCB doesn't** — a 2nd independent reason ε is the
+right default, and it means we can keep adding reach toward the oracle (under ε). Cost: memory (~106k
+vs ~17k Q-states) — the pressure that motivates relevance filtering.
+**Changed:** `params.js` (explore→egreedy, ε=0.01, comment), `smoketest.mjs` (new default), `experiment.mjs`
+(+layered-1357). 84 packets in `prelim`.
+**Next:** relevance filtering (collapse redundant bits so wide layers stay cheap); arena sweep; subsumption control.
+
 ## 2026-07-19 — Prelim N=5 + ε-greedy 0.01: exploration is a coverage problem
 **Done:** re-ran the prelim at N=5 seeds across greedy / ucb / **egreedy-0.01** (added `--epsilon`/`--ucbC`
 flags; wiped + refilled `prelim`, 79 packets). Metric steps-to-clear, oracle ≈ 29.5.
