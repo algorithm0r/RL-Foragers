@@ -38,33 +38,6 @@ var Observer = class Observer {
     // the forager
     ctx.fillStyle = '#f32e26'; ctx.beginPath();
     ctx.arc((w.ax + 0.5) * cell, (w.ay + 0.5) * cell, Math.max(3, cell * 0.32), 0, TAU); ctx.fill();
-
-    // HUD (right gutter)
-    ctx.fillStyle = '#cdd2da'; ctx.font = "14px 'Consolas', monospace";
-    let ty = 22;
-    const line = (s) => { ctx.fillText(s, board + 16, ty); ty += 19; };
-    const A = w.agent;
-    const feat = 'food' + (PARAMETERS.enableWater ? '+water' : '') + (PARAMETERS.enableShelter ? '+shelter' : '') + (PARAMETERS.enablePits ? '+pits' : '');
-    line('model   ' + feat);
-    line('arena   ' + N + '×' + N + '   agent ' + (A.layers ? 'layered' : 'flat'));
-    if (A.layers) line('layers  ' + A.layers.map((L) => L.label).join(' '));
-    else line('window  ' + PARAMETERS.receptiveField + '×' + PARAMETERS.receptiveField);
-    let ep = 'episode ' + w.episodes + (PARAMETERS.enableShelter ? '  rest ' + w.rested : '  clear ' + w.cleared);
-    if (PARAMETERS.enablePits) ep += '  die ' + w.died;
-    line(ep);
-    if (PARAMETERS.enableShelter || PARAMETERS.enableWater) line('carrying food ' + w.food + (PARAMETERS.enableWater ? '  water ' + w.water : ''));
-    line('steps   ' + w.steps + ' / ' + PARAMETERS.maxStepsPerEpisode);
-    if (A.layers) {
-      let qs = 0; for (const L of A.layers) qs += L.learner.Q.size;
-      line('Q-states ' + qs);
-      line('weights ' + A.layers.map((L, i) => L.label + ':' + A.lastWeights[i].toFixed(2)).join(' '));
-    } else {
-      line('Q-states ' + A.learner.Q.size);
-    }
-    ty += 6;
-    line(w.metricLabel() + (PARAMETERS.enablePits ? '     death' : ''));
-    ctx.font = "20px 'Consolas', monospace";
-    ctx.fillStyle = '#7fd1ff'; ctx.fillText(w.episodes === 0 ? '—' : w.metric().toFixed(2), board + 16, ty);
-    if (PARAMETERS.enablePits) { ctx.fillStyle = '#e0894a'; ctx.fillText((w.deathRate() * 100).toFixed(0) + '%', board + 176, ty); }
+    // (metrics/graph render off-canvas as crisp HTML — see DataView + renderStats in ui.js)
   }
 };

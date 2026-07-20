@@ -52,3 +52,42 @@ function setStatus(msg) {
   const s = document.getElementById('status');
   if (s) s.textContent = msg;
 }
+
+// Render the live metrics as crisp HTML (monospace text), off the canvas. Reads world state only.
+function renderStats(w) {
+  const el = document.getElementById('stats');
+  if (!el) return;
+  const P = PARAMETERS, A = w.agent;
+  const feat = 'food' + (P.enableWater ? '+water' : '') + (P.enableShelter ? '+shelter' : '') + (P.enablePits ? '+pits' : '');
+  const L = [];
+  L.push('model    ' + feat);
+  L.push('agent    ' + (A.layers ? 'layered [' + A.layers.map((l) => l.label).join(' ') + ']' : 'flat ' + P.receptiveField + '×' + P.receptiveField));
+  L.push('explore  ' + (P.explore === 'ucb' ? 'UCB c=' + P.ucbC : 'ε-greedy ε=' + P.epsilon));
+  L.push('arena    ' + w.N + '×' + w.N);
+  L.push('');
+  L.push('episode  ' + w.episodes);
+  L.push(P.enableShelter ? 'rested   ' + w.rested : 'cleared  ' + w.cleared);
+  if (P.enablePits) L.push('died     ' + w.died + '  (' + (w.deathRate() * 100).toFixed(0) + '%)');
+  if (P.enableShelter || P.enableWater) L.push('carrying food ' + w.food + (P.enableWater ? '  water ' + w.water : ''));
+  L.push('steps    ' + w.steps + ' / ' + P.maxStepsPerEpisode);
+  const qs = A.layers ? A.layers.reduce((s, l) => s + l.learner.Q.size, 0) : A.learner.Q.size;
+  L.push('Q-states ' + qs.toLocaleString());
+  if (A.layers) L.push('weights  ' + A.layers.map((l, i) => l.label + ':' + A.lastWeights[i].toFixed(2)).join(' '));
+  L.push('');
+  L.push(w.metricLabel() + ':  ' + (w.episodes === 0 ? '—' : w.metric().toFixed(2)));
+  el.textContent = L.join('\n');
+}
+
+// A browser-only engine entity that renders the off-canvas data view each frame: it ignores the
+// game ctx passed to draw(), updates the stats DOM, and paints the line graph on its own canvas.
+var DataView = class DataView {
+  constructor(world, graph, graphCtx) { this.world = world; this.graph = graph; this.graphCtx = graphCtx; }
+  update() {}
+  draw() {
+    renderStats(this.world);
+    const g = this.graphCtx;
+    if (!g) return;
+    g.clearRect(0, 0, g.canvas.width, g.canvas.height);
+    this.graph.draw(g);
+  }
+};

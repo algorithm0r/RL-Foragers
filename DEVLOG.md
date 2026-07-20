@@ -3,6 +3,20 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-19 — Move data display off-canvas (crisp HTML) + UCB toggle
+**Done:** metrics + graph now render off the game canvas. `index.html` gains a data panel (HTML
+`#stats` monospace block + its own `#graphCanvas`); the game canvas shrank to 600×600 (just the
+grid). `observer.js` no longer draws the HUD text. `ui.js` gains `renderStats(world)` (crisp HTML
+text) and a browser-only `DataView` engine entity that updates the stats DOM + paints the graph on
+its own canvas each frame. `charts.js` LineGraph now keeps a rolling 240-point window and autoscales
+(with current/min/max labels). Also exposed UCB-vs-ε-greedy as a UI checkbox (+ both explore sliders).
+**Changed:** `index.html`, `observer.js`, `ui.js`, `charts.js`, `main.js`, `params.js` (schema).
+**State:** core smoke PASS; browser files syntax-check clean (no display here to live-render — needs a
+visual check in-browser). **Known issue raised by Chris:** the layered UCB bonus can override the
+layers' learned choice (untried action in any weighted layer → ∞ bonus → random tie-break can beat a
+confident 1×1 'eat'); a fix (finite weight-scaled optimism instead of ∞ forcing) is pending.
+**Next:** decide/implement the UCB-forcing fix; then relevance filtering.
+
 ## 2026-07-19 — Modular environment: feature toggles + UI checkboxes
 **Done:** made the environment features TOGGLES so we build up from the base model and study each
 addition, and added checkbox controls (should have done this before hardwiring v2). `world.js` is now
