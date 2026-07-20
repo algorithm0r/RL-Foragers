@@ -43,6 +43,12 @@ statistical predictability of tabular methods that a neural net would throw away
   remaining) in the INT state makes homing timeable — ablation: the clock ~2× the harvest and ~4×
   fewer collapses vs blind-to-time. The agent learns to forage-then-rest but is **risk-averse / under-
   gathers** at collapse:perUnit = 1:1 — tuning that ratio (and day length) is the shelter experiment.
+- **DQN baseline (`agent='dqn'`, `src/dqn.js`) — the "guard against a straw man" (Stage 3E), built.**
+  A small dependency-free MLP (one-hot window → hidden ReLU → Q/action; replay + target net + annealed
+  ε). Head-to-head (3 seeds, 250k ticks): **matches** the layered tabular agent on the easy sweep and
+  the K=2 sweep, and **beats** it on the hard 12×12 partial-obs arena (58±2 vs 137±49) with lower seed
+  variance and fewer parameters — but ~19× the compute. The learned generalization beats the hand-built
+  layering on SCORE; the layered agent's honest value narrows to interpretability + compute + no-tuning.
 - Legacy letters-puzzle Q-learner lives only in the initial commit (`51e9fc5`) as reference.
 
 ## Not yet built

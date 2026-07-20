@@ -3,6 +3,33 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-20 — DQN baseline BITES: a small net matches/beats the layered tabular agent
+**Done:** built a dependency-free vanilla-JS DQN (one-hot window → hidden ReLU → Q/action, experience
+replay + target net + annealed ε; no TF.js — headless-reproducible under the seeded RNG) and ran it
+head-to-head vs layered-135 and flat-w5 (+ oracle/random refs), 3 seeds × 250k ticks → `dqn` collection.
+**Results — steps-to-clear (oracle / dqn / layered-135 / flat-w5 / random):**
+- base 8×8 K=1 (easy):        17 / **20** / 20 / 22 / 631   — everyone solves it
+- arena 12×12 K=1 (part.obs): 38 / **58±2** / 137±49 / 867±152 / 1440
+- types 10×10 K=2:            34 / **46** / 47 / 225±101 / 1000
+**The finding — the DQN matches the layered agent on easy/K2 and BEATS it on the hard sparse arena,**
+more reliably and with fewer params:
+- On 12×12 partial-obs, DQN **58** vs layered **137**, and DQN seed variance is tiny (60/56.6/56.3, ±2)
+  vs layered's 94/111/**207** (±49). Flat-w5 collapses (867, barely clears). The net's *learned*
+  generalization beats the *hand-built* layering exactly in the regime this project is about.
+- **Smaller, too:** DQN 3,849 fixed weights vs layered 6,457 Q-states @ 12×12; **5,514 vs 31,541** @ K=2
+  (tabular state count grows with the task; the net's is fixed by architecture).
+- **Layered wins only on compute: ~19× cheaper** (3s vs 58s/run).
+**What it means (straight, not spun):** the thesis "hand-built layered generalization is the best
+forager" doesn't survive on SCORE. The layered agent's honest justification narrows to the axes it
+actually wins — **interpretability** (readable per-layer Q + confidence weights vs a black box), **~19×
+less compute**, **no hyperparameter tuning**, implementation simplicity. Caveats (both point the same
+way): fixed 250k-tick budget may under-train the tabular agent on 12×12 (gap could narrow with more
+ticks), but DQN's sample-efficiency AND cross-seed stability (±2 vs ±49) are real edges. This is the
+"guard against a straw man" baseline the DEVPLAN asked for (Stage 3E) — it did its job, and it bit.
+**State:** smoke PASS @ pre-commit; `dqn` collection = 3 settings × (dqn/layered/flat × 3 seeds + refs).
+**Next:** decide the framing — lean the project into interpretability/compute as the value prop, and/or
+give the tabular agent a fair asymptotic (longer-budget) rematch on 12×12; then the ABM endgame.
+
 ## 2026-07-20 — Shelter + time-of-day signal: central-place foraging becomes learnable
 **Done:** made the shelter/central-place mode a real forage-vs-return tradeoff. Two additions:
 (1) **collapse penalty** — in shelter mode `maxStepsPerEpisode` is now the DAY LENGTH; if it expires

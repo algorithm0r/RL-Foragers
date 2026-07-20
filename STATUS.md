@@ -29,19 +29,20 @@ smoke PASS @ pre-commit (exit 0, this session — mechanics + base-sweep + shelt
 - **U-Tree** compresses 100–230× but underperforms at every scale/resource/density/K → shelved.
 - Density (not arena size) is the state-explosion driver; QLearner robust to ~565k states (no wall yet).
 - **Shelter/central-place:** learns forage-then-rest (rested 12k, collapse 0.4%, banked 0.65 @ 250k). Time-of-day signal ~2× harvest & ~4× fewer collapses vs blind-to-time. Risk-averse / under-gathers at collapse:perUnit=1:1 → tune the ratio.
+- **DQN baseline bites:** matches layered on easy/K2, BEATS it on the hard 12×12 partial-obs arena (58±2 vs 137±49) — lower variance, fewer params (3.8k vs 6.5k), but ~19× the compute. Layered's honest edge is now interpretability + compute + no-tuning, NOT score.
 
 ## Branches
 - `main`
 
 ## Open
-- **DQN baseline (in progress):** hand-rolled vanilla-JS MLP + replay + target net, head-to-head vs layered-tabular on the same env/seeds/metric — does a NN discover the multi-scale structure we hand-built, at what sample cost / reliability?
+- **DQN framing decision:** the net beats the layered agent on score at the hard setting → lean the project's value prop into interpretability + compute + no-tuning, and/or give the tabular agent a fair asymptotic (longer-budget) rematch on 12×12 to see if the gap closes.
 - **Shelter reward-balance sweep:** collapse:perUnit ratio × day length × arena — where does richer foraging (vs safe early-rest) become optimal?
 - Adaptive reach: layers up to ~arena size; where do they stop paying?
 - ABM endgame: multiple agents in a shared (stochastic) world; moving prey to hunt / predators to avoid.
 - Probe idea: push density until the monolithic learner *does* strain — does any factored/compressed variant then pay off?
 
 ## Next action
-Build the DQN baseline agent (vanilla-JS MLP), then sweep the shelter reward balance.
+Decide the DQN framing (interpretability/compute vs a longer-budget rematch), then the shelter reward-balance sweep or the ABM endgame.
 
 ## Blockers
 - none
