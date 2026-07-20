@@ -60,10 +60,11 @@ for (const [N, rf] of [[6, 1], [8, 3], [10, 5]]) {
 base(); P.agent = 'layered'; P.layers = [1, 3, 5]; P.explore = 'greedy'; P.rewardGather = 1; P.defaultQ = 0;
 P.gridN = 8; P.nFood = 6; P.maxStepsPerEpisode = 500;
 const wL = new World(800, 600), eL = new GameEngine();
-let early = 0;
-for (let t = 1; t <= 400000; t++) { eL.tick = t; wL.update(eL); if (t === 40000) early = wL.meanStepsToClear(); }
+for (let t = 1; t <= 400000; t++) { eL.tick = t; wL.update(eL); }
 const late = wL.meanStepsToClear();
-const learned = wL.cleared > 100 && late > 0 && late < early;
+// competence, not a fragile early→late delta: it clears many episodes and does so efficiently
+// (6 food on 8×8 ≈ 6 eats + ~15 moves; < 60 means it genuinely forages, not times out at 500)
+const learned = wL.cleared > 1000 && late > 0 && late < 60;
 
 const ok = mechanics && decoupled && learned;
 console.log('smoke:' +
