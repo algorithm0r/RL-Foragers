@@ -1,39 +1,38 @@
 # rllayers — STATUS
 *One screen. The current pulse. Overwritten, never appended — for history read DEVLOG.*
 
-**Updated:** 2026-07-18 — refreshed every session close; may carry unverified claims
+**Updated:** 2026-07-20 — refreshed every session close; may carry unverified claims
 **Verified:** 2026-07-18 (scaffold) — last cold audit (`/audit`); the State section is trusted only as of this date
 
 ## Stage
-Stage 3 prelim RUN (layered vs flat vs oracle → DB). Headline: **layered-135 + UCB = 39±0.6 (3/3),
-near-oracle; no flat window works; 5×5 layer essential; greedy unreliable → revert default to UCB.**
+Stage 3 (Experiment #1) essentially COMPLETE — the layered thesis is validated with multi-seed DB
+evidence, and the subsumption control resolved the "why". Next: adaptive reach, then the ABM endgame.
 
 ## State
-Stages 1–2 + UCB done, and the environment is now **modular via feature toggles** (checkboxes in the
-UI): base = food-sweep (v1); `+water` (2nd resource, drink); `+shelter` (rest ends day, banked-reward
-metric, adds bearing/satiety + INT layer); `+pits` (terminal death). Action set, metric, INT layer and
-observation all adapt to the flags. Layers restored to `[1,3,5]`. Two agents (flat/layered) share one
-`act()` contract; UCB exploration; confidence coupling. smoke PASS (per-toggle mechanics + base learning).
+`GridForager`, modular (feature toggles + UI checkboxes): base food-sweep · +water · +shelter · +pits.
+Agents share one `act()`: **flat**, **layered** (confidence-weighted receptive-field stack), and
+**subsumption** (fixed-priority layers). Exploration dropdown greedy/ucb/**egreedy (default 0.01)**.
+Strategic init: gather=+1 so defaultQ=0 sits in the value gap. Experiment harness (`experiment.mjs`,
+`scale.mjs`, `analyze.mjs`) writes self-describing packets to local mongo; U-Tree relevance filter
+built but shelved. smoke PASS.
 
-## Metrics
-- Reward: gather=+1 (≈|step|) → Q gap straddles 0, so defaultQ=0 is the strategic init. Default explore=greedy.
-- Base sweep (10×10, F10, layered [1,3,5]): greedy 46.6 ≈ egreedy 46.1, UCB 41.9. **Eat reflex protected** under all.
-- gather=+1 lifts shelter banking 0.44 → 0.61. **Pits still unsolved** (greedy also explores into novel pits).
-- Exploration is a 3-way UI dropdown (greedy/ucb/egreedy); coupling down-weights the 5×5 categorical layer — relevance filter next
+## Metrics (all multi-seed, in the DB)
+- **Layered ≫ any flat window** (~8×). ε-greedy 0.01 is the robust exploration (foraging = coverage).
+- **Reach scales:** 13579-QL near-oracle across arena size AND resources (34/77/236 vs oracle 30/62/129 @ 2 res).
+- **Subsumption = confidence-weighting on perf, 33–80× fewer states** (density sweep: subs 8k flat vs conf 273k→664k). → it's the LAYERING, not the weighting.
+- **U-Tree** compresses 100–230× but underperforms at every scale/resource/density → shelved.
+- Density (not arena size) is the state-explosion driver; QLearner robust to ~360k+ states (tens of MB, no wall yet).
 
 ## Branches
 - `main`
 
 ## Open
-- **Environment expansion (GridForager-v2, next milestone):** water (2nd resource), shelter (×1),
-  pits (×3, terminal), actions eat/drink/rest → 11; reward banked at rest = total gathered;
-  augment observation with shelter-bearing + bucketed satiety (central-place foraging).
-- Stage 3: subsumption + 1×1-only controls, multi-seed DB sweeps in `runner.mjs`, learning curves.
-- Learning-rule variants (combined-bootstrap, residual) still to test.
+- Adaptive reach: layers up to ~arena size; where do they stop paying?
+- Adopt subsumption as efficient default for known-resource worlds (keep confidence for unknown-relevance).
+- ABM endgame: multiple agents in a shared (stochastic) world; moving prey to hunt / predators to avoid.
 
 ## Next action
-Implement relevance filtering (G-algorithm-style per-layer feature masks: start ignoring all cells,
-attend only cells that change value) so [1,3,5] stays useful under multi-type cells. Then Stage 3.
+Pick the fork: (a) adaptive reach sweep, or (b) start the multi-agent / hunting world (the ABM goal).
 
 ## Blockers
 - none
