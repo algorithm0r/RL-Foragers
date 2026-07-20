@@ -3,6 +3,24 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-19 — Stage-3 prelim experiment (layered vs flat vs oracle) → MongoDB
+**Done:** built `experiment.mjs` (sweeps architecture × exploration × seed on the base food-sweep,
+writes self-describing packets to local mongo, collection `prelim`) + `analyze.mjs` (mean±sd summary).
+`package.json` vendors the mongodb driver; direct transport → local mongo. Reproducible via seeded RNG.
+**Results** (10×10, 10 food, 250k ticks, 3 seeds; metric = steps-to-clear, oracle ≈ **29.5**):
+- **layered-135 + UCB = 39.4 ± 0.6, learned 3/3 — near-oracle and RELIABLE. The winner.**
+- **No flat single window works:** flat-w1 0/3 (greedy locks it into a straight-line torus walk —
+  worse than random), flat-w3 0/3, flat-w5 2/3 but ~1100 steps.
+- **The 5×5 layer is ESSENTIAL:** layered-13 (UCB) = 736 ± 473, 1/3. Dropping it breaks reliability
+  — vindicates keeping [1,3,5] (dropping it earlier was the wrong call).
+- **Exploration is decisive:** greedy layered-135 = 644 ± 412, **2/3 (unreliable, one seed failed)**;
+  UCB = 39 ± 0.6, **3/3**. The earlier single-run "greedy ≈ 47" was a lucky seed — multi-seed exposed it.
+**Changed:** `experiment.mjs` (+`--explore`/`--norefs`, explore tag), `analyze.mjs`, `package.json`,
+`.gitignore` (+package-lock). 34 packets in `prelim`; learning curves stored for plotting.
+**State:** the harness works and the result is clean. **Implication: revert default exploration to UCB**
+— greedy is unreliable on the full task (the mode-aware-init question is moot if greedy isn't default).
+**Next:** flip default to `ucb`; extend the sweep (arena difficulty, confidenceK, more seeds); plot curves.
+
 ## 2026-07-19 — 3×3 nested Q-view + data-driven colour range
 **Done:** added a 3×3-layer Q-view (`#q3Canvas`): keeps the 1×1 action layout (centre=eat, ring=moves)
 but each action cell is a 16×16 heatmap over the **256 surround configs**, ordered canonically by food

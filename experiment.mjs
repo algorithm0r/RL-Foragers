@@ -31,6 +31,7 @@ const BASE = {
   gridN: 10, nFood: 10, maxStepsPerEpisode: 1200, alpha: 0.1, gamma: 0.95, confidenceK: 30,
   rewardStep: -1, rewardGather: 1, defaultQ: 0, explore: 'greedy', ucbC: 1, epsilon: 0.1,
 };
+BASE.explore = flag('explore', BASE.explore); // --explore greedy|ucb|egreedy (applies to learned conditions)
 const CONDITIONS = [
   { name: 'flat-w1', over: { agent: 'flat', receptiveField: 1 } },
   { name: 'flat-w3', over: { agent: 'flat', receptiveField: 3 } },
@@ -91,7 +92,7 @@ async function main() {
   const db = createDB({ transport: 'direct', mongoUrl: P.db.mongoUrl, db: flag('db', 'rllayers') });
   const jobs = [];
   for (const c of CONDITIONS) for (let r = 0; r < REPS; r++) jobs.push({ name: c.name, over: c.over, rep: r, policy: null });
-  for (const ref of REFERENCES) for (let r = 0; r < Math.min(2, REPS); r++) {
+  if (!argv.includes('--norefs')) for (const ref of REFERENCES) for (let r = 0; r < Math.min(2, REPS); r++) {
     jobs.push({ name: ref.name, over: {}, rep: r, policy: ref.name === 'random' ? randomPolicy : ref.policy });
   }
   const runnable = ONLY ? jobs.filter((j) => j.name.includes(ONLY)) : jobs;
@@ -104,7 +105,7 @@ async function main() {
     db.config.run = j.name + '-r' + j.rep;
     const pkt = db.packet(P, {
       experiment: 'stage3-prelim', condition: j.name, rep: j.rep, seed,
-      isReference: !!j.policy, ticks: TICKS,
+      explore: j.policy ? 'reference' : P.explore, isReference: !!j.policy, ticks: TICKS,
       final: res.final, cleared: res.cleared, qStates: res.qStates, curve: res.curve,
     });
     const ins = await db.insert(COLL, pkt);

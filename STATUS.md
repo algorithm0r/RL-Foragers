@@ -5,7 +5,8 @@
 **Verified:** 2026-07-18 (scaffold) — last cold audit (`/audit`); the State section is trusted only as of this date
 
 ## Stage
-Modular environment (feature toggles + UI) done — next: relevance filtering, then Stage 3.
+Stage 3 prelim RUN (layered vs flat vs oracle → DB). Headline: **layered-135 + UCB = 39±0.6 (3/3),
+near-oracle; no flat window works; 5×5 layer essential; greedy unreliable → revert default to UCB.**
 
 ## State
 Stages 1–2 + UCB done, and the environment is now **modular via feature toggles** (checkboxes in the
