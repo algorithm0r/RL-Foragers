@@ -30,7 +30,7 @@ const mEat = wb.food === 1 && wb.grid[2][2] === World.EMPTY && !r.done && r.rewa
 wb.ax = 0; wb.ay = 0; r = wb.applyAction(EAT);
 const mClear = r.done && r.cleared === true && wb.food === 2;
 
-base(); P.enableWater = true;
+base(); P.nTypes = 2; // sweep with a 2nd resource type → 'drink' collects type 2 (water)
 const ww = new World(800, 600); const DRINK = ww.actions.indexOf('drink');
 clear(ww); ww.ax = 2; ww.ay = 2; ww.grid[2][2] = World.WATER; ww.remaining = 99;
 r = ww.applyAction(DRINK);

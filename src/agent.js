@@ -148,9 +148,10 @@ var SubsumptionAgent = class SubsumptionAgent {
   viewRadius() { let m = 0; for (const L of this.layers) if (L.r > m) m = L.r; return m; }
   statesFor(world) { return this.layers.map((L) => world.senseWindow(L.r)); }
 
-  // does a window contain a resource (food '1', or water '2' when enabled)?
+  // does a window contain a resource? (base36 cell chars; resource types are 1..maxType)
   hasGoal(state) {
-    for (let i = 0; i < state.length; i++) { const c = state[i]; if (c === '1' || (PARAMETERS.enableWater && c === '2')) return true; }
+    const maxType = PARAMETERS.enableShelter ? (PARAMETERS.enableWater ? 2 : 1) : (PARAMETERS.nTypes || 1);
+    for (let i = 0; i < state.length; i++) { const v = parseInt(state[i], 36); if (v >= 1 && v <= maxType) return true; }
     return false;
   }
 

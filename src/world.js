@@ -30,11 +30,17 @@ var World = class World {
     const place = (type) => { const c = cells[k++]; this.grid[(c / N) | 0][c % N] = type; return c; };
     if (PARAMETERS.enableShelter) { const s = place(World.SHELTER); this.sx = s % N; this.sy = (s / N) | 0; }
     if (PARAMETERS.enablePits) for (let i = 0; i < PARAMETERS.nPits; i++) place(World.PIT);
-    for (let i = 0; i < PARAMETERS.nFood; i++) place(World.FOOD);
-    if (PARAMETERS.enableWater) for (let i = 0; i < PARAMETERS.nWater; i++) place(World.WATER);
+    if (PARAMETERS.enableShelter) { // central-place mode: food (+ water)
+      for (let i = 0; i < PARAMETERS.nFood; i++) place(World.FOOD);
+      if (PARAMETERS.enableWater) for (let i = 0; i < PARAMETERS.nWater; i++) place(World.WATER);
+      this.remaining = PARAMETERS.nFood + (PARAMETERS.enableWater ? PARAMETERS.nWater : 0);
+    } else { // sweep mode: nTypes resource types (cell values 1..nTypes), each its own collect action
+      const K = PARAMETERS.nTypes || 1;
+      for (let t = 1; t <= K; t++) for (let i = 0; i < PARAMETERS.nFood; i++) place(t);
+      this.remaining = K * PARAMETERS.nFood;
+    }
     const a = cells[k++]; this.ax = a % N; this.ay = (a / N) | 0;
     this.food = 0; this.water = 0; this.steps = 0;
-    this.remaining = PARAMETERS.nFood + (PARAMETERS.enableWater ? PARAMETERS.nWater : 0);
   }
 
   cell(dx, dy) { const N = this.N; return this.grid[((this.ay + dy) % N + N) % N][((this.ax + dx) % N + N) % N]; }
@@ -42,8 +48,8 @@ var World = class World {
   // agent-centered window of radius r as a categorical string (one digit per cell), torus wraparound
   senseWindow(r) {
     let s = '';
-    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) s += this.cell(dx, dy);
-    return s;
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) s += this.cell(dx, dy).toString(36);
+    return s; // base36 → one char per cell even for ≥10 resource types
   }
 
   // compact home vector (shelter mode only): signed step toward shelter per axis + coarse distance
@@ -79,18 +85,19 @@ var World = class World {
       if (PARAMETERS.enablePits && this.grid[this.ay][this.ax] === World.PIT) return { reward: -PARAMETERS.pitPenalty, done: true, died: true };
       return { reward: PARAMETERS.rewardStep, done: false };
     }
-    if (act === 'eat') {
-      if (this.cell(0, 0) === World.FOOD) { this.grid[this.ay][this.ax] = World.EMPTY; this.food++; this.remaining--; return this.gatherResult(); }
-      return { reward: PARAMETERS.rewardStep, done: false };
-    }
-    if (act === 'drink') {
-      if (this.cell(0, 0) === World.WATER) { this.grid[this.ay][this.ax] = World.EMPTY; this.water++; this.remaining--; return this.gatherResult(); }
-      return { reward: PARAMETERS.rewardStep, done: false };
-    }
     if (act === 'rest') {
       if (this.cell(0, 0) === World.SHELTER) { const banked = PARAMETERS.enableWater ? Math.min(this.food, this.water) : this.food; return { reward: PARAMETERS.rewardPerUnit * banked, done: true, rested: true }; }
       return { reward: PARAMETERS.rewardStep, done: false };
     }
+    // collect actions: 'eat'=type 1, 'drink'=type 2, 'c'+t=type t. Succeeds iff that type is underfoot.
+    const type = act === 'eat' ? World.FOOD : act === 'drink' ? World.WATER : parseInt(act.slice(1), 10);
+    if (this.cell(0, 0) === type) {
+      this.grid[this.ay][this.ax] = World.EMPTY;
+      if (type === World.FOOD) this.food++; else if (type === World.WATER) this.water++;
+      this.remaining--;
+      return this.gatherResult();
+    }
+    return { reward: PARAMETERS.rewardStep, done: false };
   }
 
   // a successful eat/drink. In sweep mode (no shelter), clearing the last item ends the day with a
@@ -100,7 +107,7 @@ var World = class World {
     return { reward: PARAMETERS.rewardGather, done: false };
   }
 
-  totalItems() { return PARAMETERS.nFood + (PARAMETERS.enableWater ? PARAMETERS.nWater : 0); }
+  totalItems() { return PARAMETERS.enableShelter ? PARAMETERS.nFood + (PARAMETERS.enableWater ? PARAMETERS.nWater : 0) : (PARAMETERS.nTypes || 1) * PARAMETERS.nFood; }
 
   update(engine) {
     const res = this.agent.act(this);
@@ -131,9 +138,13 @@ var World = class World {
 
 // the action set for the current mode: 0..7 moves, then eat, (drink), (rest)
 World.buildActions = function () {
-  const a = [0, 1, 2, 3, 4, 5, 6, 7, 'eat'];
-  if (PARAMETERS.enableWater) a.push('drink');
-  if (PARAMETERS.enableShelter) a.push('rest');
+  const a = [0, 1, 2, 3, 4, 5, 6, 7];
+  if (PARAMETERS.enableShelter) { // central-place: eat (+ drink) + rest
+    a.push('eat'); if (PARAMETERS.enableWater) a.push('drink'); a.push('rest');
+  } else { // sweep: one collect action per resource type (type1='eat', type2='drink', type≥3='c'+t)
+    const K = PARAMETERS.nTypes || 1;
+    for (let t = 1; t <= K; t++) a.push(t === 1 ? 'eat' : t === 2 ? 'drink' : 'c' + t);
+  }
   return a;
 };
 

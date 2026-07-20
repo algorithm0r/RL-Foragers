@@ -23,7 +23,7 @@ const TICKS = parseInt(flag('ticks', '300000'), 10);
 const SAMPLE = parseInt(flag('sample', '5000'), 10);
 const COLL = flag('collection', 'scale');
 const SIZES = flag('sizes', '10,14,20').split(',').map(Number);
-const RESOURCES = flag('resources', '1,2').split(',').map(Number);
+const TYPES = flag('types', '1').split(',').map(Number); // # resource types (each a distinct collect action)
 const DENSITIES = flag('density', '0.1').split(',').map(Number);
 const CFGFILTER = flag('configs', null); // comma-sep substrings to include (e.g. 13579)
 
@@ -46,15 +46,16 @@ const SEED0 = 12345;
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function tdir(a, b, N) { const d = (b - a + N) % N; return d === 0 ? 0 : (d <= N - d ? 1 : -1); }
 
-// full-vision greedy forager, food + water: consume what's underfoot, else head to nearest resource
+// full-vision greedy forager over K resource types: collect what's underfoot with the right action,
+// else head to the nearest resource of any type.
+function collectAction(w, type) { return w.actions.indexOf(type === 1 ? 'eat' : type === 2 ? 'drink' : 'c' + type); }
 function greedyPolicy(w) {
-  const here = w.cell(0, 0);
-  if (here === World.FOOD) return w.actions.indexOf('eat');
-  if (here === World.WATER) return w.actions.indexOf('drink');
+  const K = PARAMETERS.nTypes || 1, here = w.cell(0, 0);
+  if (here >= 1 && here <= K) return collectAction(w, here);
   const N = w.N; let best = Infinity, bx = 0, by = 0;
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
     const t = w.grid[y][x];
-    if (t !== World.FOOD && t !== World.WATER) continue;
+    if (t < 1 || t > K) continue;
     const ddx = Math.min((x - w.ax + N) % N, (w.ax - x + N) % N), ddy = Math.min((y - w.ay + N) % N, (w.ay - y + N) % N);
     const d = Math.max(ddx, ddy); if (d < best) { best = d; bx = x; by = y; }
   }
@@ -65,11 +66,10 @@ function greedyPolicy(w) {
 }
 function qStates(w) { return w.agent.layers ? w.agent.layers.reduce((s, L) => s + L.learner.numStates(), 0) : 0; }
 
-function runOne(N, res, density, cfg, seed, policy) {
-  const items = Math.max(2, Math.round(N * N * density));
-  const food = res === 2 ? Math.round(items / 2) : items, water = res === 2 ? items - Math.round(items / 2) : 0;
+function runOne(N, K, density, cfg, seed, policy) {
+  const total = Math.max(K, Math.round(N * N * density)), perType = Math.max(1, Math.round(total / K));
   Object.assign(P, BASE, {
-    gridN: N, nFood: food, nWater: water, enableWater: res === 2, maxStepsPerEpisode: N * N * 10,
+    gridN: N, nTypes: K, nFood: perType, enableWater: false, maxStepsPerEpisode: N * N * 10,
     agent: cfg ? cfg.agent : 'layered', layers: cfg ? cfg.layers : [1, 3, 5, 7], relevanceFilter: cfg ? cfg.utree : false,
   });
   Math.random = mulberry32(seed);
@@ -80,30 +80,30 @@ function runOne(N, res, density, cfg, seed, policy) {
     e.tick = t; w.update(e);
     if (t % SAMPLE === 0) curve.push({ tick: t, stc: +w.meanStepsToClear().toFixed(1), cleared: w.cleared });
   }
-  return { food, water, final: +w.meanStepsToClear().toFixed(1), cleared: w.cleared, qStates: qStates(w), curve };
+  return { perType, nActions: w.actions.length, final: +w.meanStepsToClear().toFixed(1), cleared: w.cleared, qStates: qStates(w), curve };
 }
 
 async function main() {
   const db = createDB({ transport: 'direct', mongoUrl: P.db.mongoUrl, db: flag('db', 'rllayers') });
   const jobs = [];
-  for (const N of SIZES) for (const res of RESOURCES) for (const dens of DENSITIES) {
-    for (const cfg of CONFIGS) for (let r = 0; r < REPS; r++) jobs.push({ N, res, dens, cfg, rep: r, policy: null });
-    for (let r = 0; r < Math.min(2, REPS); r++) jobs.push({ N, res, dens, cfg: { name: 'oracle' }, rep: r, policy: greedyPolicy });
+  for (const N of SIZES) for (const K of TYPES) for (const dens of DENSITIES) {
+    for (const cfg of CONFIGS) for (let r = 0; r < REPS; r++) jobs.push({ N, K, dens, cfg, rep: r, policy: null });
+    for (let r = 0; r < Math.min(2, REPS); r++) jobs.push({ N, K, dens, cfg: { name: 'oracle' }, rep: r, policy: greedyPolicy });
   }
   console.log('scale: ' + jobs.length + ' runs, ' + TICKS + ' ticks each → ' + COLL);
   let n = 0;
   for (const j of jobs) {
     const seed = SEED0 + j.rep, t0 = Date.now();
-    const res = runOne(j.N, j.res, j.dens, j.policy ? null : j.cfg, seed, j.policy);
-    db.config.run = 'N' + j.N + '-r' + j.res + '-d' + j.dens + '-' + j.cfg.name + '-s' + j.rep;
+    const res = runOne(j.N, j.K, j.dens, j.policy ? null : j.cfg, seed, j.policy);
+    db.config.run = 'N' + j.N + '-K' + j.K + '-d' + j.dens + '-' + j.cfg.name + '-s' + j.rep;
     const pkt = db.packet(P, {
-      experiment: 'scale', N: j.N, resources: j.res, density: j.dens, config: j.cfg.name, rep: j.rep, seed,
-      food: res.food, water: res.water, isReference: !!j.policy,
+      experiment: 'scale', N: j.N, types: j.K, density: j.dens, config: j.cfg.name, rep: j.rep, seed,
+      perType: res.perType, nActions: res.nActions, isReference: !!j.policy,
       final: res.final, cleared: res.cleared, qStates: res.qStates, curve: res.curve,
     });
     const ins = await db.insert(COLL, pkt);
     n++;
-    console.log('  [' + n + '/' + jobs.length + '] N=' + j.N + ' r' + j.res + ' d' + j.dens + ' ' + j.cfg.name + ' s' + j.rep +
+    console.log('  [' + n + '/' + jobs.length + '] N=' + j.N + ' K' + j.K + ' d' + j.dens + ' ' + j.cfg.name + ' s' + j.rep +
       ' → final=' + res.final + ' cleared=' + res.cleared + ' qStates=' + res.qStates.toLocaleString() +
       ' (' + ((Date.now() - t0) / 1000).toFixed(0) + 's, ok=' + ins.ok + ')');
   }

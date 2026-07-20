@@ -11,8 +11,10 @@ var PARAMETERS = {
                           //   (min(food,water) if water else food); adds a bearing + satiety sense
   enablePits: false,      // + pits: entering one is death (terminal, −pitPenalty)
   gridN: 10,              // arena side length (torus)
-  nFood: 10,              // food items placed each episode
-  nWater: 6,              // water items (when enableWater)
+  nFood: 10,              // items placed PER resource type each episode
+  nWater: 6,              // water items (shelter/central-place mode only)
+  nTypes: 1,              // sweep mode: number of distinct resource types, each with its own collect
+                          // action (type1='eat', type2='drink', type≥3='c'+t). Cells take values 1..nTypes.
   nPits: 3,               // pits (when enablePits)
   maxStepsPerEpisode: 500, // step cutoff → episode ends (sweep: counts the cutoff; shelter: banks 0)
 
