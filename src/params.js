@@ -80,9 +80,11 @@ var PARAMETERS = {
   // Give the tabular layered agent DQN-style replay: each real step, re-apply qReplayK stored
   // transitions (value-only, so visit counts stay honest). Tests whether the DQN's edge was the
   // 32:1 update budget (replay closes the gap) or genuine generalization (replay plateaus below it).
-  qReplay: true,          // ON by default: replay halved steps-to-clear (137±49 → 65±1) and killed the
-                          //   seed variance on the 12×12 arena — a free upgrade (more, cheap, updates).
-  qReplayK: 32,           // replayed transitions re-applied per real step (sweet-spot sweep pending)
+  qReplay: false,         // OPT-IN, not a blanket default. Big win on SWEEP/coverage foraging (137±40 →
+                          //   65 on 12×12, variance crushed), but it HURTS sparse-terminal SHELTER mode
+                          //   (collapse 1%→49%: uniform replay drowns the rare head-home transitions).
+  qReplayK: 4,            // sweet spot: the K-sweep saturates at 4 (K=4 captures the full benefit; 8/16/
+                          //   32/64 add nothing measurable). 4 replays/step, ~8× cheaper than 32.
   qReplayCap: 20000,      // replay buffer capacity
   qReplayWarmup: 1000,    // real steps before replay kicks in
 

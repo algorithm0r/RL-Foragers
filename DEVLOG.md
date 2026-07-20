@@ -3,6 +3,26 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-20 — Replay is task-dependent (sweet spot K=4, hurts shelter); stock² doesn't fix under-gathering
+**Done:** two tuning threads after the budget control. (1) **Replay-K sweep** (12×12 sweep arena, layered,
+3 seeds): the knee is **K=4** — steps-to-clear 109±40 (K=0) → 65±4 (K=4), and K=8/16/32/64 are flat
+(~63–65). The K=32 default was 8× the compute for nothing. (2) **Shelter rest reward → superlinear**
+`rewardPerUnit·(food+water)²` (was linear `·min(food,water)`; `bankedStock` helper, metric now
+'banked stock' = harvest).
+**Findings:**
+1. **stock² alone does NOT fix under-gathering:** banked harvest ~0.72 (was ~0.65 linear) on 6×6/4food/
+   day80. The superlinear incentive is correct but the agent still rests early — the bottleneck is
+   *discovering/propagating the multi-step forage-then-home policy*, not the reward shape.
+2. **Replay HURTS shelter mode** (the surprise): with K=32, collapse rate **1% → 49%** and banked *drops*
+   (0.76 → 0.49). Uniform replay drowns the rare, high-stakes head-home/rest transitions under the common
+   foraging steps → the agent forages past the deadline. Replay pays on coverage/dense-reward tasks and
+   backfires on sparse-terminal ones. So **replay is an OPT-IN, not a blanket default.**
+**Decision:** `qReplay` default **OFF** (was flipped ON last commit — reverted on this evidence), `qReplayK`
+**4** (the sweet spot). Documented as a coverage-foraging opt-in. Schema keeps the Replay checkbox + K slider.
+**State:** smoke PASS @ pre-commit (base() runs replay-off). `replayk` + shelter-replay results in DB/scratch.
+**Next:** the shelter under-gathering is still open — needs a policy-discovery fix (on-policy/eligibility
+traces, or prioritized replay that keeps the rare transitions), not reward or vanilla replay. Or the ABM endgame.
+
 ## 2026-07-20 — Budget×representation control: the DQN's win was ~90% UPDATE BUDGET, not representation
 **Done:** the fair-comparison control for yesterday's "DQN bites". Two budget knobs: (1) tabular Dyna-Q
 **replay** on the layered agent (`qReplay`, re-apply K=32 stored transitions/step, VALUE-ONLY so visit

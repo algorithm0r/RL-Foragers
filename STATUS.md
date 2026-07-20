@@ -29,20 +29,21 @@ smoke PASS @ pre-commit (exit 0, this session — mechanics + base-sweep + shelt
 - **U-Tree** compresses 100–230× but underperforms at every scale/resource/density/K → shelved.
 - Density (not arena size) is the state-explosion driver; QLearner robust to ~565k states (no wall yet).
 - **Shelter/central-place:** learns forage-then-rest (rested 12k, collapse 0.4%, banked 0.65 @ 250k). Time-of-day signal ~2× harvest & ~4× fewer collapses vs blind-to-time. Risk-averse / under-gathers at collapse:perUnit=1:1 → tune the ratio.
-- **DQN vs tabular — budget-matched, it's a near-tie.** Raw DQN beat layered on 12×12 (58 vs 137) — but that was ~90% an UPDATE-BUDGET confound (DQN got 32 grad-samples/step, tabular got 1). Give the table Dyna-Q **replay** and it hits 65±1 ≈ dqn-32 58±2, MORE stable, interpretable, no NN tuning, compute-comparable. DQN keeps only a small (~11%) real generalization edge; at equal 1:1 budget the table *beats* the net (137 vs 1061). **Replay ≫: 137±49 → 65±1 (halved steps, killed variance) — should be a default.**
+- **DQN vs tabular — budget-matched, it's a near-tie.** Raw DQN beat layered on 12×12 (58 vs 137) — but that was ~90% an UPDATE-BUDGET confound (DQN got 32 grad-samples/step, tabular got 1). Give the table Dyna-Q **replay** and it hits 65±1 ≈ dqn-32 58±2, MORE stable, interpretable, no NN tuning, compute-comparable. DQN keeps only a small (~11%) real generalization edge; at equal 1:1 budget the table *beats* the net (137 vs 1061).
+- **Replay is task-dependent (opt-in, K=4).** Sweep/coverage: big win, saturates at K=4 (109±40 → 65). Shelter/sparse-terminal: HURTS (collapse 1%→49% — uniform replay drowns the rare head-home transitions). Default OFF; `qReplayK=4` when on.
+- **Shelter under-gathering still open:** superlinear rest reward `rewardPerUnit·(food+water)²` is the right incentive but doesn't fix it (banks ~0.72 of 4); neither does vanilla replay. Bottleneck = discovering the multi-step forage-then-home policy (needs on-policy/eligibility-traces or prioritized replay).
 
 ## Branches
 - `main`
 
 ## Open
-- **Adopt replay as a tabular default** (`qReplay`) + tune `qReplayK` (32 halved steps & killed variance; find the knee). It's the clear practical upgrade from the budget control.
-- **Shelter reward-balance sweep:** collapse:perUnit ratio × day length × arena — where does richer foraging (vs safe early-rest) become optimal?
+- **Shelter under-gathering (the live problem):** reward-shaping (stock²) and vanilla replay both fail. Try on-policy/eligibility traces or prioritized replay (keep the rare head-home transitions), or a reward-balance sweep (collapse:perUnit × day length).
 - Adaptive reach: layers up to ~arena size; where do they stop paying?
 - ABM endgame: multiple agents in a shared (stochastic) world; moving prey to hunt / predators to avoid.
 - Probe idea: push density until the monolithic learner *does* strain — does any factored/compressed variant then pay off?
 
 ## Next action
-Adopt replay as a tabular default (tune qReplayK), then the shelter reward-balance sweep or the ABM endgame.
+Attack shelter under-gathering (on-policy/eligibility traces or prioritized replay), or move to the ABM endgame.
 
 ## Blockers
 - none
