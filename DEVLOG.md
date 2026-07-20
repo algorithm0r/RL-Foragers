@@ -3,6 +3,27 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-19 — U-Tree relevance filter: massive compression, value shows at scale
+**Done:** built `UTreeLearner` (drop-in for QLearner; per-window-layer decision tree, splits on cells
+whose value predicts the target — PER ACTION, so directional nav cells split too). Multi-seed (N=5,
+egreedy 0.01) on-vs-off comparison + a threshold sweep.
+**Results (steps-to-clear / Q-states, OFF → U-Tree):**
+- layered-13: 212 → **160** (better!) · 858 → **54** states
+- layered-135: 42.7 → 69.4 · 16,505 → **357** states (46×)
+- layered-1357: 32.8 → 55.7 · 106,087 → **917** states (116×)
+**The verdict:** compresses 16–116× reliably (all 5/5), but on the easy 10×10 (flat table fits) it's a
+memory-for-resolution TRADE-DOWN — it caps at ~400 leaves and ~1.2× worse steps-to-clear. Threshold
+doesn't buy it back (sweep: states pinned ~400 from 0.3→0.04; perf noisy) — the tree is **sample-starved
+at depth** (deep leaves lack the min-samples to split). Tell that it's the right idea: it *helps the
+data-starved config* (layered-13). So relevance filtering pays off when data is sparse / the table is
+infeasible, and costs resolution when flat can afford full detail.
+**Changed:** `utree.js` (per-action split criterion), `params.js` (utree params + checkbox, minChild 15),
+`agent.js`, `qlearner.js` (numStates), `experiment.mjs` (--utree/--utreeThresh, filter tag), `analyze.mjs`,
+load lists. 104 packets in `prelim`.
+**Next (decisive test):** run U-Tree vs flat at SCALE — multi-channel cells (water/shelter/pits → 5^25
+per window) or a much larger arena — where flat drowns (1M+ states) and U-Tree stays bounded. That's
+where it should win outright. Also: relieve sample-starvation (lower min-samples at depth / more ticks).
+
 ## 2026-07-19 — layered-1357: wider reach helps under ε, hurts under UCB
 **Done:** flipped default exploration to **egreedy ε=0.01** (params + smoke). Added `layered-1357`
 ([1,3,5,7]) and ran it N=5 under both good modes.
