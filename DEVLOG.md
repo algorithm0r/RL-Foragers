@@ -3,6 +3,37 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-20 — Budget×representation control: the DQN's win was ~90% UPDATE BUDGET, not representation
+**Done:** the fair-comparison control for yesterday's "DQN bites". Two budget knobs: (1) tabular Dyna-Q
+**replay** on the layered agent (`qReplay`, re-apply K=32 stored transitions/step, VALUE-ONLY so visit
+counts — the confidence signal — stay honest; new `QLearner.learnQ`); (2) DQN `dqnTrainEvery` (gradient
+step every N ticks; 32 → ~1 grad-sample/step). 2×2 (table/net × low/high budget) × 2 settings × 3 seeds
+× 250k ticks → `budget` collection.
+**Results — steps-to-clear (arena 12×12, oracle 38):**
+```
+                 low budget (1/step)   high budget (32/step)
+  table          layered 137±49        layered-replay  65±1
+  net            dqn-1to1 1061±537      dqn-32          58±2
+```
+(base-8 control: all ~20 except dqn-1to1=438 — the net is starved at 1:1 even on the easy task.)
+**Findings:**
+1. **Replay speeds tabular learning, hard:** 137±49 → **65±1** — halved steps-to-clear AND erased the
+   seed variance (the unlucky-seed 207 failure is a propagation problem replay fixes).
+2. **The DQN needed the budget, entirely:** 58±2 → **1061±537** at 1:1 (2/3 seeds never clear). At equal
+   1:1 budget the TABLE beats the net (137 vs 1061). Nets are sample-hungry; the 32× replay was the work.
+3. **The diagonal = the answer:** at equal HIGH budget, layered-replay **65±1** ≈ dqn-32 **58±2**. So
+   yesterday's 2× "DQN win" (137 vs 58) was **~90% update-budget confound, ~10% representation.** The
+   net keeps only a small, real generalization edge (the one thing that survives a fair comparison).
+4. **Compute reframe:** yesterday's "19× cheaper" was budget-confounded (plain tabular did 1/32 the
+   updates). Budget-matched: layered-replay **74s** vs dqn-32 **99s** — only ~1.3× cheaper. But tabular
+   still owns the frontier: plain layered = functional policy for 6s (16× cheaper); replay = near-DQN
+   score at 0.75× the compute.
+**Verdict:** the "DQN dents the thesis" story mostly does NOT survive the control. Budget-matched, the
+layered tabular agent + Dyna-Q replay is within ~11% of the DQN, MORE stable, interpretable, no NN
+tuning, compute-comparable. Replay should join the default tabular recipe (halved steps, killed variance).
+**State:** smoke PASS @ pre-commit; `budget` collection = 4 configs × 2 settings × 3 seeds + oracle refs.
+**Next:** adopt replay as a default (+ tune qReplayK); then shelter reward-balance sweep or the ABM endgame.
+
 ## 2026-07-20 — DQN baseline BITES: a small net matches/beats the layered tabular agent
 **Done:** built a dependency-free vanilla-JS DQN (one-hot window → hidden ReLU → Q/action, experience
 replay + target net + annealed ε; no TF.js — headless-reproducible under the seeded RNG) and ran it

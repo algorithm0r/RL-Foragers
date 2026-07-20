@@ -49,6 +49,12 @@ statistical predictability of tabular methods that a neural net would throw away
   the K=2 sweep, and **beats** it on the hard 12×12 partial-obs arena (58±2 vs 137±49) with lower seed
   variance and fewer parameters — but ~19× the compute. The learned generalization beats the hand-built
   layering on SCORE; the layered agent's honest value narrows to interpretability + compute + no-tuning.
+- **Budget×representation control (`budget.mjs`) — the DQN's win was ~90% UPDATE BUDGET.** Gave the
+  tabular agent DQN-style Dyna-Q **replay** (`qReplay`, value-only via `QLearner.learnQ` so confidence
+  counts stay honest) and the DQN a matched 1:1 update rate (`dqnTrainEvery`). At equal high budget,
+  layered-replay 65±1 ≈ dqn-32 58±2 on the 12×12; at equal 1:1 budget the TABLE beats the net (137 vs
+  1061). Replay alone halved the tabular agent's steps (137±49 → 65±1) and erased its seed variance —
+  a clear default upgrade. The net's genuine (representation) edge over the table is only ~11%.
 - Legacy letters-puzzle Q-learner lives only in the initial commit (`51e9fc5`) as reference.
 
 ## Not yet built

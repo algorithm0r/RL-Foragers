@@ -29,20 +29,20 @@ smoke PASS @ pre-commit (exit 0, this session — mechanics + base-sweep + shelt
 - **U-Tree** compresses 100–230× but underperforms at every scale/resource/density/K → shelved.
 - Density (not arena size) is the state-explosion driver; QLearner robust to ~565k states (no wall yet).
 - **Shelter/central-place:** learns forage-then-rest (rested 12k, collapse 0.4%, banked 0.65 @ 250k). Time-of-day signal ~2× harvest & ~4× fewer collapses vs blind-to-time. Risk-averse / under-gathers at collapse:perUnit=1:1 → tune the ratio.
-- **DQN baseline bites:** matches layered on easy/K2, BEATS it on the hard 12×12 partial-obs arena (58±2 vs 137±49) — lower variance, fewer params (3.8k vs 6.5k), but ~19× the compute. Layered's honest edge is now interpretability + compute + no-tuning, NOT score.
+- **DQN vs tabular — budget-matched, it's a near-tie.** Raw DQN beat layered on 12×12 (58 vs 137) — but that was ~90% an UPDATE-BUDGET confound (DQN got 32 grad-samples/step, tabular got 1). Give the table Dyna-Q **replay** and it hits 65±1 ≈ dqn-32 58±2, MORE stable, interpretable, no NN tuning, compute-comparable. DQN keeps only a small (~11%) real generalization edge; at equal 1:1 budget the table *beats* the net (137 vs 1061). **Replay ≫: 137±49 → 65±1 (halved steps, killed variance) — should be a default.**
 
 ## Branches
 - `main`
 
 ## Open
-- **DQN framing decision:** the net beats the layered agent on score at the hard setting → lean the project's value prop into interpretability + compute + no-tuning, and/or give the tabular agent a fair asymptotic (longer-budget) rematch on 12×12 to see if the gap closes.
+- **Adopt replay as a tabular default** (`qReplay`) + tune `qReplayK` (32 halved steps & killed variance; find the knee). It's the clear practical upgrade from the budget control.
 - **Shelter reward-balance sweep:** collapse:perUnit ratio × day length × arena — where does richer foraging (vs safe early-rest) become optimal?
 - Adaptive reach: layers up to ~arena size; where do they stop paying?
 - ABM endgame: multiple agents in a shared (stochastic) world; moving prey to hunt / predators to avoid.
 - Probe idea: push density until the monolithic learner *does* strain — does any factored/compressed variant then pay off?
 
 ## Next action
-Decide the DQN framing (interpretability/compute vs a longer-budget rematch), then the shelter reward-balance sweep or the ABM endgame.
+Adopt replay as a tabular default (tune qReplayK), then the shelter reward-balance sweep or the ABM endgame.
 
 ## Blockers
 - none
