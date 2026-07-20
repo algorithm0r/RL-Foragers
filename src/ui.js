@@ -117,6 +117,9 @@ var DataView = class DataView {
   }
 };
 
+// Shared column layout so the 1×1 and 3×3 Q-views line up: left column = "no food", right = "food".
+var Q_COL_L = 12, Q_COL_R = 190, Q_ROW = 48;
+
 // The 1×1 layer's Q-values as two 3×3 grids ("no food" = state '0', "food" = state '1'). Spatial
 // layout: the centre cell is EAT, the 8 ring cells are the moves placed by their DIRS offset, so
 // you read the reflex at a glance. Cells are coloured by Q (red −, green +) on a shared scale; the
@@ -140,13 +143,13 @@ function renderQView(w, ctx) {
   ctx.fillStyle = '#8a8f98'; ctx.font = '11px sans-serif';
   ctx.fillText('1×1 layer Q  (centre=eat, ring=moves)', 8, 12);
   ctx.fillStyle = '#5a5f68'; ctx.font = '10px monospace';
-  ctx.fillText('Q ' + mn.toFixed(1) + ' … ' + mx.toFixed(1), 8, 24);
-  drawQGrid(ctx, L1, '0', 16, 40, 'no food', mn, mx);
-  drawQGrid(ctx, L1, '1', 156, 40, 'food', mn, mx);
+  ctx.fillText('Q ' + mn.toFixed(1) + ' … ' + mx.toFixed(1) + '  (this plot)', 8, 26);
+  drawQGrid(ctx, L1, '0', Q_COL_L, Q_ROW, 'no food', mn, mx, 50);
+  drawQGrid(ctx, L1, '1', Q_COL_R, Q_ROW, 'food', mn, mx, 50);
 }
 
-function drawQGrid(ctx, L1, state, x0, y0, label, mn, mx) {
-  const cell = 40, EAT = 8;
+function drawQGrid(ctx, L1, state, x0, y0, label, mn, mx, cell) {
+  const EAT = 8;
   let best = 0, bestQ = -Infinity;
   for (let a = 0; a < 9; a++) { const q = L1.getQ(state, a); if (q > bestQ) { bestQ = q; best = a; } }
   ctx.fillStyle = '#cdd2da'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
@@ -215,13 +218,13 @@ function renderQ3View(w, ctx) {
   ctx.fillStyle = '#8a8f98'; ctx.font = '11px sans-serif';
   ctx.fillText('3×3 layer Q — action × 256 surround configs (0→8 food)', 8, 12);
   ctx.fillStyle = '#5a5f68'; ctx.font = '10px monospace';
-  ctx.fillText('Q ' + mn.toFixed(1) + ' … ' + mx.toFixed(1) + '   grey = unexplored', 8, 24);
-  drawQ3Panel(ctx, L3, Q3_STATE0, 8, 40, 'no food', mn, mx);
-  drawQ3Panel(ctx, L3, Q3_STATE1, 150, 40, 'food', mn, mx);
+  ctx.fillText('Q ' + mn.toFixed(1) + ' … ' + mx.toFixed(1) + '  (this plot)   grey = unexplored', 8, 26);
+  drawQ3Panel(ctx, L3, Q3_STATE0, Q_COL_L, Q_ROW, 'no food', mn, mx);
+  drawQ3Panel(ctx, L3, Q3_STATE1, Q_COL_R, Q_ROW, 'food', mn, mx);
 }
 
 function drawQ3Panel(ctx, L3, STATES, px0, py0, label, mn, mx) {
-  const cfgPx = 2, cellW = 16 * cfgPx, gap = 3, EAT = 8;
+  const cfgPx = 3, cellW = 16 * cfgPx, gap = 5, EAT = 8;
   ctx.fillStyle = '#cdd2da'; ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
   ctx.fillText(label, px0, py0 - 3);
   for (let arow = 0; arow < 3; arow++) {
