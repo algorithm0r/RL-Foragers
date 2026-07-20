@@ -21,7 +21,7 @@ for (const f of ['util.js', 'params.js', 'engine.js', 'qlearner.js', 'utree.js',
 }
 const { PARAMETERS: P, World, GameEngine } = globalThis;
 const clear = (w) => { for (let y = 0; y < w.N; y++) for (let x = 0; x < w.N; x++) w.grid[y][x] = World.EMPTY; };
-const base = () => { P.agent = 'flat'; P.enableWater = false; P.enableShelter = false; P.enablePits = false; P.gridN = 6; P.receptiveField = 3; };
+const base = () => { P.agent = 'flat'; P.enableWater = false; P.enableShelter = false; P.enablePits = false; P.gridN = 6; P.receptiveField = 3; P.qReplay = false; }; // replay off → fast, focused; validated separately in budget.mjs
 
 // --- M: mechanics per toggle ---
 base(); P.nFood = 2;
@@ -42,7 +42,7 @@ base(); P.enableWater = true; P.enableShelter = true;
 const ws = new World(800, 600); const REST = ws.actions.indexOf('rest');
 clear(ws); ws.ax = 2; ws.ay = 2; ws.grid[2][2] = World.SHELTER; ws.food = 2; ws.water = 2;
 r = ws.applyAction(REST);
-const mRest = r.done && r.rested === true && r.reward === P.rewardPerUnit * 2;
+const mRest = r.done && r.rested === true && r.reward === P.rewardPerUnit * 16; // stock=food+water=4 → reward = perUnit·4²
 
 base(); P.enablePits = true;
 const wp = new World(800, 600);

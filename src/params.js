@@ -55,7 +55,8 @@ var PARAMETERS = {
   // anchored: change rewardStep and scale rewardGather with it. (Measured: gap −0.04 → +0.79 at +1.)
   rewardGather: 1,        // a successful eat or drink
   rewardStep: -1,         // any move, or a failed eat/drink/rest
-  rewardPerUnit: 50,      // shelter mode: banked reward per balanced (food,water) pair at rest
+  rewardPerUnit: 50,      // shelter mode: coefficient on the rest reward = rewardPerUnit·stock² (stock =
+                          //   food+water). Superlinear → rewards bigger hauls, fights early-rest under-gathering.
   collapsePenalty: 50,    // shelter mode: penalty for the day expiring in the field (never made it home to
                           //   rest). Flat −M; resting with nothing (0) still beats collapse (−M) → homing dominates.
   pitPenalty: 50,         // reward on entering a pit (terminal death)
@@ -79,8 +80,9 @@ var PARAMETERS = {
   // Give the tabular layered agent DQN-style replay: each real step, re-apply qReplayK stored
   // transitions (value-only, so visit counts stay honest). Tests whether the DQN's edge was the
   // 32:1 update budget (replay closes the gap) or genuine generalization (replay plateaus below it).
-  qReplay: false,
-  qReplayK: 32,           // replayed transitions re-applied per real step
+  qReplay: true,          // ON by default: replay halved steps-to-clear (137±49 → 65±1) and killed the
+                          //   seed variance on the 12×12 arena — a free upgrade (more, cheap, updates).
+  qReplayK: 32,           // replayed transitions re-applied per real step (sweet-spot sweep pending)
   qReplayCap: 20000,      // replay buffer capacity
   qReplayWarmup: 1000,    // real steps before replay kicks in
 
@@ -138,5 +140,7 @@ var PARAM_SCHEMA = [
   { key: 'ucbC', label: 'UCB explore c', min: 0, max: 4, step: 0.1 },
   { key: 'epsilon', label: 'ε-greedy ε', min: 0, max: 1, step: 0.01 },
   { key: 'alpha', label: 'Learn α', min: 0.01, max: 1, step: 0.01 },
+  { key: 'qReplay', label: 'Replay (Dyna-Q)', type: 'checkbox' },
+  { key: 'qReplayK', label: 'Replay K', min: 0, max: 128, step: 4 },
   { key: 'updatesPerDraw', label: 'Speed', min: 1, max: 500, step: 1 },
 ];

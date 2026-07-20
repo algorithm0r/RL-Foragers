@@ -68,6 +68,9 @@ var World = class World {
     return '' + (dirx + 1) + (diry + 1) + db;
   }
 
+  // the day's haul (food + water if enabled) — the raw stock the rest reward squares, and the metric
+  bankedStock() { return this.food + (PARAMETERS.enableWater ? this.water : 0); }
+
   // bucketed satiety: food (and water, if enabled) gathered, each capped at 3
   satietyCode() { const b = (c) => (c >= 3 ? 3 : c); return '' + b(this.food) + (PARAMETERS.enableWater ? b(this.water) : ''); }
 
@@ -102,7 +105,10 @@ var World = class World {
       if (PARAMETERS.enablePits && this.grid[this.ay][this.ax] === World.PIT) return { reward: -PARAMETERS.pitPenalty, done: true, died: true };
       out = { reward: PARAMETERS.rewardStep, done: false };
     } else if (act === 'rest') {
-      if (this.cell(0, 0) === World.SHELTER) { const banked = PARAMETERS.enableWater ? Math.min(this.food, this.water) : this.food; return { reward: PARAMETERS.rewardPerUnit * banked, done: true, rested: true }; }
+      // rest at the shelter banks a SUPERLINEAR reward in the day's haul: rewardPerUnit·stock² (stock =
+      // food+water). Quadratic so each extra item is worth more than the last — the pressure to keep
+      // foraging that a linear reward lacked (linear + collapse made "rest early with anything" optimal).
+      if (this.cell(0, 0) === World.SHELTER) { const s = this.bankedStock(); return { reward: PARAMETERS.rewardPerUnit * s * s, done: true, rested: true }; }
       out = { reward: PARAMETERS.rewardStep, done: false };
     } else {
       // collect actions: 'eat'=type 1, 'drink'=type 2, 'c'+t=type t. Succeeds iff that type is underfoot.
@@ -138,7 +144,7 @@ var World = class World {
     const ema = (p, v) => (p === null ? v : 0.98 * p + 0.02 * v);
     if (res.done) {
       this.episodes++;
-      if (res.rested) { this.rested++; this.emaReward = ema(this.emaReward, PARAMETERS.enableWater ? Math.min(this.food, this.water) : this.food); }
+      if (res.rested) { this.rested++; this.emaReward = ema(this.emaReward, this.bankedStock()); } // metric = harvest (items), not the squared reward
       if (res.collapsed) { this.collapsed++; this.emaReward = ema(this.emaReward, 0); } // day ended in the field → banked nothing
       if (res.cleared) { this.cleared++; this.emaSteps = ema(this.emaSteps, this.steps); }
       if (res.died) this.died++;
@@ -157,7 +163,7 @@ var World = class World {
 
   // the primary metric adapts to the mode: banked reward (shelter) or steps-to-clear (sweep)
   metric() { return PARAMETERS.enableShelter ? this.meanReward() : this.meanStepsToClear(); }
-  metricLabel() { return PARAMETERS.enableShelter ? 'banked reward' : 'steps to clear'; }
+  metricLabel() { return PARAMETERS.enableShelter ? 'banked stock' : 'steps to clear'; }
   meanReward() { return this.emaReward === null ? 0 : this.emaReward; }
   meanStepsToClear() { return this.emaSteps === null ? 0 : this.emaSteps; }
   deathRate() { return this.emaDeath === null ? 0 : this.emaDeath; }
