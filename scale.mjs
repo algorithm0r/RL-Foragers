@@ -39,6 +39,9 @@ let CONFIGS = [
   { name: '13579-QL', agent: 'layered', layers: [1, 3, 5, 7, 9], utree: false },
   { name: '13579-subs', agent: 'subsumption', layers: [1, 3, 5, 7, 9], utree: false },
   { name: '13579-UT', agent: 'layered', layers: [1, 3, 5, 7, 9], utree: true },
+  { name: '13579-mLsum', agent: 'multi-layered', layers: [1, 3, 5, 7, 9], utree: false },
+  { name: '13579-mLwta', agent: 'multi-layered-wta', layers: [1, 3, 5, 7, 9], utree: false },
+  { name: '13579-mSwta', agent: 'multi-subsumption-wta', layers: [1, 3, 5, 7, 9], utree: false },
 ];
 if (CFGFILTER) { const wants = CFGFILTER.split(','); CONFIGS = CONFIGS.filter((c) => wants.some((w) => c.name.includes(w))); }
 

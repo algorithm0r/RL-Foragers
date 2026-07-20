@@ -46,10 +46,15 @@ var World = class World {
   cell(dx, dy) { const N = this.N; return this.grid[((this.ay + dy) % N + N) % N][((this.ax + dx) % N + N) % N]; }
 
   // agent-centered window of radius r as a categorical string (one digit per cell), torus wraparound
-  senseWindow(r) {
+  // `channel` (a resource type) binarizes the window to that type only ('1'/'0') — for per-resource
+  // learners; without it the full multi-type window is returned (base36, one char per cell).
+  senseWindow(r, channel) {
     let s = '';
-    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) s += this.cell(dx, dy).toString(36);
-    return s; // base36 → one char per cell even for ≥10 resource types
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      const v = this.cell(dx, dy);
+      s += channel ? (v === channel ? '1' : '0') : v.toString(36);
+    }
+    return s;
   }
 
   // compact home vector (shelter mode only): signed step toward shelter per axis + coarse distance
@@ -95,7 +100,7 @@ var World = class World {
       this.grid[this.ay][this.ax] = World.EMPTY;
       if (type === World.FOOD) this.food++; else if (type === World.WATER) this.water++;
       this.remaining--;
-      return this.gatherResult();
+      const r = this.gatherResult(); r.collected = type; return r; // which type → per-resource reward routing
     }
     return { reward: PARAMETERS.rewardStep, done: false };
   }

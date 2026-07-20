@@ -31,8 +31,9 @@ var FlatAgent = class FlatAgent {
 };
 
 var LayeredAgent = class LayeredAgent {
-  constructor(nActions) {
+  constructor(nActions, channel) {
     this.nActions = nActions;
+    this.channel = channel || null; // if set, window layers see only this resource type (binarized)
     // Layers are different FEATURE FILTERS, not just spatial scales. Spatial 'window' layers sense a
     // pure local window (reflexes/navigation that GENERALIZE across bearing/satiety); an optional
     // 'internal' layer senses ONLY shelter-bearing + satiety (the homing/rest decision) in its own
@@ -61,7 +62,19 @@ var LayeredAgent = class LayeredAgent {
   // each layer's abstract state: a pure local window ('window' layers) or the internal bearing+satiety
   // code ('internal' layer). No cross-augmentation → the spatial reflexes stay reusable.
   statesFor(world) {
-    return this.layers.map((L) => (L.kind === 'window' ? world.senseWindow(L.r) : world.internalCode()));
+    return this.layers.map((L) => (L.kind === 'window' ? world.senseWindow(L.r, this.channel) : world.internalCode()));
+  }
+
+  // combined Q vector for a set of layer states (also records the coupling weights) — used by
+  // MultiResourceAgent to sum per-resource opinions without letting a sub-agent select/learn on its own.
+  qVector(states) { const c = this.combine(states); this.lastWeights = c.weights; return c.q; }
+
+  // each layer learns on its own abstracted transition (extracted from act() so MultiResource can
+  // drive the shared (action, reward, next) into every sub-agent).
+  learnTransition(states, action, reward, nextStates) {
+    for (let i = 0; i < this.layers.length; i++) {
+      this.layers[i].learner.learn(states[i], action, reward, nextStates ? nextStates[i] : null);
+    }
   }
 
   // confidence-weighted combined Q over actions. Returns {q:[...], weights:[...] normalized}.
@@ -120,11 +133,7 @@ var LayeredAgent = class LayeredAgent {
 
     const outcome = world.applyAction(action);
     const nextStates = outcome.done ? null : this.statesFor(world);
-
-    // each layer learns on its OWN abstracted transition, bootstrapping on its own next-state max
-    for (let i = 0; i < this.layers.length; i++) {
-      this.layers[i].learner.learn(states[i], action, outcome.reward, nextStates ? nextStates[i] : null);
-    }
+    this.learnTransition(states, action, outcome.reward, nextStates);
     this.lastAction = action;
     return outcome;
   }
@@ -136,36 +145,109 @@ var LayeredAgent = class LayeredAgent {
 // covers only its band (states where narrower layers are empty) — which shrinks per-layer state counts.
 // This is the control for "does the confidence WEIGHTING matter, or just having the sub-policies?".
 var SubsumptionAgent = class SubsumptionAgent {
-  constructor(nActions) {
+  constructor(nActions, channel) {
     this.nActions = nActions;
+    this.channel = channel || null; // if set, window layers see only this resource type (binarized)
     this.layers = PARAMETERS.layers.map((size) => ({
       kind: 'window', size, r: (size - 1) >> 1, label: 'L' + size, learner: new QLearner(nActions),
     }));
     this.lastWeights = this.layers.map(() => 0); // one-hot of the active layer (for the HUD)
     this.lastAction = null;
+    this._active = this.layers.length - 1;
   }
 
   viewRadius() { let m = 0; for (const L of this.layers) if (L.r > m) m = L.r; return m; }
-  statesFor(world) { return this.layers.map((L) => world.senseWindow(L.r)); }
+  statesFor(world) { return this.layers.map((L) => world.senseWindow(L.r, this.channel)); }
 
-  // does a window contain a resource? (base36 cell chars; resource types are 1..maxType)
+  // does a window contain a resource? A binarized (channel) view marks its type as '1'; otherwise
+  // resources are cell types 1..maxType.
   hasGoal(state) {
+    if (this.channel) { for (let i = 0; i < state.length; i++) if (state[i] === '1') return true; return false; }
     const maxType = PARAMETERS.enableShelter ? (PARAMETERS.enableWater ? 2 : 1) : (PARAMETERS.nTypes || 1);
     for (let i = 0; i < state.length; i++) { const v = parseInt(state[i], 36); if (v >= 1 && v <= maxType) return true; }
     return false;
   }
 
-  act(world) {
-    const states = this.statesFor(world);
-    let active = this.layers.length - 1; // default: widest layer wanders when nothing is in view
+  // the narrowest window layer with a goal in view (else the widest, which wanders)
+  activeLayer(states) {
+    let active = this.layers.length - 1;
     for (let i = 0; i < this.layers.length; i++) if (this.hasGoal(states[i])) { active = i; break; }
     for (let i = 0; i < this.layers.length; i++) this.lastWeights[i] = i === active ? 1 : 0;
+    this._active = active;
+    return active;
+  }
 
-    const L = this.layers[active], st = states[active];
+  // this sub-agent's Q vector = the active layer's Q (for MultiResource summing). Remembers the
+  // active layer so learnTransition updates the same one.
+  qVector(states) {
+    const L = this.layers[this.activeLayer(states)], st = states[this._active];
+    const q = new Array(this.nActions);
+    for (let a = 0; a < this.nActions; a++) q[a] = L.learner.getQ(st, a);
+    return q;
+  }
+
+  learnTransition(states, action, reward, nextStates) {
+    const a = this._active, L = this.layers[a];
+    L.learner.learn(states[a], action, reward, nextStates ? nextStates[a] : null); // only the active layer learns
+  }
+
+  act(world) {
+    const states = this.statesFor(world);
+    const active = this.activeLayer(states), L = this.layers[active], st = states[active];
     const action = Math.random() < PARAMETERS.epsilon ? randomInt(this.nActions) : L.learner.bestAction(st);
     const outcome = world.applyAction(action);
-    const next = outcome.done ? null : world.senseWindow(L.r);
-    L.learner.learn(st, action, outcome.reward, next); // only the active layer learns
+    const next = outcome.done ? null : this.statesFor(world);
+    this.learnTransition(states, action, outcome.reward, next);
+    this.lastAction = action;
+    return outcome;
+  }
+};
+
+// Per-resource decomposition: one sub-agent (layered or subsumption) PER resource type, each seeing
+// only its own resource (binarized view). Their Q vectors SUM into the action choice. Factoring by
+// resource means each sub-learner is a simple single-resource forager (binary window → small state
+// space), and the sum naturally routes each collect action to the learner that owns it.
+var MultiResourceAgent = class MultiResourceAgent {
+  constructor(nActions, kind, combineMode) { // kind='layered'|'subsumption'; combineMode='sum'|'max'(WTA)
+    this.nActions = nActions;
+    this.combineMode = combineMode || 'sum';
+    const K = PARAMETERS.nTypes || 1;
+    this.subs = [];
+    for (let t = 1; t <= K; t++) this.subs.push(kind === 'subsumption' ? new SubsumptionAgent(nActions, t) : new LayeredAgent(nActions, t));
+    this.layers = [].concat.apply([], this.subs.map((s) => s.layers)); // so qStates sums across sub-agents
+    this.lastWeights = this.layers.map(() => 0);
+    this.lastAction = null;
+  }
+
+  viewRadius() { return this.subs[0].viewRadius(); }
+
+  argmax(q) {
+    let m = -Infinity; const best = [];
+    for (let a = 0; a < q.length; a++) { if (q[a] > m) { m = q[a]; best.length = 0; best.push(a); } else if (q[a] === m) best.push(a); }
+    return best[randomInt(best.length)];
+  }
+
+  act(world) {
+    const subStates = this.subs.map((s) => s.statesFor(world));
+    const qs = this.subs.map((s, i) => s.qVector(subStates[i]));
+    let chooseQ;
+    if (this.combineMode === 'max') { // winner-take-all: the sub with the highest max-Q dictates the action
+      let bestVal = -Infinity; chooseQ = qs[0];
+      for (const q of qs) { let mx = -Infinity; for (const v of q) if (v > mx) mx = v; if (mx > bestVal) { bestVal = mx; chooseQ = q; } }
+    } else { // sum
+      chooseQ = new Array(this.nActions).fill(0);
+      for (const q of qs) for (let a = 0; a < this.nActions; a++) chooseQ[a] += q[a];
+    }
+    const action = Math.random() < PARAMETERS.epsilon ? randomInt(this.nActions) : this.argmax(chooseQ);
+    const outcome = world.applyAction(action);
+    // REWARD DECOMPOSITION: each resource learner gets only its own resource's reward — the collector
+    // sub gets the gather/clear reward, everyone else gets the step cost (that action didn't help them).
+    const gained = outcome.collected || 0;
+    const nextSub = outcome.done ? null : this.subs.map((s) => s.statesFor(world));
+    for (let i = 0; i < this.subs.length; i++) {
+      const rt = (gained === i + 1) ? outcome.reward : PARAMETERS.rewardStep;
+      this.subs[i].learnTransition(subStates[i], action, rt, nextSub ? nextSub[i] : null);
+    }
     this.lastAction = action;
     return outcome;
   }
@@ -175,5 +257,9 @@ var SubsumptionAgent = class SubsumptionAgent {
 function makeAgent(nActions) {
   if (PARAMETERS.agent === 'flat') return new FlatAgent(nActions);
   if (PARAMETERS.agent === 'subsumption') return new SubsumptionAgent(nActions);
+  if (PARAMETERS.agent === 'multi-layered') return new MultiResourceAgent(nActions, 'layered', 'sum');
+  if (PARAMETERS.agent === 'multi-subsumption') return new MultiResourceAgent(nActions, 'subsumption', 'sum');
+  if (PARAMETERS.agent === 'multi-layered-wta') return new MultiResourceAgent(nActions, 'layered', 'max');
+  if (PARAMETERS.agent === 'multi-subsumption-wta') return new MultiResourceAgent(nActions, 'subsumption', 'max');
   return new LayeredAgent(nActions);
 }
