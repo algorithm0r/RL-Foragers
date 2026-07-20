@@ -3,6 +3,18 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-19 — 1×1 Q-value visualization (two 3×3 direction grids)
+**Done:** added a Q-view in the data panel (`#qCanvas`) showing the 1×1 layer's Q as two 3×3 grids —
+state '0' (no food) and '1' (food). Spatial layout: centre cell = eat, the 8 ring cells = the moves
+placed by their `World.DIRS` offset (NW,N,NE / W,eat,E / SW,S,SE), so the reflex is readable at a
+glance. Cells coloured by Q on a shared red(−)/green(+) scale; the greedy pick is outlined cyan, eat
+outlined gold. Renders each frame via `DataView` (browser-only, off-canvas). Falls back to a hint when
+no 1×1 layer is present (flat agent with window>1).
+**Changed:** `index.html` (+qCanvas), `ui.js` (renderQView/drawQGrid/qColor + DataView qCtx), `main.js`.
+**State:** core smoke PASS (exit 0); browser files syntax-check clean; DIRS→cell mapping verified
+(all 8 ring cells map). Needs an in-browser look to confirm the render.
+**Next:** relevance filtering; could extend the same viz to 3×3 later.
+
 ## 2026-07-19 — Strategic init: gather=+1, greedy default, exploration dropdown
 **Done:** set `rewardGather = +1` (≈|rewardStep|) so the Q gap straddles zero and `defaultQ = 0` is the
 strategic exploration threshold for free (untried actions beat wandering, lose to a learned good

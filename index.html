@@ -17,6 +17,7 @@
     #dataPanel { padding: 14px; box-sizing: border-box; flex: none; }
     #stats { margin: 0 0 12px; font: 13px/1.5 'Consolas', 'Courier New', monospace; color: #cdd2da; white-space: pre; }
     #graphCanvas { border: 1px solid #222; }
+    #qCanvas { border: 1px solid #222; margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -29,6 +30,7 @@
   <div id="dataPanel">
     <div id="stats"></div>
     <canvas id="graphCanvas" width="260" height="130"></canvas>
+    <canvas id="qCanvas" width="280" height="160"></canvas>
   </div>
 
   <!-- socket.io client (for the standard DB client in socket mode) -->
