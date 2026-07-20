@@ -19,9 +19,9 @@ var FlatAgent = class FlatAgent {
 
   act(world) {
     const state = world.senseState();
-    const action = PARAMETERS.explore === 'ucb'
-      ? this.learner.selectUCB(state, PARAMETERS.ucbC)
-      : this.learner.select(state);
+    const action = PARAMETERS.explore === 'ucb' ? this.learner.selectUCB(state, PARAMETERS.ucbC)
+      : PARAMETERS.explore === 'egreedy' ? this.learner.select(state)
+        : this.learner.bestAction(state); // 'greedy' — exploration comes from the strategic init
     const outcome = world.applyAction(action);
     const nextState = outcome.done ? null : world.senseState();
     this.learner.learn(state, action, outcome.reward, nextState);
@@ -113,9 +113,9 @@ var LayeredAgent = class LayeredAgent {
     const states = this.statesFor(world);
     const combined = this.combine(states);
     this.lastWeights = combined.weights;
-    const action = PARAMETERS.explore === 'ucb'
-      ? this.selectUCB(states, combined)
-      : (Math.random() < PARAMETERS.epsilon ? randomInt(this.nActions) : this.argmax(combined.q));
+    const action = PARAMETERS.explore === 'ucb' ? this.selectUCB(states, combined)
+      : PARAMETERS.explore === 'egreedy' ? (Math.random() < PARAMETERS.epsilon ? randomInt(this.nActions) : this.argmax(combined.q))
+        : this.argmax(combined.q); // 'greedy' — exploration comes from the strategic init (defaultQ)
 
     const outcome = world.applyAction(action);
     const nextStates = outcome.done ? null : this.statesFor(world);

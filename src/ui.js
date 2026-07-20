@@ -6,8 +6,29 @@ function buildControls() {
   const panel = document.getElementById('controlPanel');
   for (const spec of PARAM_SCHEMA) {
     if (spec.type === 'checkbox') { panel.appendChild(buildCheckbox(spec)); continue; }
+    if (spec.type === 'select') { panel.appendChild(buildSelect(spec)); continue; }
     panel.appendChild(buildSlider(spec));
   }
+}
+
+// a dropdown for a small set of mutually-exclusive string values (e.g. exploration method)
+function buildSelect(spec) {
+  const wrap = document.createElement('label');
+  wrap.className = 'ctl';
+  wrap.appendChild(document.createTextNode(spec.label + ' '));
+  const sel = document.createElement('select');
+  for (const opt of spec.options) {
+    const o = document.createElement('option');
+    o.value = opt; o.textContent = opt;
+    if (PARAMETERS[spec.key] === opt) o.selected = true;
+    sel.appendChild(o);
+  }
+  sel.onchange = function () {
+    PARAMETERS[spec.key] = sel.value;
+    if (typeof reset === 'function') reset();
+  };
+  wrap.appendChild(sel);
+  return wrap;
 }
 
 // a boolean/enum toggle. `onVal`/`offVal` map the checkbox to non-boolean params (e.g. agent).

@@ -33,11 +33,14 @@ var PARAMETERS = {
                           // homing/rest decision), so the spatial window layers stay pure reflexes
   confidenceK: 30,        // saturation of the count→confidence curve; higher = slower to trust a layer
 
-  // --- reward: gather=0 (value realized at rest), any other action=-1, REST at shelter banks
-  //     rewardPerUnit·min(food,water) and ends the episode, entering a pit = death (-pitPenalty) ---
-  rewardGather: 0,        // a successful eat or drink (banked, not paid immediately)
+  // --- reward: gather=+1 (eat/drink), any other action=-1, clear/rest bonus, pit = death ---
+  // rewardGather ≈ |rewardStep| is deliberate: it puts "about to gather" just above 0 and "searching"
+  // just below 0, so the Q-value gap straddles zero and defaultQ=0 is the strategic exploration
+  // threshold for free (untried actions beat wandering but lose to a learned good action). Scale-
+  // anchored: change rewardStep and scale rewardGather with it. (Measured: gap −0.04 → +0.79 at +1.)
+  rewardGather: 1,        // a successful eat or drink
   rewardStep: -1,         // any move, or a failed eat/drink/rest
-  rewardPerUnit: 50,      // banked reward per balanced (food,water) pair at rest
+  rewardPerUnit: 50,      // shelter mode: banked reward per balanced (food,water) pair at rest
   pitPenalty: 50,         // reward on entering a pit (terminal death)
 
   // --- tabular Q-learning ---
@@ -46,15 +49,17 @@ var PARAMETERS = {
   defaultQ: 0,            // Q for unseen (state, action) pairs
 
   // --- exploration ---
-  // 'ucb': optimism under uncertainty — pick argmax_a [ Q(s,a) + ucbC·√(ln N_state / n_state,action) ].
-  //        Under-sampled ("unsettled") actions get a bonus; well-sampled ones ~0. Auto-anneals, no
-  //        schedule, and reuses the SAME visit counts the layered coupling weights by. Untried (s,a)
-  //        get an infinite bonus (tried first). For the layered agent the bonus is confidence-weighted
-  //        across layers, so we don't chase never-settling fine-window states.
-  // 'egreedy': legacy ε-random (kept for baselines).
-  explore: 'ucb',
-  ucbC: 1.0,              // UCB exploration constant (higher = explore longer)
-  epsilon: 0.1,           // only used when explore = 'egreedy'
+  // 'greedy':  pure argmax of Q. Exploration comes from the STRATEGIC INIT: unvisited (s,a) return
+  //            defaultQ=0, which sits in the value gap — so untried actions beat known-bad wandering
+  //            (explore) but lose to a learned good action (the reflex is never overridden). No bonus,
+  //            no forcing. Apt for this (deterministic) world; the default.
+  // 'ucb':     optimism via a count bonus, argmax_a [ Q + ucbC·√(ln N_state / n_state,action) ]; untried
+  //            (s,a) forced first. Scale-free but its forcing can override a confident reflex — kept for
+  //            comparison.
+  // 'egreedy': ε-random (kept for baselines).
+  explore: 'greedy',
+  ucbC: 1.0,              // UCB exploration constant (higher = explore longer); only when explore='ucb'
+  epsilon: 0.1,           // ε-random rate; only when explore='egreedy'
 
   // --- engine ---
   updatesPerDraw: 20,     // fast-forward: sim updates per rendered frame (learning is fast, drawing slow)
@@ -85,7 +90,7 @@ var PARAM_SCHEMA = [
   { key: 'nFood', label: 'Food', min: 0, max: 30, step: 1, resets: true },
   { key: 'nWater', label: 'Water', min: 0, max: 30, step: 1, resets: true },
   { key: 'nPits', label: 'Pits', min: 0, max: 12, step: 1, resets: true },
-  { key: 'explore', label: 'UCB (uncheck = ε-greedy)', type: 'checkbox', onVal: 'ucb', offVal: 'egreedy' },
+  { key: 'explore', label: 'Exploration', type: 'select', options: ['greedy', 'ucb', 'egreedy'] },
   { key: 'ucbC', label: 'UCB explore c', min: 0, max: 4, step: 0.1 },
   { key: 'epsilon', label: 'ε-greedy ε', min: 0, max: 1, step: 0.01 },
   { key: 'alpha', label: 'Learn α', min: 0.01, max: 1, step: 0.01 },

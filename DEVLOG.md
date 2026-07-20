@@ -3,6 +3,26 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-19 — Strategic init: gather=+1, greedy default, exploration dropdown
+**Done:** set `rewardGather = +1` (≈|rewardStep|) so the Q gap straddles zero and `defaultQ = 0` is the
+strategic exploration threshold for free (untried actions beat wandering, lose to a learned good
+action). Made **greedy** the default selection (exploration via the strategic init, no bonus/forcing);
+kept `ucb` and `egreedy` as options via a new 3-way exploration **dropdown** (`type:'select'` in ui.js).
+**Changed:** `params.js` (rewardGather 0→1, explore default 'greedy', select schema), `agent.js` (greedy
+path in both agents), `ui.js` (buildSelect), `smoketest.mjs` (base learns under greedy).
+**State:** smoke PASS (base sweep 28→22 under greedy). Measured: gather sweep gap −0.04 (@0) → +0.79
+(@+1) → +1.32 but all-positive (@+3, overshoots). Verification (250k):
+- **Eat reflex protected** — L1 picks eat in food states under greedy/ucb/egreedy alike (L1's 2 states
+  saturate instantly, so the override never actually breaks the reflex — it only wasted exploration).
+- gather=+1 lifts shelter banking 0.44 → 0.61.
+- Base sweep steps-to-clear: greedy 46.6 ≈ egreedy 46.1, UCB a bit faster at 41.9. Greedy is cleaner,
+  not strictly best. Gap is policy-dependent (greedy's lower-value policy pushes eat's abs Q negative;
+  reflex holds via cross-action ranking, not vs defaultQ).
+- **Pits still unsolved:** greedy also explores into a novel pit (untried move = defaultQ 0 > known-neg
+  wander). Needs the 3×3 pit-reflex to generalize / safe exploration.
+**Next:** relevance filtering (per-layer feature masks) — the thing that makes [1,3,5] pay off and lets
+the pit-reflex generalize.
+
 ## 2026-07-19 — Move data display off-canvas (crisp HTML) + UCB toggle
 **Done:** metrics + graph now render off the game canvas. `index.html` gains a data panel (HTML
 `#stats` monospace block + its own `#graphCanvas`); the game canvas shrank to 600×600 (just the

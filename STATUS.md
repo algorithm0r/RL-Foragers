@@ -15,10 +15,10 @@ observation all adapt to the flags. Layers restored to `[1,3,5]`. Two agents (fl
 `act()` contract; UCB exploration; confidence coupling. smoke PASS (per-toggle mechanics + base learning).
 
 ## Metrics
-- Base sweep (8×8, F6, layered [1,3,5], UCB): steps-to-clear 32 → **21** ≈ oracle
-- +water sweep: ~69 steps; shelter modes under-gather (~0.4 banked) — ranged-sensing gap
-- **pits-only → 97% death** (catastrophic UCB, no shelter escape); +water+shelter+pits → ~59%
-- Coupling still down-weights the 5×5 categorical layer (~0) under multi-type cells — relevance filter next
+- Reward: gather=+1 (≈|step|) → Q gap straddles 0, so defaultQ=0 is the strategic init. Default explore=greedy.
+- Base sweep (10×10, F10, layered [1,3,5]): greedy 46.6 ≈ egreedy 46.1, UCB 41.9. **Eat reflex protected** under all.
+- gather=+1 lifts shelter banking 0.44 → 0.61. **Pits still unsolved** (greedy also explores into novel pits).
+- Exploration is a 3-way UI dropdown (greedy/ucb/egreedy); coupling down-weights the 5×5 categorical layer — relevance filter next
 
 ## Branches
 - `main`
