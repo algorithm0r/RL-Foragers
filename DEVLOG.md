@@ -3,6 +3,28 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-20 — Scale × resources sweep: U-Tree disconfirmed; layered reach is the win
+**Done:** extended `scale.mjs` with a resources axis (1 = binary food sweep, 2 = food+water sweep →
+3-valued cells, the memory-ceiling test with no shelter confound). N∈{10,14,20} × res∈{1,2} ×
+{1357,13579} × {QL,UT} × 3 seeds → `scale` (84 packets). Oracle 30/62/129 at N=10/14/20.
+**2-resource steps-to-clear:** 1357-QL 36/118/1035 · 1357-UT 219/1076/3985 · **13579-QL 34/77/236** ·
+13579-UT 374/1354/3996. Q-states 13579: QL 362k→167k vs UT 1.9k→1.7k.
+**Verdict (settles the relevance-filtering question):**
+1. **U-Tree loses HARDER with 2 resources** — 3-valued cells starve the tree faster and need more
+   distinctions than its ~1.9k leaves hold; QLearner barely moved (33→36). The memory-ceiling test
+   went the wrong way.
+2. **QLearner never drowns** — even 362k encountered states are nothing vs the 3^25 ceiling, and it
+   revisits them enough to learn within budget. Tabular is far more robust to state-count than
+   assumed → **U-Tree's payoff regime doesn't exist in this domain.**
+3. **Layered REACH is the real, robust win** — 13579-QL is near-oracle in every condition
+   (34/77/236 @ 2 res vs oracle 30/62/129) and crushes 1357-QL at scale (236 vs 1035). More
+   layers = more reach, robust across arena size AND resource count.
+**Conclusion:** shelve U-Tree as a performance strategy (keep as an optional memory tool if a truly
+infeasible table ever appears). The winning recipe = layered + wide-enough reach + egreedy 0.01.
+**Changed:** `scale.mjs` (resources axis + food/water oracle).
+**Next:** make reach adaptive/scale with arena (13579 default? auto-add layers up to ~arena); or move
+to multi-agent / hunting (the ABM goal). Consider bumping default layers 135 → 1357.
+
 ## 2026-07-20 — Arena scale sweep: U-Tree loses everywhere; MORE LAYERS win at scale
 **Done:** `scale.mjs` — layered-1357/13579, QLearner vs U-Tree, N∈{10,14,20}, food density 0.1,
 maxSteps ∝ N², egreedy 0.01, oracle anchor. N=3 seeds → `scale` collection (42 packets).
