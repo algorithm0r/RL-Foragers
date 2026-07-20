@@ -24,20 +24,23 @@ const SAMPLE = parseInt(flag('sample', '5000'), 10);
 const COLL = flag('collection', 'scale');
 const SIZES = flag('sizes', '10,14,20').split(',').map(Number);
 const RESOURCES = flag('resources', '1,2').split(',').map(Number);
-const DENSITY = 0.1;
+const DENSITIES = flag('density', '0.1').split(',').map(Number);
+const CFGFILTER = flag('configs', null); // comma-sep substrings to include (e.g. 13579)
 
 const BASE = {
-  agent: 'layered', enableShelter: false, enablePits: false,
+  enableShelter: false, enablePits: false,
   alpha: 0.1, gamma: 0.95, confidenceK: 30, rewardStep: -1, rewardGather: 1, defaultQ: 0,
   explore: 'egreedy', epsilon: 0.01,
   utreeMinSamples: 200, utreeMinChild: 15, utreeSplitThreshold: 0.3, utreeCheckInterval: 150,
 };
-const CONFIGS = [
-  { name: '1357-QL', layers: [1, 3, 5, 7], utree: false },
-  { name: '1357-UT', layers: [1, 3, 5, 7], utree: true },
-  { name: '13579-QL', layers: [1, 3, 5, 7, 9], utree: false },
-  { name: '13579-UT', layers: [1, 3, 5, 7, 9], utree: true },
+let CONFIGS = [
+  { name: '1357-QL', agent: 'layered', layers: [1, 3, 5, 7], utree: false },
+  { name: '1357-UT', agent: 'layered', layers: [1, 3, 5, 7], utree: true },
+  { name: '13579-QL', agent: 'layered', layers: [1, 3, 5, 7, 9], utree: false },
+  { name: '13579-subs', agent: 'subsumption', layers: [1, 3, 5, 7, 9], utree: false },
+  { name: '13579-UT', agent: 'layered', layers: [1, 3, 5, 7, 9], utree: true },
 ];
+if (CFGFILTER) { const wants = CFGFILTER.split(','); CONFIGS = CONFIGS.filter((c) => wants.some((w) => c.name.includes(w))); }
 
 const SEED0 = 12345;
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -62,12 +65,12 @@ function greedyPolicy(w) {
 }
 function qStates(w) { return w.agent.layers ? w.agent.layers.reduce((s, L) => s + L.learner.numStates(), 0) : 0; }
 
-function runOne(N, res, cfg, seed, policy) {
-  const items = Math.max(2, Math.round(N * N * DENSITY));
+function runOne(N, res, density, cfg, seed, policy) {
+  const items = Math.max(2, Math.round(N * N * density));
   const food = res === 2 ? Math.round(items / 2) : items, water = res === 2 ? items - Math.round(items / 2) : 0;
   Object.assign(P, BASE, {
     gridN: N, nFood: food, nWater: water, enableWater: res === 2, maxStepsPerEpisode: N * N * 10,
-    layers: cfg ? cfg.layers : [1, 3, 5, 7], relevanceFilter: cfg ? cfg.utree : false,
+    agent: cfg ? cfg.agent : 'layered', layers: cfg ? cfg.layers : [1, 3, 5, 7], relevanceFilter: cfg ? cfg.utree : false,
   });
   Math.random = mulberry32(seed);
   const w = new World(800, 600), e = new GameEngine();
@@ -83,24 +86,24 @@ function runOne(N, res, cfg, seed, policy) {
 async function main() {
   const db = createDB({ transport: 'direct', mongoUrl: P.db.mongoUrl, db: flag('db', 'rllayers') });
   const jobs = [];
-  for (const N of SIZES) for (const res of RESOURCES) {
-    for (const cfg of CONFIGS) for (let r = 0; r < REPS; r++) jobs.push({ N, res, cfg, rep: r, policy: null });
-    for (let r = 0; r < Math.min(2, REPS); r++) jobs.push({ N, res, cfg: { name: 'oracle' }, rep: r, policy: greedyPolicy });
+  for (const N of SIZES) for (const res of RESOURCES) for (const dens of DENSITIES) {
+    for (const cfg of CONFIGS) for (let r = 0; r < REPS; r++) jobs.push({ N, res, dens, cfg, rep: r, policy: null });
+    for (let r = 0; r < Math.min(2, REPS); r++) jobs.push({ N, res, dens, cfg: { name: 'oracle' }, rep: r, policy: greedyPolicy });
   }
   console.log('scale: ' + jobs.length + ' runs, ' + TICKS + ' ticks each → ' + COLL);
   let n = 0;
   for (const j of jobs) {
     const seed = SEED0 + j.rep, t0 = Date.now();
-    const res = runOne(j.N, j.res, j.policy ? null : j.cfg, seed, j.policy);
-    db.config.run = 'N' + j.N + '-r' + j.res + '-' + j.cfg.name + '-s' + j.rep;
+    const res = runOne(j.N, j.res, j.dens, j.policy ? null : j.cfg, seed, j.policy);
+    db.config.run = 'N' + j.N + '-r' + j.res + '-d' + j.dens + '-' + j.cfg.name + '-s' + j.rep;
     const pkt = db.packet(P, {
-      experiment: 'scale', N: j.N, resources: j.res, config: j.cfg.name, rep: j.rep, seed,
+      experiment: 'scale', N: j.N, resources: j.res, density: j.dens, config: j.cfg.name, rep: j.rep, seed,
       food: res.food, water: res.water, isReference: !!j.policy,
       final: res.final, cleared: res.cleared, qStates: res.qStates, curve: res.curve,
     });
     const ins = await db.insert(COLL, pkt);
     n++;
-    console.log('  [' + n + '/' + jobs.length + '] N=' + j.N + ' r' + j.res + ' ' + j.cfg.name + ' s' + j.rep +
+    console.log('  [' + n + '/' + jobs.length + '] N=' + j.N + ' r' + j.res + ' d' + j.dens + ' ' + j.cfg.name + ' s' + j.rep +
       ' → final=' + res.final + ' cleared=' + res.cleared + ' qStates=' + res.qStates.toLocaleString() +
       ' (' + ((Date.now() - t0) / 1000).toFixed(0) + 's, ok=' + ins.ok + ')');
   }

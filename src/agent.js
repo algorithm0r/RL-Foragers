@@ -130,7 +130,49 @@ var LayeredAgent = class LayeredAgent {
   }
 };
 
+// Subsumption control (Brooks-style): the layers are the same learned window Q-tables, but arbitration
+// is a FIXED PRIORITY instead of a confidence blend — the narrowest window layer that has a goal in
+// view acts; if none do, the widest layer wanders. Only the ACTIVE layer learns, so each layer's Q
+// covers only its band (states where narrower layers are empty) — which shrinks per-layer state counts.
+// This is the control for "does the confidence WEIGHTING matter, or just having the sub-policies?".
+var SubsumptionAgent = class SubsumptionAgent {
+  constructor(nActions) {
+    this.nActions = nActions;
+    this.layers = PARAMETERS.layers.map((size) => ({
+      kind: 'window', size, r: (size - 1) >> 1, label: 'L' + size, learner: new QLearner(nActions),
+    }));
+    this.lastWeights = this.layers.map(() => 0); // one-hot of the active layer (for the HUD)
+    this.lastAction = null;
+  }
+
+  viewRadius() { let m = 0; for (const L of this.layers) if (L.r > m) m = L.r; return m; }
+  statesFor(world) { return this.layers.map((L) => world.senseWindow(L.r)); }
+
+  // does a window contain a resource (food '1', or water '2' when enabled)?
+  hasGoal(state) {
+    for (let i = 0; i < state.length; i++) { const c = state[i]; if (c === '1' || (PARAMETERS.enableWater && c === '2')) return true; }
+    return false;
+  }
+
+  act(world) {
+    const states = this.statesFor(world);
+    let active = this.layers.length - 1; // default: widest layer wanders when nothing is in view
+    for (let i = 0; i < this.layers.length; i++) if (this.hasGoal(states[i])) { active = i; break; }
+    for (let i = 0; i < this.layers.length; i++) this.lastWeights[i] = i === active ? 1 : 0;
+
+    const L = this.layers[active], st = states[active];
+    const action = Math.random() < PARAMETERS.epsilon ? randomInt(this.nActions) : L.learner.bestAction(st);
+    const outcome = world.applyAction(action);
+    const next = outcome.done ? null : world.senseWindow(L.r);
+    L.learner.learn(st, action, outcome.reward, next); // only the active layer learns
+    this.lastAction = action;
+    return outcome;
+  }
+};
+
 // factory: World builds its agent through this, so the sim core stays agent-agnostic
 function makeAgent(nActions) {
-  return PARAMETERS.agent === 'flat' ? new FlatAgent(nActions) : new LayeredAgent(nActions);
+  if (PARAMETERS.agent === 'flat') return new FlatAgent(nActions);
+  if (PARAMETERS.agent === 'subsumption') return new SubsumptionAgent(nActions);
+  return new LayeredAgent(nActions);
 }
