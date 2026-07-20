@@ -70,6 +70,6 @@ const ok = mechanics && decoupled && learned;
 console.log('smoke:' +
   ' M mech=' + mechanics + ' (eat=' + mEat + ' clear=' + mClear + ' drink=' + mDrink + ' rest=' + mRest + ' pit=' + mPit + ')' +
   ' | B decoupled=' + decoupled +
-  ' | L base-sweep steps-to-clear ' + early.toFixed(1) + '→' + late.toFixed(1) + ' (' + wL.cleared + ' cleared)' +
+  ' | L base-sweep steps-to-clear=' + late.toFixed(1) + ' (' + wL.cleared + ' cleared)' +
   ' -> ' + (ok ? 'PASS' : 'FAIL'));
 process.exit(ok ? 0 : 1);
