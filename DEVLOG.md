@@ -3,6 +3,30 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-20 — Subsumption control + density sweep: it's the LAYERING, not the weighting
+**Done:** built `SubsumptionAgent` (fixed-priority arbitration: narrowest window layer with a goal in
+view acts, else widest wanders; only the active layer learns → each layer's Q bounded to its band).
+Density sweep (N=12, 1 resource, density 0.1/0.2/0.35/0.5, 3 seeds): confidence-weighted vs
+subsumption vs U-Tree, layers 13579. → `density` collection.
+**Results — steps-to-clear (oracle 43/75/116/157):**
+- 13579-QL (confidence): 47/88/137/181 · **13579-subs: 46/82/125/169** · 13579-UT: 125/117/175/216
+- Q-states: conf **273k→664k** (explodes with density) · **subs 8k→8k (FLAT)** · UT 1.5k→3.3k
+**Verdict (closes the Stage-3 question):**
+1. **Subsumption matches/slightly beats confidence-weighting at every density with 33–80× fewer
+   states.** The confidence WEIGHTING buys nothing over a fixed priority — it's the **LAYERING**
+   (sub-policies at different scales) that does the work. Control did its job.
+2. **Density is the real state-explosion driver.** Confidence-weighting hits 664k states @ d=0.5
+   (every layer keys its full window every state); subsumption stays flat (each layer only learns
+   its band → bounded by small window sizes). Subsumption is density-robust.
+3. **U-Tree is the worst performer** (over-compresses). Subsumption = the sweet spot (near-oracle
+   perf + near-UT compactness).
+**Caveat:** subsumption uses a HAND-CODED goal detector (hasGoal = food/water in window); confidence-
+weighting is fully learned (general but costlier). Known resources → subsumption wins; unknown → learned.
+**Changed:** `agent.js` (SubsumptionAgent + makeAgent), `scale.mjs` (--density axis, agent-typed
+configs, --configs filter).
+**Next:** adopt subsumption as an efficient default for known-resource worlds; layers-up-to-arena
+(adaptive reach); then the ABM endgame (multi-agent / hunting).
+
 ## 2026-07-20 — Scale × resources sweep: U-Tree disconfirmed; layered reach is the win
 **Done:** extended `scale.mjs` with a resources axis (1 = binary food sweep, 2 = food+water sweep →
 3-valued cells, the memory-ceiling test with no shelter confound). N∈{10,14,20} × res∈{1,2} ×
