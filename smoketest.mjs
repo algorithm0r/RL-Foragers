@@ -14,7 +14,7 @@ import path from 'path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const indirectEval = eval;
-for (const f of ['util.js', 'params.js', 'engine.js', 'qlearner.js', 'utree.js', 'agent.js', 'world.js']) {
+for (const f of ['util.js', 'params.js', 'engine.js', 'qlearner.js', 'utree.js', 'dqn.js', 'agent.js', 'world.js']) {
   let src = readFileSync(path.join(__dirname, 'src', f), 'utf8');
   src = src.replace(/^\s*(['"])use strict\1;?/, '');
   indirectEval(src);
@@ -90,7 +90,17 @@ for (let t = 1; t <= 250000; t++) { eS.tick = t; wS.update(eS); }
 // competence: it reliably reaches shelter and rests (rarely collapses) and banks positive reward
 const sheltered = wS.rested > 3000 && wS.collapseRate() < 0.1 && wS.meanReward() > 0.3;
 
-const ok = mechanics && decoupled && learned && sheltered;
+// --- D: the DQN baseline is wired and numerically stable (learns to clear, no NaN blow-up) ---
+base(); P.agent = 'dqn'; P.nTypes = 1; P.gridN = 8; P.nFood = 6; P.maxStepsPerEpisode = 500;
+P.dqnField = 5; P.dqnHidden = 64; P.dqnAlpha = 0.0025; P.dqnWarmup = 200; P.dqnEpsDecaySteps = 8000;
+const wD = new World(800, 600), eD = new GameEngine();
+for (let t = 1; t <= 15000; t++) { eD.tick = t; wD.update(eD); }
+const AD = wD.agent; let finiteW = true;
+for (const arr of [AD.W1, AD.W2]) for (let i = 0; i < arr.length; i++) if (!Number.isFinite(arr[i])) { finiteW = false; break; }
+const qProbe = AD.qValues(AD.encode(wD));
+const dqnOk = finiteW && qProbe.every(Number.isFinite) && wD.cleared > 20; // ran, learned to clear, no blow-up
+
+const ok = mechanics && decoupled && learned && sheltered && dqnOk;
 console.log('smoke:' +
   ' M mech=' + mechanics + ' (eat=' + mEat + ' clear=' + mClear + ' drink=' + mDrink + ' rest=' + mRest +
   ' pit=' + mPit + ' collapse=' + mCollapse + ' time=' + mTime + ')' +
@@ -98,5 +108,6 @@ console.log('smoke:' +
   ' | L base-sweep steps-to-clear=' + late.toFixed(1) + ' (' + wL.cleared + ' cleared)' +
   ' | S shelter banked=' + wS.meanReward().toFixed(2) + ' collapseRate=' + wS.collapseRate().toFixed(3) +
   ' (' + wS.rested + ' rested)' +
+  ' | D dqn=' + dqnOk + ' (cleared=' + wD.cleared + ')' +
   ' -> ' + (ok ? 'PASS' : 'FAIL'));
 process.exit(ok ? 0 : 1);

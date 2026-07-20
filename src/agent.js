@@ -256,6 +256,7 @@ var MultiResourceAgent = class MultiResourceAgent {
 // factory: World builds its agent through this, so the sim core stays agent-agnostic
 function makeAgent(nActions) {
   if (PARAMETERS.agent === 'flat') return new FlatAgent(nActions);
+  if (PARAMETERS.agent === 'dqn') return new DQNAgent(nActions);
   if (PARAMETERS.agent === 'subsumption') return new SubsumptionAgent(nActions);
   if (PARAMETERS.agent === 'multi-layered') return new MultiResourceAgent(nActions, 'layered', 'sum');
   if (PARAMETERS.agent === 'multi-subsumption') return new MultiResourceAgent(nActions, 'subsumption', 'sum');

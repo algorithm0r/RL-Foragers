@@ -60,6 +60,20 @@ var PARAMETERS = {
                           //   rest). Flat −M; resting with nothing (0) still beats collapse (−M) → homing dominates.
   pitPenalty: 50,         // reward on entering a pit (terminal death)
 
+  // --- DQN baseline (agent='dqn') — a small dependency-free MLP: one-hot window → hidden ReLU →
+  //   Q per action, with experience replay + a target network and a linearly-annealed ε. The honest
+  //   monolithic-NN control for the layered tabular stack: same task, same reward, same seeds. ---
+  dqnField: 5,            // side of the single window the net sees (one-hot per cell)
+  dqnHidden: 64,          // hidden units
+  dqnAlpha: 0.0025,       // NN learning rate (SGD; distinct from the tabular alpha)
+  dqnBatch: 32,           // minibatch size per gradient step
+  dqnReplay: 20000,       // experience-replay capacity (ring buffer)
+  dqnTargetSync: 1000,    // steps between target-network copies
+  dqnWarmup: 1000,        // steps of pure exploration to fill the buffer before learning
+  dqnEpsStart: 1.0,       // ε at step 0 (anneals linearly)
+  dqnEpsEnd: 0.05,        // ε floor
+  dqnEpsDecaySteps: 60000, // steps to anneal ε from start to floor
+
   // --- tabular Q-learning ---
   alpha: 0.1,             // learning rate
   gamma: 0.95,            // discount (raised for v2: reward is banked at rest, ~20-40 steps away)

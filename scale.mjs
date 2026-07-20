@@ -11,7 +11,7 @@ const require = createRequire(import.meta.url);
 const { createDB } = require('./src/db.js');
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ie = eval;
-for (const f of ['util.js', 'params.js', 'engine.js', 'qlearner.js', 'utree.js', 'agent.js', 'world.js']) {
+for (const f of ['util.js', 'params.js', 'engine.js', 'qlearner.js', 'utree.js', 'dqn.js', 'agent.js', 'world.js']) {
   ie(readFileSync(path.join(__dirname, 'src', f), 'utf8').replace(/^\s*(['"])use strict\1;?/, ''));
 }
 const { PARAMETERS: P, World, GameEngine } = globalThis;
