@@ -3,6 +3,28 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-20 — Shelter + time-of-day signal: central-place foraging becomes learnable
+**Done:** made the shelter/central-place mode a real forage-vs-return tradeoff. Two additions:
+(1) **collapse penalty** — in shelter mode `maxStepsPerEpisode` is now the DAY LENGTH; if it expires
+without resting, the day ends terminal with `−collapsePenalty` (delivered *through* `applyAction` so
+the agent actually learns from it, not just EMA bookkeeping). (2) **time-of-day signal** — a bucketed
+"fraction of the day remaining" (`timeBuckets` levels) added to `internalCode()`, so the INT layer can
+learn WHEN to head home. Without it the day's end is hidden state and homing can't be timed.
+**Changed:** `world.js` (`timeCode()`, `applyAction` collapse terminal, `update` collapse bookkeeping,
+`collapsed`/`emaCollapse`/`collapseRate`), `params.js` (`collapsePenalty:50`, `timeBuckets:4`, day-length
++ collapse sliders), `ui.js` (HUD collapse line), `smoketest.mjs` (collapse + time mechanics, S learning).
+**Results (6×6, 4 food, day=80, layered + ε-greedy 0.01):**
+- Learns to forage-then-rest: **rested 12,193 · collapseRate 0.004 · banked 0.65** @ 250k ticks (smoke PASS).
+- **Time signal ablation (600k ticks):** buckets=4 → banked **0.74**, collapse **0.002**; buckets=1 (blind
+  to time) → banked **0.32**, collapse **0.008**. The clock ~2× the harvest and ~4× fewer collapses — the
+  signal is what makes the timing learnable, confirming the hypothesis.
+- **But the agent is risk-averse — it under-gathers** (banks ~0.7 of 4 possible). With collapse −50 vs
+  rewardPerUnit +50, "rest early with whatever you carry" dominates (resting with 0 = 0 > collapse −50).
+  The reward balance (collapse:perUnit ratio, day length, arena) is the lever to make richer foraging pay —
+  that's the next experiment, not a bug.
+**State:** smoke PASS @ pre-commit; deterministic mechanics (collapse=−50 terminal, timeCode 3→0) verified.
+**Next:** DQN baseline (vanilla-JS MLP) head-to-head vs layered-tabular; then sweep the shelter reward balance.
+
 ## 2026-07-20 — Per-resource multi-learners: factoring LOSES — the monolithic learner doesn't explode
 **Done:** built per-resource multi-learner agents (`MultiResourceAgent`: one sub-learner per resource
 type, each seeing only its own type binarized, contributing Q to a final combine) in three flavors —

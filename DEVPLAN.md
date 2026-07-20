@@ -35,8 +35,14 @@ statistical predictability of tabular methods that a neural net would throw away
   addition: base = food-sweep (v1, steps-to-clear, 9 actions) → `+water` (drink, 10) → `+shelter`
   (rest ends day, banked-reward metric, +bearing/satiety +INT layer, 11) → `+pits` (terminal death).
   Action set / metric / INT layer / observation all adapt to the flags. Layers = feature filters
-  (pure `window` layers + optional `internal` bearing/satiety). Base sweep learns near-optimally
-  (32→21 steps ≈ oracle). Shelter modes still under-gather; pits-only = 97% death (catastrophic UCB).
+  (pure `window` layers + optional `internal` bearing/satiety/**time-of-day**). Base sweep learns
+  near-optimally (32→21 steps ≈ oracle); pits-only = 97% death (catastrophic UCB).
+- **Shelter = central-place foraging, now a real forage-vs-return tradeoff.** `maxStepsPerEpisode` is
+  the DAY LENGTH; rest at the shelter banks `rewardPerUnit·gathered`, but if the day expires in the
+  field the agent **collapses** (terminal `−collapsePenalty`). A **time-of-day signal** (bucketed day
+  remaining) in the INT state makes homing timeable — ablation: the clock ~2× the harvest and ~4×
+  fewer collapses vs blind-to-time. The agent learns to forage-then-rest but is **risk-averse / under-
+  gathers** at collapse:perUnit = 1:1 — tuning that ratio (and day length) is the shelter experiment.
 - Legacy letters-puzzle Q-learner lives only in the initial commit (`51e9fc5`) as reference.
 
 ## Not yet built

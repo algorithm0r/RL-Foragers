@@ -13,8 +13,8 @@ var World = class World {
     this.width = width; this.height = height;
     this.actions = World.buildActions();          // dynamic: moves(+eat)(+drink)(+rest)
     this.agent = makeAgent(this.actions.length);  // flat or layered; nActions matches the mode
-    this.episodes = 0; this.cleared = 0; this.rested = 0; this.died = 0;
-    this.emaSteps = null; this.emaReward = null; this.emaDeath = null;
+    this.episodes = 0; this.cleared = 0; this.rested = 0; this.died = 0; this.collapsed = 0;
+    this.emaSteps = null; this.emaReward = null; this.emaDeath = null; this.emaCollapse = null;
     this.spawn();
   }
 
@@ -71,8 +71,19 @@ var World = class World {
   // bucketed satiety: food (and water, if enabled) gathered, each capped at 3
   satietyCode() { const b = (c) => (c >= 3 ? 3 : c); return '' + b(this.food) + (PARAMETERS.enableWater ? b(this.water) : ''); }
 
-  // the internal (non-spatial) state — only meaningful in shelter mode (there's a home to return to)
-  internalCode() { return PARAMETERS.enableShelter ? this.bearingCode() + this.satietyCode() : ''; }
+  // coarse time-of-day: which bucket of the day is LEFT (timeBuckets levels; '0' = almost out of time,
+  // high = fresh). This is what makes "head home before the day ends" LEARNABLE — without a clock in
+  // the state the day's end is hidden, and the forage-vs-return tradeoff can't be timed.
+  timeCode() {
+    const B = PARAMETERS.timeBuckets, rem = PARAMETERS.maxStepsPerEpisode - this.steps;
+    let b = Math.floor((rem / PARAMETERS.maxStepsPerEpisode) * B);
+    if (b >= B) b = B - 1; if (b < 0) b = 0;
+    return b.toString(36);
+  }
+
+  // the internal (non-spatial) state — only meaningful in shelter mode (there's a home to return to):
+  // bearing to shelter + satiety gathered + how much of the day is left.
+  internalCode() { return PARAMETERS.enableShelter ? this.bearingCode() + this.satietyCode() + this.timeCode() : ''; }
 
   // the flat agent's observation: window, augmented with the internal state only in shelter mode
   senseState() {
@@ -84,25 +95,33 @@ var World = class World {
   applyAction(i) {
     this.steps++;
     const act = this.actions[i];
+    let out;
     if (typeof act === 'number') { // a move (0..7 → World.DIRS)
       const dir = World.DIRS[act], N = this.N;
       this.ax = ((this.ax + dir[0]) % N + N) % N; this.ay = ((this.ay + dir[1]) % N + N) % N;
       if (PARAMETERS.enablePits && this.grid[this.ay][this.ax] === World.PIT) return { reward: -PARAMETERS.pitPenalty, done: true, died: true };
-      return { reward: PARAMETERS.rewardStep, done: false };
-    }
-    if (act === 'rest') {
+      out = { reward: PARAMETERS.rewardStep, done: false };
+    } else if (act === 'rest') {
       if (this.cell(0, 0) === World.SHELTER) { const banked = PARAMETERS.enableWater ? Math.min(this.food, this.water) : this.food; return { reward: PARAMETERS.rewardPerUnit * banked, done: true, rested: true }; }
-      return { reward: PARAMETERS.rewardStep, done: false };
+      out = { reward: PARAMETERS.rewardStep, done: false };
+    } else {
+      // collect actions: 'eat'=type 1, 'drink'=type 2, 'c'+t=type t. Succeeds iff that type is underfoot.
+      const type = act === 'eat' ? World.FOOD : act === 'drink' ? World.WATER : parseInt(act.slice(1), 10);
+      if (this.cell(0, 0) === type) {
+        this.grid[this.ay][this.ax] = World.EMPTY;
+        if (type === World.FOOD) this.food++; else if (type === World.WATER) this.water++;
+        this.remaining--;
+        out = this.gatherResult(); out.collected = type; // which type → per-resource reward routing
+      } else {
+        out = { reward: PARAMETERS.rewardStep, done: false };
+      }
     }
-    // collect actions: 'eat'=type 1, 'drink'=type 2, 'c'+t=type t. Succeeds iff that type is underfoot.
-    const type = act === 'eat' ? World.FOOD : act === 'drink' ? World.WATER : parseInt(act.slice(1), 10);
-    if (this.cell(0, 0) === type) {
-      this.grid[this.ay][this.ax] = World.EMPTY;
-      if (type === World.FOOD) this.food++; else if (type === World.WATER) this.water++;
-      this.remaining--;
-      const r = this.gatherResult(); r.collected = type; return r; // which type → per-resource reward routing
+    // END OF DAY (shelter mode): maxStepsPerEpisode is the day length. If it just expired and the day
+    // hasn't already ended (rest / clear / death), the agent COLLAPSES in the field — terminal, −M.
+    if (PARAMETERS.enableShelter && !out.done && this.steps >= PARAMETERS.maxStepsPerEpisode) {
+      return { reward: -PARAMETERS.collapsePenalty, done: true, collapsed: true };
     }
-    return { reward: PARAMETERS.rewardStep, done: false };
+    return out;
   }
 
   // a successful eat/drink. In sweep mode (no shelter), clearing the last item ends the day with a
@@ -120,15 +139,18 @@ var World = class World {
     if (res.done) {
       this.episodes++;
       if (res.rested) { this.rested++; this.emaReward = ema(this.emaReward, PARAMETERS.enableWater ? Math.min(this.food, this.water) : this.food); }
+      if (res.collapsed) { this.collapsed++; this.emaReward = ema(this.emaReward, 0); } // day ended in the field → banked nothing
       if (res.cleared) { this.cleared++; this.emaSteps = ema(this.emaSteps, this.steps); }
       if (res.died) this.died++;
       this.emaDeath = ema(this.emaDeath, res.died ? 1 : 0);
+      this.emaCollapse = ema(this.emaCollapse, res.collapsed ? 1 : 0);
       this.spawn();
     } else if (this.steps >= PARAMETERS.maxStepsPerEpisode) {
       this.episodes++;
       if (PARAMETERS.enableShelter) this.emaReward = ema(this.emaReward, 0); // timed out, banked nothing
       else this.emaSteps = ema(this.emaSteps, this.steps);                    // timed out, count the cutoff
       this.emaDeath = ema(this.emaDeath, 0);
+      this.emaCollapse = ema(this.emaCollapse, 0);
       this.spawn();
     }
   }
@@ -139,6 +161,7 @@ var World = class World {
   meanReward() { return this.emaReward === null ? 0 : this.emaReward; }
   meanStepsToClear() { return this.emaSteps === null ? 0 : this.emaSteps; }
   deathRate() { return this.emaDeath === null ? 0 : this.emaDeath; }
+  collapseRate() { return this.emaCollapse === null ? 0 : this.emaCollapse; }
 };
 
 // the action set for the current mode: 0..7 moves, then eat, (drink), (rest)

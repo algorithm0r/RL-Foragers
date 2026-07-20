@@ -16,7 +16,10 @@ var PARAMETERS = {
   nTypes: 1,              // sweep mode: number of distinct resource types, each with its own collect
                           // action (type1='eat', type2='drink', type≥3='c'+t). Cells take values 1..nTypes.
   nPits: 3,               // pits (when enablePits)
-  maxStepsPerEpisode: 500, // step cutoff → episode ends (sweep: counts the cutoff; shelter: banks 0)
+  maxStepsPerEpisode: 500, // step cutoff → episode ends. SHELTER mode: this is the DAY LENGTH — reach the
+                          //   shelter and REST before it expires, or the agent COLLAPSES (−collapsePenalty).
+  timeBuckets: 4,         // shelter mode: granularity of the time-remaining signal in the internal state
+                          //   (coarse "how much of the day is left" → lets the agent learn WHEN to head home)
 
   // --- agent architecture ---
   agent: 'layered',       // 'flat' (Stage-1 baseline, one window) | 'layered' (Stage 2: L1/L3/L5 + confidence)
@@ -53,6 +56,8 @@ var PARAMETERS = {
   rewardGather: 1,        // a successful eat or drink
   rewardStep: -1,         // any move, or a failed eat/drink/rest
   rewardPerUnit: 50,      // shelter mode: banked reward per balanced (food,water) pair at rest
+  collapsePenalty: 50,    // shelter mode: penalty for the day expiring in the field (never made it home to
+                          //   rest). Flat −M; resting with nothing (0) still beats collapse (−M) → homing dominates.
   pitPenalty: 50,         // reward on entering a pit (terminal death)
 
   // --- tabular Q-learning ---
@@ -103,6 +108,8 @@ var PARAM_SCHEMA = [
   { key: 'nFood', label: 'Food', min: 0, max: 30, step: 1, resets: true },
   { key: 'nWater', label: 'Water', min: 0, max: 30, step: 1, resets: true },
   { key: 'nPits', label: 'Pits', min: 0, max: 12, step: 1, resets: true },
+  { key: 'maxStepsPerEpisode', label: 'Day length', min: 20, max: 1000, step: 20 },
+  { key: 'collapsePenalty', label: 'Collapse −M', min: 0, max: 100, step: 5 },
   { key: 'explore', label: 'Exploration', type: 'select', options: ['greedy', 'ucb', 'egreedy'] },
   { key: 'ucbC', label: 'UCB explore c', min: 0, max: 4, step: 0.1 },
   { key: 'epsilon', label: 'ε-greedy ε', min: 0, max: 1, step: 0.01 },

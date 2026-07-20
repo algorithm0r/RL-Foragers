@@ -5,19 +5,20 @@
 **Verified:** 2026-07-18 (scaffold) — last cold audit (`/audit`); the State section is trusted only as of this date
 
 ## Stage
-Stage 3 (Experiment #1) **DONE** — the layered thesis is validated with multi-seed DB evidence, the
-subsumption control resolved the "why" (it's the layering, not the weighting), and the extension
-threads (scale, density, K-type, per-resource factoring) are all closed. Next: pick the fork —
-adaptive reach, or the ABM endgame (multi-agent / hunting).
+Stage 3 (Experiment #1) **DONE** — layered thesis validated (multi-seed DB), subsumption control
+resolved the "why", extensions (scale, density, K-type, per-resource factoring) closed. **Public repo
+live:** github.com/algorithm0r/RL-Foragers (MIT). Now building: **shelter/central-place foraging** (done,
+learnable) and a **DQN baseline** (next). Then the ABM endgame (multi-agent / hunting).
 
 ## State
 `GridForager`, modular (feature toggles + UI checkboxes): base food-sweep · +water · +shelter · +pits.
-Agents share one `act()`: **flat**, **layered** (confidence-weighted receptive-field stack),
-**subsumption** (fixed-priority layers), and **per-resource multi-learners** (`multi-layered`,
-`-wta`, `multi-subsumption-wta`). Exploration dropdown greedy/ucb/**egreedy (default 0.01)**.
-Strategic init: gather=+1 so defaultQ=0 sits in the value gap. Harness (`experiment.mjs`, `scale.mjs`,
-`analyze.mjs`) writes self-describing packets to local mongo; U-Tree relevance filter built but shelved.
-smoke PASS @ `891187e` (exit 0, this session).
+**Shelter is now a real forage-vs-return tradeoff:** `maxStepsPerEpisode` = the DAY; rest banks
+`rewardPerUnit·gathered`, day-end-in-field = **collapse** (`−collapsePenalty`); a bucketed **time-of-day
+signal** in the INT state makes homing timeable. Agents share one `act()`: **flat**, **layered**
+(confidence-weighted stack), **subsumption**, **per-resource multi-learners** (`multi-layered`/`-wta`/
+`multi-subsumption-wta`). Exploration greedy/ucb/**egreedy (default 0.01)**; strategic init gather=+1.
+Harness (`experiment.mjs`, `scale.mjs`, `analyze.mjs`) → local mongo; U-Tree built but shelved.
+smoke PASS @ pre-commit (exit 0, this session — mechanics + base-sweep + shelter-learning).
 
 ## Metrics (all multi-seed, in the DB)
 - **Layered ≫ any flat window** (~8×). ε-greedy 0.01 is the robust exploration (foraging = coverage).
@@ -27,18 +28,20 @@ smoke PASS @ `891187e` (exit 0, this session).
 - **Per-resource factoring LOSES** (`types2`, K∈{1,2,5,10}): monolithic QL best at every K (88/95/108/119); mL-wta/mS-wta compress (7×/42×) but lose badly (1406/565 @ K=10). QL state count is ~flat in K — no explosion to escape (forager sparsity ⇒ states trajectory-bounded). Same shape as U-Tree.
 - **U-Tree** compresses 100–230× but underperforms at every scale/resource/density/K → shelved.
 - Density (not arena size) is the state-explosion driver; QLearner robust to ~565k states (no wall yet).
+- **Shelter/central-place:** learns forage-then-rest (rested 12k, collapse 0.4%, banked 0.65 @ 250k). Time-of-day signal ~2× harvest & ~4× fewer collapses vs blind-to-time. Risk-averse / under-gathers at collapse:perUnit=1:1 → tune the ratio.
 
 ## Branches
 - `main`
 
 ## Open
+- **DQN baseline (in progress):** hand-rolled vanilla-JS MLP + replay + target net, head-to-head vs layered-tabular on the same env/seeds/metric — does a NN discover the multi-scale structure we hand-built, at what sample cost / reliability?
+- **Shelter reward-balance sweep:** collapse:perUnit ratio × day length × arena — where does richer foraging (vs safe early-rest) become optimal?
 - Adaptive reach: layers up to ~arena size; where do they stop paying?
-- Adopt subsumption as efficient default for known-resource, concentrated worlds (keep confidence for many-type / unknown-relevance).
 - ABM endgame: multiple agents in a shared (stochastic) world; moving prey to hunt / predators to avoid.
 - Probe idea: push density until the monolithic learner *does* strain — does any factored/compressed variant then pay off?
 
 ## Next action
-Pick the fork: (a) adaptive reach sweep, (b) the density-strain probe, or (c) start the multi-agent / hunting world (the ABM goal).
+Build the DQN baseline agent (vanilla-JS MLP), then sweep the shelter reward balance.
 
 ## Blockers
 - none

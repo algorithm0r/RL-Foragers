@@ -88,6 +88,7 @@ function renderStats(w) {
   L.push('');
   L.push('episode  ' + w.episodes);
   L.push(P.enableShelter ? 'rested   ' + w.rested : 'cleared  ' + w.cleared);
+  if (P.enableShelter) L.push('collapsed ' + w.collapsed + '  (' + (w.collapseRate() * 100).toFixed(0) + '%)');
   if (P.enablePits) L.push('died     ' + w.died + '  (' + (w.deathRate() * 100).toFixed(0) + '%)');
   if (P.enableShelter || P.enableWater) L.push('carrying food ' + w.food + (P.enableWater ? '  water ' + w.water : ''));
   L.push('steps    ' + w.steps + ' / ' + P.maxStepsPerEpisode);
