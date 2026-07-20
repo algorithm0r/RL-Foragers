@@ -147,7 +147,7 @@ L3/L5 drive navigation. ✓ smoke PASS; headless (10×10, ~10 food): layered **5
 vs flat **119/126** (~2×); eat routed to L1; rare-state weights L1/L3/L5 = 0.41/0.41/0.18
 (L5 auto-down-weighted when it hasn't seen the pattern).
 
-### Stage 3 — Experiment #1: layered vs flat  [ ACTIVE ]
+### Stage 3 — Experiment #1: layered vs flat  [ DONE ]
 The headline question: **does the layered learner forage a partially-observed arena better than
 any single window?** Preliminary Stage-2 evidence says yes (layered 56 vs flat 119/126 steps-to-
 clear on 10×10); Stage 3 makes it rigorous — multiple seeds, learning curves, DB packets, controls.
@@ -161,16 +161,29 @@ Conditions, all sharing the same world + reward (default 10×10, sparse food, pa
       baseline (dynamics are analytically known on the torus). Guards against beating a straw man.
 - Learning-rule axis for (D): independent per-layer bootstrap (current) vs combined-bootstrap
   (factored target) vs residual (L1 prior → L3/L5 corrections).
-- [ ] `runner.mjs` sweeps over condition × arena/window × seed → self-describing packets to DB.
-- [ ] metrics: steps-to-clear and food-per-1000-steps vs training episodes; learning curves.
+- [x] `experiment.mjs`/`scale.mjs` sweep condition × arena/window/density/K-types × seed → self-describing packets to DB.
+- [x] metrics: steps-to-clear + Q-state footprint vs training; learning curves stored per packet.
+- [x] subsumption control built → isolates "layering" from "confidence weighting" (it's the layering).
 **Done when:** curves for A–D (E optional) are saved to the DB and the comparison is decisive,
-with the subsumption control separating "layering" from "confidence weighting."
+with the subsumption control separating "layering" from "confidence weighting." ✓ **Decisive:**
+layered ≫ any flat window (~8×); LAYERING (not weighting) does the work; ε-greedy 0.01 robust.
+**Extensions past the core question (all in the DB, multi-seed):** arena/resource scale, density
+sweep (subsumption bounds state count 33–80×), K-type sweep (confidence-weighting wins on response
+diversity — complementary trade with density), and **per-resource factoring** (`mL-sum`/`mL-wta`/
+`mS-wta`): **factoring loses** — the monolithic learner never explodes at forager sparsity (states
+trajectory-bounded, ~flat in K), so there's no ceiling to escape, and per-resource binarization
+discards the cross-resource joint structure the sweep needs. Same shape as the U-Tree result.
 
-### Stage 4 — Learned filters: which *bits* matter  [ PLANNED ]
+### Stage 4 — Learned filters: which *bits* matter  [ PLANNED — U-Tree probe done & shelved ]
 Move from fixed receptive fields to **learned relevance** — the G-algorithm / U-Tree lineage:
 split state on a cell/channel bit only when statistics show it changes the Q. This is the
 principled home of "filter out irrelevant bits" (e.g. ignore the `agent` channel when eating,
 attend to it when hunting) and stays statistically predictable (the reliability property).
+~~First probe — `UTreeLearner` (drop-in for `QLearner`, per-action split criterion) built and swept
+across scale/resource/density/K.~~ **Shelved:** compresses 100–230× but underperforms *everywhere* —
+QLearner is robust to ~565k states here, so the memory-ceiling regime U-Tree pays off in doesn't
+exist at forager densities. The relevant-bit *learning* goal (below) is untouched; the tree
+machinery is the part shelved. → forward pointer: revisit only if a real state-count wall appears.
 **Done when:** an agent learns to ignore an irrelevant added channel (e.g. random noise bits)
 without loss of foraging performance, and to attend to a relevant one.
 

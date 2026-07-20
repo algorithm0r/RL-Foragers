@@ -3,6 +3,36 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-20 — Per-resource multi-learners: factoring LOSES — the monolithic learner doesn't explode
+**Done:** built per-resource multi-learner agents (`MultiResourceAgent`: one sub-learner per resource
+type, each seeing only its own type binarized, contributing Q to a final combine) in three flavors —
+`mL-sum` (naive additive), `mL-wta` (winner-take-all: max-Q sub dictates action), `mS-wta`
+(subsumption sub-learners + WTA), with per-resource reward decomposition. Committed `891187e`.
+Swept K∈{1,2,5,10} (N=12, density 0.2, 3 seeds) vs monolithic QL + subsumption → `types2` collection.
+**Results — steps-to-clear (oracle flat ~77; lower=better):**
+- QL monolithic **88/95/108/119** (best at every K) · subs 82/91/128/201
+- mL-sum 88/**261**/1424/1440 · mL-wta 88/114/1027/1406 · mS-wta 82/123/607/565
+- Q-states: QL **458k→565k→526k (FLAT in K)** · mL-wta 458k→71k (compresses ~7×) · mS-wta ~12k flat (42× < QL)
+**The finding — the factoring hypothesis is REFUTED, and the *why* is the point:**
+- Factoring was meant to win because the monolithic window "should" explode as `(K+1)^cells`. **It
+  doesn't.** QL's state count is ~flat (~460–565k) across K — at forager densities the grid is sparse
+  (30 items / 144 cells), so states *visited* are **trajectory-bounded, not enumeration-bounded**.
+  There is no memory ceiling to escape (QL already known-robust to ~565k states).
+- The factored agents pay a real cost: per-resource binarization **discards the cross-resource joint
+  structure** an efficient sweep needs. At K=10 → 10 sub-learners each on a near-empty binary window;
+  WTA dithers over which resource to chase → 1406 ≈ the 1440-step timeout cap (barely clears).
+- **mL-sum confirms action-interference AND that it scales with K** (261±177 → 1440): each added
+  sub-learner is another conflicting vote in the sum. WTA rescues it partway (mS-wta 565 @ K=10) but
+  never near QL's 119.
+- Sanity holds: at K=1 factoring is a no-op — mL-sum=mL-wta=QL (88, 458k), mS-wta=subs (82, 9,586).
+**Verdict:** don't factor per-resource for this problem. Structurally the **same result as U-Tree** —
+compression without a memory ceiling to justify it = pure loss. The monolithic layered QLearner both
+learns better *and* doesn't blow up; factoring would only pay in a regime forager sparsity never enters.
+**Changed:** `agent.js` (`MultiResourceAgent` + `makeAgent` dispatch), `scale.mjs` (3 configs), docs.
+**State:** smoke PASS @ `891187e` (exit 0); `types2` = 5 configs × 4 K × 3 seeds + oracle refs in DB.
+**Next:** the multi-resource thread is closed. Open fork: adaptive reach vs the ABM endgame (multi-agent /
+hunting). Possible probe: does the picture flip if density is pushed until the monolithic learner *does* strain?
+
 ## 2026-07-20 — K-type sweep: the subsumption result FLIPS — a complementary trade
 **Done:** generalized the sweep to K resource types (each a distinct collect action → 8+K actions,
 (K+1)^cells states, base36 cell encoding). Swept K∈{1,2,5,10} (N=12, density 0.2, 3 seeds):
