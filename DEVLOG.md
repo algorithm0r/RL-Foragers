@@ -3,6 +3,28 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-20 — Arena scale sweep: U-Tree loses everywhere; MORE LAYERS win at scale
+**Done:** `scale.mjs` — layered-1357/13579, QLearner vs U-Tree, N∈{10,14,20}, food density 0.1,
+maxSteps ∝ N², egreedy 0.01, oracle anchor. N=3 seeds → `scale` collection (42 packets).
+**Results — steps-to-clear (oracle 30/62/129 at N=10/14/20):**
+- 1357-QL: 33 / 114 / 930   · 1357-UT: 51 / 133 / 1694
+- 13579-QL: 32 / **75 / 243** · 13579-UT: 64 / 164 / 796
+- Q-states: 13579-QL 295k→185k vs 13579-UT 1.8k→807 (≈230× compression).
+**Honest verdict (hypothesis NOT confirmed):**
+1. **U-Tree loses at every scale** — compresses 70–230× but is ~1.5–3× worse on steps-to-clear. Too
+   coarse (sample-starved); QLearner's full resolution wins even at N=20.
+2. **Arena-scaling didn't create the "flat drowns" regime** — QLearner state count *shrank* with N
+   (100k→39k) because bigger arenas → longer episodes → fewer episodes per fixed tick-budget → fewer
+   states visited. It tests sample-efficiency, not the memory ceiling, and flat wins that too.
+3. **The real win at scale is MORE LAYERS, not compression** — 13579-QL is the standout (243 @ N=20 vs
+   1357-QL's 930). On big sparse arenas a 7×7 window is nearly blind; the 9×9 reach is what pays.
+**So U-Tree is a memory tool whose payoff regime we haven't reached.** The clean test that WOULD reach
+it: multi-VALUE cells in the sweep task (e.g. 2 food types → 3^25 per window) — explodes flat's table
+without the shelter/rest/pit gathering confound.
+**Changed:** `scale.mjs` (new).
+**Next:** either (a) multi-value-cell memory-ceiling test for U-Tree, or (b) pursue the layer/reach win
+(13579+, adaptive reach) which is the stronger lead right now.
+
 ## 2026-07-19 — U-Tree relevance filter: massive compression, value shows at scale
 **Done:** built `UTreeLearner` (drop-in for QLearner; per-window-layer decision tree, splits on cells
 whose value predicts the target — PER ACTION, so directional nav cells split too). Multi-seed (N=5,
