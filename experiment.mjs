@@ -31,7 +31,9 @@ const BASE = {
   gridN: 10, nFood: 10, maxStepsPerEpisode: 1200, alpha: 0.1, gamma: 0.95, confidenceK: 30,
   rewardStep: -1, rewardGather: 1, defaultQ: 0, explore: 'greedy', ucbC: 1, epsilon: 0.1,
 };
-BASE.explore = flag('explore', BASE.explore); // --explore greedy|ucb|egreedy (applies to learned conditions)
+BASE.explore = flag('explore', BASE.explore);         // --explore greedy|ucb|egreedy (learned conditions)
+BASE.epsilon = parseFloat(flag('epsilon', BASE.epsilon)); // --epsilon (egreedy random rate)
+BASE.ucbC = parseFloat(flag('ucbC', BASE.ucbC));          // --ucbC (UCB constant)
 const CONDITIONS = [
   { name: 'flat-w1', over: { agent: 'flat', receptiveField: 1 } },
   { name: 'flat-w3', over: { agent: 'flat', receptiveField: 3 } },
@@ -105,7 +107,8 @@ async function main() {
     db.config.run = j.name + '-r' + j.rep;
     const pkt = db.packet(P, {
       experiment: 'stage3-prelim', condition: j.name, rep: j.rep, seed,
-      explore: j.policy ? 'reference' : P.explore, isReference: !!j.policy, ticks: TICKS,
+      explore: j.policy ? 'reference' : (P.explore === 'egreedy' ? 'egreedy-' + P.epsilon : P.explore),
+      isReference: !!j.policy, ticks: TICKS,
       final: res.final, cleared: res.cleared, qStates: res.qStates, curve: res.curve,
     });
     const ins = await db.insert(COLL, pkt);

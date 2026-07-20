@@ -3,6 +3,24 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-19 — Prelim N=5 + ε-greedy 0.01: exploration is a coverage problem
+**Done:** re-ran the prelim at N=5 seeds across greedy / ucb / **egreedy-0.01** (added `--epsilon`/`--ucbC`
+flags; wiped + refilled `prelim`, 79 packets). Metric steps-to-clear, oracle ≈ 29.5.
+**Results (layered-135):** ucb **40.6 ± 1.6 (5/5)**, egreedy-0.01 **42.7 ± 7.3 (5/5)**, greedy 502 ± 390 (4/5).
+**The finding:** a 1% ε doesn't just fix greedy's unreliability — it's the only mode that gets EVERY
+learnable agent to 5/5. Under greedy/ucb, flat-w3 (0/5) and layered-13 (0-1/5) essentially never learn;
+under ε=0.01 they all do (flat-w3 335, flat-w5 396, layered-13 212, all 5/5). Why: foraging is a
+**coverage** problem — you must visit every food cell. UCB's exploration ANNEALS (counts high → no
+bonus) → settles into a deterministic policy that traces a fixed torus path and never covers it;
+ε-greedy's randomness never anneals → keeps wandering → keeps covering. Sustained stochasticity beats
+fading optimism here.
+**Layered thesis holds under any exploration:** even where all learn (ε=0.01), layered-135 (42.7) is
+~8× better than any flat window (335-396) and ~5× better than layered-13 (212). 5×5 layer still essential.
+**Changed:** `experiment.mjs` (+`--epsilon`/`--ucbC`, egreedy-ε tag).
+**Recommendation:** default exploration → **egreedy ε=0.01** (most robust; near-oracle for layered,
+rescues every architecture). UCB marginally tighter for layered-135 only.
+**Next:** flip default to egreedy 0.01; arena-difficulty sweep; subsumption control; plot curves.
+
 ## 2026-07-19 — Stage-3 prelim experiment (layered vs flat vs oracle) → MongoDB
 **Done:** built `experiment.mjs` (sweeps architecture × exploration × seed on the base food-sweep,
 writes self-describing packets to local mongo, collection `prelim`) + `analyze.mjs` (mean±sd summary).
