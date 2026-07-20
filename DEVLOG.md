@@ -3,6 +3,20 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-19 — 3×3 nested Q-view + data-driven colour range
+**Done:** added a 3×3-layer Q-view (`#q3Canvas`): keeps the 1×1 action layout (centre=eat, ring=moves)
+but each action cell is a 16×16 heatmap over the **256 surround configs**, ordered canonically by food
+count (0→8); two panels (centre no-food / food). Grey = never-visited (state,action). Only the
+food/no-food slice of the 512-state space is shown. Also fixed the colour range: both Q-views now scale
+red→green over the **actual visited min→max** (via `hsl()`), not symmetric-around-0 — so eat, whose Q ≈
+0 (the +1 gather reward cancels the discounted travel cost), still reads as the top of the range instead
+of washing out to grey. Min/max shown as a legend.
+**Changed:** `ui.js` (renderQ3View/drawQ3Panel/q3Precompute, qColor→qColorRange, DataView q3Ctx),
+`index.html` (+q3Canvas), `main.js`.
+**State:** core smoke PASS (exit 0); browser files syntax-check clean; q3 config ordering + state
+strings verified headlessly (256 unique, popcount-sorted, centers correct). Needs an in-browser look.
+**Next:** relevance filtering.
+
 ## 2026-07-19 — 1×1 Q-value visualization (two 3×3 direction grids)
 **Done:** added a Q-view in the data panel (`#qCanvas`) showing the 1×1 layer's Q as two 3×3 grids —
 state '0' (no food) and '1' (food). Spatial layout: centre cell = eat, the 8 ring cells = the moves

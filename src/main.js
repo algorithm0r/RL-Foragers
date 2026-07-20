@@ -15,7 +15,9 @@ function reset() {
   gameEngine.add(new Observer(world));
   gameEngine.add(dataManager);
   const qc = document.getElementById('qCanvas');
-  gameEngine.add(new DataView(world, graph, gc.getContext('2d'), qc && qc.getContext('2d'))); // stats + graph + Q-view
+  const q3c = document.getElementById('q3Canvas');
+  gameEngine.add(new DataView(world, graph, gc.getContext('2d'),
+    qc && qc.getContext('2d'), q3c && q3c.getContext('2d'))); // stats + graph + 1×1 & 3×3 Q-views
   if (typeof setStatus === 'function') setStatus('foraging — ' + world.N + '×' + world.N + ' grid');
 }
 

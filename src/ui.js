@@ -102,7 +102,9 @@ function renderStats(w) {
 // A browser-only engine entity that renders the off-canvas data view each frame: it ignores the
 // game ctx passed to draw(), updates the stats DOM, paints the line graph, and draws the Q-view.
 var DataView = class DataView {
-  constructor(world, graph, graphCtx, qCtx) { this.world = world; this.graph = graph; this.graphCtx = graphCtx; this.qCtx = qCtx; }
+  constructor(world, graph, graphCtx, qCtx, q3Ctx) {
+    this.world = world; this.graph = graph; this.graphCtx = graphCtx; this.qCtx = qCtx; this.q3Ctx = q3Ctx;
+  }
   update() {}
   draw() {
     renderStats(this.world);
@@ -111,6 +113,7 @@ var DataView = class DataView {
       this.graph.draw(this.graphCtx);
     }
     if (this.qCtx) renderQView(this.world, this.qCtx);
+    if (this.q3Ctx) renderQ3View(this.world, this.q3Ctx);
   }
 };
 
@@ -130,16 +133,19 @@ function renderQView(w, ctx) {
     ctx.fillText('1×1 Q-view — enable a 1×1 layer', 8, 18);
     return;
   }
+  // shared colour scale = actual min→max of the shown Q (not symmetric-around-0), so a near-zero
+  // best action (eat ≈ 0, cancelled by discounted travel cost) still reads as the top of the range.
+  let mn = Infinity, mx = -Infinity;
+  for (const st of ['0', '1']) for (let a = 0; a < 9; a++) { const q = L1.getQ(st, a); if (q < mn) mn = q; if (q > mx) mx = q; }
   ctx.fillStyle = '#8a8f98'; ctx.font = '11px sans-serif';
-  ctx.fillText('1×1 layer Q   (centre = eat, ring = moves)', 8, 13);
-  // shared colour scale across both states
-  let maxAbs = 0.001;
-  for (const st of ['0', '1']) for (let a = 0; a < 9; a++) maxAbs = Math.max(maxAbs, Math.abs(L1.getQ(st, a)));
-  drawQGrid(ctx, L1, '0', 16, 30, 'no food', maxAbs);
-  drawQGrid(ctx, L1, '1', 156, 30, 'food', maxAbs);
+  ctx.fillText('1×1 layer Q  (centre=eat, ring=moves)', 8, 12);
+  ctx.fillStyle = '#5a5f68'; ctx.font = '10px monospace';
+  ctx.fillText('Q ' + mn.toFixed(1) + ' … ' + mx.toFixed(1), 8, 24);
+  drawQGrid(ctx, L1, '0', 16, 40, 'no food', mn, mx);
+  drawQGrid(ctx, L1, '1', 156, 40, 'food', mn, mx);
 }
 
-function drawQGrid(ctx, L1, state, x0, y0, label, maxAbs) {
+function drawQGrid(ctx, L1, state, x0, y0, label, mn, mx) {
   const cell = 40, EAT = 8;
   let best = 0, bestQ = -Infinity;
   for (let a = 0; a < 9; a++) { const q = L1.getQ(state, a); if (q > bestQ) { bestQ = q; best = a; } }
@@ -152,7 +158,7 @@ function drawQGrid(ctx, L1, state, x0, y0, label, maxAbs) {
       if (dx !== 0 || dy !== 0) { a = -1; for (let i = 0; i < 8; i++) if (World.DIRS[i][0] === dx && World.DIRS[i][1] === dy) { a = i; break; } }
       const q = L1.getQ(state, a);
       const px = x0 + col * cell, py = y0 + row * cell;
-      ctx.fillStyle = qColor(q, maxAbs);
+      ctx.fillStyle = qColorRange(q, mn, mx);
       ctx.fillRect(px + 1, py + 1, cell - 2, cell - 2);
       if (a === best) { ctx.strokeStyle = '#7fd1ff'; ctx.lineWidth = 2; ctx.strokeRect(px + 2, py + 2, cell - 4, cell - 4); }
       else if (a === EAT) { ctx.strokeStyle = '#e8b23a'; ctx.lineWidth = 1; ctx.strokeRect(px + 2, py + 2, cell - 4, cell - 4); }
@@ -162,9 +168,75 @@ function drawQGrid(ctx, L1, state, x0, y0, label, maxAbs) {
   }
 }
 
-// diverging colour around 0: green for positive Q, red for negative, magnitude → intensity
-function qColor(q, maxAbs) {
-  const t = Math.max(-1, Math.min(1, q / maxAbs));
-  if (t >= 0) return 'rgb(24,' + Math.round(45 + 150 * t) + ',55)';
-  return 'rgb(' + Math.round(45 + 150 * -t) + ',28,42)';
+// data-driven colour: red at the range min → green at the range max (uses util.js hsl()). Because
+// the range is the actual visited min/max, a best action near 0 still reads as green.
+function qColorRange(q, mn, mx) {
+  const t = mx > mn ? Math.max(0, Math.min(1, (q - mn) / (mx - mn))) : 0.5;
+  return hsl(120 * t, 62, 42); // hue 0 (red) → 120 (green)
+}
+
+// --- 3×3 layer Q-view -------------------------------------------------------------------------
+// The 3×3 layer has 512 states (256 surround configs × center food/no-food). We keep the action
+// layout of the 1×1 view (centre=eat, ring=moves) but each action cell becomes a 16×16 heatmap over
+// the 256 surround configs, ordered canonically by food count (0→8). Two panels: center no-food /
+// food. Grey = never visited (state,action). Only the food/no-food slice of the state space is shown.
+var Q3_CANON = null, Q3_STATE0 = null, Q3_STATE1 = null;
+function q3Precompute() {
+  if (Q3_CANON) return;
+  const popcount = (x) => { let n = 0; while (x) { n += x & 1; x >>= 1; } return n; };
+  const cfgs = [];
+  for (let c = 0; c < 256; c++) cfgs.push(c);
+  cfgs.sort((a, b) => (popcount(a) - popcount(b)) || (a - b)); // canonical: fewest food → most food
+  Q3_CANON = cfgs;
+  const winPos = [0, 1, 2, 3, 5, 6, 7, 8]; // 3×3 window indices of the 8 surround cells (centre=4)
+  Q3_STATE0 = new Array(256); Q3_STATE1 = new Array(256);
+  for (let k = 0; k < 256; k++) {
+    const cfg = cfgs[k], ch = '000000000'.split('');
+    for (let j = 0; j < 8; j++) ch[winPos[j]] = (cfg >> j & 1) ? '1' : '0';
+    ch[4] = '0'; Q3_STATE0[k] = ch.join('');
+    ch[4] = '1'; Q3_STATE1[k] = ch.join('');
+  }
+}
+
+function renderQ3View(w, ctx) {
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  const A = w.agent;
+  let L3 = null;
+  if (A.layers) { const l = A.layers.find((x) => x.size === 3); if (l) L3 = l.learner; }
+  else if (PARAMETERS.receptiveField === 3) L3 = A.learner;
+  ctx.textAlign = 'left';
+  if (!L3) { ctx.fillStyle = '#5a5f68'; ctx.font = '11px monospace'; ctx.fillText('3×3 Q-view — enable a 3×3 layer', 8, 18); return; }
+  q3Precompute();
+  let mn = Infinity, mx = -Infinity, seen = 0;
+  for (const S of [Q3_STATE0, Q3_STATE1]) for (let k = 0; k < 256; k++) for (let a = 0; a < 9; a++) {
+    if (L3.getCount(S[k], a) > 0) { const q = L3.getQ(S[k], a); if (q < mn) mn = q; if (q > mx) mx = q; seen++; }
+  }
+  if (seen === 0) { mn = 0; mx = 1; }
+  ctx.fillStyle = '#8a8f98'; ctx.font = '11px sans-serif';
+  ctx.fillText('3×3 layer Q — action × 256 surround configs (0→8 food)', 8, 12);
+  ctx.fillStyle = '#5a5f68'; ctx.font = '10px monospace';
+  ctx.fillText('Q ' + mn.toFixed(1) + ' … ' + mx.toFixed(1) + '   grey = unexplored', 8, 24);
+  drawQ3Panel(ctx, L3, Q3_STATE0, 8, 40, 'no food', mn, mx);
+  drawQ3Panel(ctx, L3, Q3_STATE1, 150, 40, 'food', mn, mx);
+}
+
+function drawQ3Panel(ctx, L3, STATES, px0, py0, label, mn, mx) {
+  const cfgPx = 2, cellW = 16 * cfgPx, gap = 3, EAT = 8;
+  ctx.fillStyle = '#cdd2da'; ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText(label, px0, py0 - 3);
+  for (let arow = 0; arow < 3; arow++) {
+    for (let acol = 0; acol < 3; acol++) {
+      const dx = acol - 1, dy = arow - 1;
+      let a = EAT;
+      if (dx !== 0 || dy !== 0) { a = -1; for (let i = 0; i < 8; i++) if (World.DIRS[i][0] === dx && World.DIRS[i][1] === dy) { a = i; break; } }
+      const cx = px0 + acol * (cellW + gap), cy = py0 + arow * (cellW + gap);
+      for (let k = 0; k < 256; k++) {
+        const st = STATES[k];
+        ctx.fillStyle = L3.getCount(st, a) > 0 ? qColorRange(L3.getQ(st, a), mn, mx) : '#242a33';
+        ctx.fillRect(cx + (k & 15) * cfgPx, cy + (k >> 4) * cfgPx, cfgPx, cfgPx);
+      }
+      ctx.strokeStyle = a === EAT ? '#e8b23a' : '#333'; ctx.lineWidth = 1;
+      ctx.strokeRect(cx - 0.5, cy - 0.5, cellW + 1, cellW + 1);
+    }
+  }
 }
