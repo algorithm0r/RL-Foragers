@@ -191,10 +191,21 @@ var SubsumptionAgent = class SubsumptionAgent {
     return false;
   }
 
-  // the narrowest window layer with a goal in view (else the widest, which wanders)
+  // does a window contain a hazard (pit)? Only meaningful on the full multi-type view (a
+  // channel-binarized view can't see pits). Used by the OPT-IN hazard-aware arbitration variant.
+  hasHazard(state) {
+    if (this.channel) return false;
+    for (let i = 0; i < state.length; i++) if (state[i] === '4') return true;
+    return false;
+  }
+
+  // the narrowest window layer with a goal in view (else the widest, which wanders).
+  // With subsumptionHazardArb, a HAZARD in view also claims control — Brooks' missing avoid-layer:
+  // the pits grid showed goal-gated arbitration gives hazards no vote, so the well-trained L3 never
+  // owns the (very common) "empty except a pit" states and they route to the undertrained L5.
   activeLayer(states) {
     let active = this.layers.length - 1;
-    for (let i = 0; i < this.layers.length; i++) if (this.hasGoal(states[i])) { active = i; break; }
+    for (let i = 0; i < this.layers.length; i++) if (this.hasGoal(states[i]) || (PARAMETERS.subsumptionHazardArb && this.hasHazard(states[i]))) { active = i; break; }
     for (let i = 0; i < this.layers.length; i++) this.lastWeights[i] = i === active ? 1 : 0;
     this._active = active;
     return active;

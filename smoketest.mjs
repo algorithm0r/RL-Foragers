@@ -102,6 +102,21 @@ for (let t = 1; t <= 250000; t++) { eS.tick = t; wS.update(eS); }
 // competence: it reliably reaches shelter and rests (rarely collapses) and banks positive reward
 const sheltered = wS.rested > 3000 && wS.collapseRate() < 0.1 && wS.meanReward() > 0.3;
 
+// --- P: pits — the layered agent LEARNS avoidance (death EMA falls well under the untrained ~40%)
+base(); P.agent = 'layered'; P.layers = [1, 3, 5]; P.explore = 'egreedy'; P.epsilon = 0.01;
+P.enablePits = true; P.nPits = 3; P.gridN = 10; P.nFood = 10; P.nTypes = 1; P.maxStepsPerEpisode = 500;
+P.rewardGather = 1; P.defaultQ = 0; // nTypes reset — the drink-mechanics block above leaves it at 2
+const wP = new World(800, 600), eP = new GameEngine();
+let tP = 0, pEp = 0, pDied = 0; const pOut = [];
+while (pOut.length < 8000 && tP < 1_500_000) {
+  tP++; eP.tick = tP; wP.update(eP);
+  if (wP.episodes > pEp) { pOut.push(wP.died > pDied); pEp = wP.episodes; pDied = wP.died; }
+}
+// pits grid @16k (3 seeds): death ~8% around episode 8k, clear ~75% cumulative → ~2× headroom bars.
+// Last-2000-episode fraction (not the ~50-ep EMA) so the bar is statistically tight (σ≈0.006).
+const pTail = pOut.slice(-2000), pDeath = pTail.filter(Boolean).length / (pTail.length || 1);
+const pitsOk = pDeath < 0.15 && wP.cleared > 4000;
+
 // --- D: the DQN baseline is wired and numerically stable (learns to clear, no NaN blow-up) ---
 base(); P.agent = 'dqn'; P.nTypes = 1; P.gridN = 8; P.nFood = 6; P.maxStepsPerEpisode = 500;
 P.dqnField = 5; P.dqnHidden = 64; P.dqnAlpha = 0.0025; P.dqnWarmup = 200; P.dqnEpsDecaySteps = 8000;
@@ -112,7 +127,7 @@ for (const arr of [AD.W1, AD.W2]) for (let i = 0; i < arr.length; i++) if (!Numb
 const qProbe = AD.qValues(AD.encode(wD));
 const dqnOk = finiteW && qProbe.every(Number.isFinite) && wD.cleared > 3; // ran, learned to clear some, no blow-up (unseeded → loose bar)
 
-const ok = mechanics && decoupled && learned && sheltered && dqnOk;
+const ok = mechanics && decoupled && learned && sheltered && pitsOk && dqnOk;
 console.log('smoke:' +
   ' M mech=' + mechanics + ' (eat=' + mEat + ' clear=' + mClear + ' drink=' + mDrink + ' rest=' + mRest +
   ' stick=' + mStick + ' pit=' + mPit + ' rock=' + mRock + ' collapse=' + mCollapse + ' time=' + mTime + ')' +
@@ -120,6 +135,7 @@ console.log('smoke:' +
   ' | L base-sweep steps-to-clear=' + late.toFixed(1) + ' (' + wL.cleared + ' cleared)' +
   ' | S shelter banked=' + wS.meanReward().toFixed(2) + ' collapseRate=' + wS.collapseRate().toFixed(3) +
   ' (' + wS.rested + ' rested)' +
+  ' | P pits death(last2k)=' + pDeath.toFixed(3) + ' (' + wP.cleared + ' cleared)' +
   ' | D dqn=' + dqnOk + ' (cleared=' + wD.cleared + ')' +
   ' -> ' + (ok ? 'PASS' : 'FAIL'));
 process.exit(ok ? 0 : 1);

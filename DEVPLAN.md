@@ -198,7 +198,7 @@ diversity — complementary trade with density), and **per-resource factoring** 
 trajectory-bounded, ~flat in K), so there's no ceiling to escape, and per-resource binarization
 discards the cross-resource joint structure the sweep needs. Same shape as the U-Tree result.
 
-### Stage 3F — Pits: valence discrimination + safe exploration  [ ACTIVE ]
+### Stage 3F — Pits: valence discrimination + safe exploration  [ DONE ]
 Pits are the first **negative-valence** percept — until now "approach any non-zero cell" was never
 punished, so the multi-type window has never had to discriminate value, only detect. (Mechanics
 already built: `World.PIT`, terminal death −`pitPenalty` through `applyAction`, `deathRate` EMA,
@@ -242,13 +242,26 @@ survival is survivorship-biased.
       ∝ state count; layered-greedy survives by quitting; ε .005 vs .01 a tradeoff → default stays .01.
 - [x] ~~analytic ε-death-floor~~ → replaced by DEATH ATTRIBUTION (`lastRandom` tag): no fixed floor
       exists (adjacency is policy-shaped — Chris); measured: tail deaths ~61% ε-draw for layered.
-- [ ] per-layer Q probe for H1 (read the fear out of the L3 table; quantify subsumption's missing fear)
-- [ ] replay-hurts-avoidance check (H3, cheap)
-- [ ] Stage C gauntlet: day-length sweep with pits + rocks + gated shelter
-- [ ] rocks×pits interaction (route-around cost; rock-forced risk corridors)
+- [x] per-layer Q probe for H1: fear is SHALLOW (mean Q(into) −2.5; rank not magnitude decides) and
+      lives in ~90 hyper-visited "empty except pit" L3 states. Subsumption's L3 has ZERO of those
+      (arbitration starvation, confirmed by fear-band probe). Hazard-aware arbitration variant
+      (`subsumptionHazardArb`, opt-in) tested: death 25→17% but clear 75→43% — a fixed-priority
+      stack can't avoid AND seek in one step. Layered dominates both corners: **in lethal worlds
+      the weighting (blending) is exactly what matters.**
+- [x] replay-hurts-avoidance check — **FALSIFIED: replay HELPS pits** (5.7→4.5% death, 90→96%
+      clear, K=4). Refined rule: replay hurts iff the critical transition is RARE IN THE BUFFER
+      (shelter homing), helps when abundant/generalizing (deaths).
+- [x] Stage C gauntlet — **deadline pressure does NOT buy deaths**: death tracks EXPOSURE (rises
+      with longer days 4.3→6.7%), collapse absorbs the deadline (21→11%). The clock (INT) and the
+      hazard (window) never share a state → deadline-risk-taking is inexpressible. ⚠ Stage-5a
+      health-conditional boldness has the same factored structure — likely needs a joint state.
+- [x] rocks×pits interaction — **super-additive** (0%/5.7% alone → 25% together @ 8 rocks): rocks
+      POLLUTE window states (fear relearned per rock context). 48k check: slow learning, not a wall
+      (16.5% and falling) → first real motivation to revisit Stage-4 relevance filtering.
 **Done when:** the Stage-A grid is in the DB and decisive on H1/H2 (who carries avoidance; do the
 explorers' death signatures match prediction — ε floor vs greedy-init burst vs UCB catastrophe),
-and the gauntlet answers whether deadline pressure buys deaths.
+and the gauntlet answers whether deadline pressure buys deaths. ✓ **All answered 2026-07-21** (grid
+decisive; deadline answer: NO — death tracks exposure; see DEVLOG).
 
 ### Stage 4 — Learned filters: which *bits* matter  [ PLANNED — U-Tree probe done & shelved ]
 Move from fixed receptive fields to **learned relevance** — the G-algorithm / U-Tree lineage:
@@ -264,6 +277,12 @@ machinery is the part shelved. → forward pointer: revisit only if a real state
 without loss of foraging performance, and to attend to a relevant one.
 
 ### Stage 5 — Moving entities, then shared worlds  [ PLANNED — next after 3F ]
+⚠ **Design constraint from the 3F gauntlet:** the factored INT+window state cannot express
+conditional-risk policies (the clock and the hazard never meet in one state). Health-conditional
+boldness (1-HP flees the wolf a 3-HP agent hunts) has the SAME structure — HP in INT, wolf in
+window. Before building 5a, decide how the conjunction is represented: a joint INT×window layer, a
+health-augmented window, or learned conjunctions (Stage-4 machinery). Otherwise the arc's headline
+behavior may be unlearnable BY CONSTRUCTION.
 **5a — wolves & goats (scripted movers): moving threats and moving food.** The first
 NON-DETERMINISTIC environment — the regime the whole model-free bet exists for. What's new vs pits:
 - Avoidance becomes a BEHAVIOR, not a veto: a wolf makes a moving *region* risky; being caught is a

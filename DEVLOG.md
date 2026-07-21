@@ -3,6 +3,43 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-21 — Pits arc closed: fear is shallow, subsumption's Pareto trap, rocks pollute, deadlines don't kill
+
+**Done (autonomous, per plan agreed with Chris):** five results, three of them honest reversals of my
+own predictions. (1) **H1 probe:** avoidance lives in L3 as predicted, but fear is SHALLOW — mean
+Q(into-pit) ≈ −2.5, almost nothing near −50. Argmax avoidance is decided by RANK, not magnitude. The
+life-saving states are just ~90 distinct "empty except a pit" L3 windows averaging 4,290 visits each
+(fear −7.4, avoided 92%). (2) **Fear-band probe: subsumption's failure is ARBITRATION STARVATION,
+nailed** — its L3 contains ZERO no-goal pit states (layered: 90, the most-visited in the table);
+goal-gated arbitration routes them to the undertrained L5. Its L3 values are as fearful as layered's
+where it's allowed to learn. (3) **Hazard-aware arbitration (`subsumptionHazardArb`, opt-in, control
+untouched) tested the diagnosis: death 25%→17% (starvation real) but clear 75%→43%, steps 45→145 —
+the avoid-layer can't seek.** Subsumption sits on a Pareto frontier it cannot escape (fearless+fast
+dies; fearful+lost starves); layered dominates BOTH corners (6% death, 90% clear) because blending
+lets fear and navigation VOTE ON THE SAME DECISION. Amendment to Stage 3: in benign worlds the
+weighting didn't matter ("it's the layering"); in lethal worlds THE WEIGHTING IS EXACTLY WHAT
+MATTERS. (4) **H3 falsified: replay HELPS pits** (death 5.7→4.5%, clear 90→96%, steps 73→54, K=4).
+Refined rule: replay hurts when the critical transition is RARE IN THE BUFFER (shelter's one
+head-home per episode), helps when abundant/generalizing (1,700 translation-invariant deaths).
+(5) **Rocks×pits is super-additive** (rocks alone kill nobody; 3 pits alone 5.7%; together 25% @ 8
+rocks, 33% @ 16): rocks POLLUTE the window state space — "pit-NE" and "pit-NE+rock-SW" are unrelated
+strings, so fear must be relearned per rock context. 48k-episode check: slow learning, not a wall
+(death still falling, ~16.5%) — first concrete motivation to revisit Stage-4 relevance filtering.
+(6) **Gauntlet: deadline pressure does NOT push agents into pits** — death TRACKS EXPOSURE (rises
+with LONGER days 4.3%→6.7%; collapse absorbs the deadline cost 21%→11%). Architectural reason: the
+clock (INT) and the hazard (window) never meet in one state, so "risky shortcut because late" is
+INEXPRESSIBLE. ⚠ Same structure as wolves-arc health-conditional boldness (HP in INT, wolf in
+window) — Stage 5a likely needs a joint/conjunction state. Pits also crush central-place harvest
+(~1.1 vs ~3.5 pit-free even at day 200).
+**Changed:** `hasHazard` + `subsumptionHazardArb` (default OFF) in agent.js/params.js; smoke gained
+the pit LEARNING bar (last-2k death < 0.15, cleared > 4000; measured 0.088/6154; also fixed an
+nTypes=2 leak from the drink block into later sections). DEVPLAN: Stage 3F → DONE; Stage 5a
+conjunction warning added.
+**State:** smoke PASS ×3 @ v0.5.0 (all bars incl. new P). Grid in DB (`pits`, 171 packets);
+follow-ups are scratch console runs, numbers recorded here.
+**Next:** Stage 5a wolves & goats (design pinned in DEVPLAN, incl. combat/HP economy + the
+conjunction-state question), or adopt-replay-for-sweep decision, or adaptive reach.
+
 ## 2026-07-20 — Pits arc (Stage 3F): rocks + death attribution + the 171-run grid (H1/H2 decisive)
 
 **Done:** (1) **Rocks** (`World.ROCK`): neutral obstacles — bump = stay put + normal −1 step cost;

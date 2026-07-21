@@ -43,6 +43,10 @@ var PARAMETERS = {
   // states where the 3×3 has no goal in view (else it's redundant). Learned relevance filtering (next)
   // will keep each layer's state space small so wide layers stay useful instead of being down-weighted.
   layers: [1, 3, 5],
+  subsumptionHazardArb: false, // subsumption arbitration variant: a HAZARD (pit) in view also claims
+                          //   control (Brooks' avoid-layer). Default OFF — the plain goal-gated form
+                          //   stays the Stage-3 control; ON tests the pits-grid diagnosis that its
+                          //   deaths are ARBITRATION STARVATION (L3 never owns hazard-only states).
   strategicLayer: true,   // in SHELTER mode, add an INTERNAL layer sensing only bearing + satiety (the
                           // homing/rest decision), so the spatial window layers stay pure reflexes
   confidenceK: 30,        // saturation of the count→confidence curve; higher = slower to trust a layer
