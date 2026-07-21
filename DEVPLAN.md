@@ -310,7 +310,25 @@ NON-DETERMINISTIC environment — the regime the whole model-free bet exists for
   latter prices the approach, not just the fight); the economy's numbers (wolf carcass ≫ goat or
   nobody rational hunts wolves — sweep carcass value vs expected bite cost for the
   avoider→hunter policy flip).
-**5b — shared worlds:** multiple LEARNING agents; prey/predators are other learners, not scripts.
+**5a-GOATS FIRST (Chris, 2026-07-21): goats before wolves, and goats are AGENTS, not scripts.**
+Cleared to build autonomously once the no-INT shelter batch lands clean. Scope:
+- **Goats run a simpler version of the same architecture** (shared species-level layered learner,
+  e.g. [1,3], ε-greedy): they eat food, drink water, avoid pits — and can learn to avoid the human
+  (their deaths near the human teach fear via their own Q). The human's world goes NON-STATIONARY
+  because prey policies change under it — the model-free bet's first real test.
+- **Hunting = the two-action sequence: ATTACK, then EAT.** Attack fells an adjacent goat → its cell
+  becomes FOOD (carcass); the forager steps on and eats. Goats also DEPLETE the same resources —
+  competition: hunt the thieves or lose the harvest.
+- Design defaults (my calls, veto-able): sequential per-tick updates (human, then each goat);
+  goats painted into the window as their own cell type (the reserved `agent` channel idea);
+  goat-on-food occludes the food (one value per cell — realistic); goat eats decrement `remaining`
+  (the dusk valve in `clearedOrTime` covers a goat-emptied field); killed/pit-dead goats stay dead
+  for the episode, respawn on the next; species-shared Q-tables persist across episodes (goats
+  learn as a population); carcass = plain FOOD (+1 — hunting's edge is competition removal, not a
+  premium; the premium economy arrives with wolves); world = shelter mode (day structure), water on.
+- NO health/HP yet (that's wolves) → the ⚠ conjunction question stays open for Chris; goats-only
+  doesn't hit it.
+**5b — wolves + shared worlds:** wolves (fight back, bites, HP), then predators/prey as peer learners.
 **Done when (5a):** an agent in a wolves+goats world learns to hunt and evade scripted movers, and
 we know whether the snapshot window suffices or a memory layer is required.
 

@@ -3,6 +3,25 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-21 — No-INT shelter (Chris's call): the INT layer was a safety governor — dropping it RAISES harvest
+
+**Done:** 4-arm × day {60,100,200} × 3-seed batch (16k episodes): intOn-plain (the missing control) /
+intOff-plain / intOff-pits3 / intOff-pits3-rocks8, all `clearedOrTime` @ 0.6·day, layered eg01.
+**Finding: removing the INT layer trades collapse for harvest, and WINS on expected reward.** intOn
+rests early and often (94–97% rest, banks ~1 item, collapse 3–11%); intOff keeps foraging until the
+lit shelter crosses its path (rest 62–79%, collapse ~3× higher) but banks ~2.3 items per rest —
+harvest 1.19→1.84-2.53 (day 200 plain), 1.07→1.60 (pits3, vs the intOn gauntlet). With rest = 50·s²
+vs collapse = −50, rough EV ~88 vs ~52 per episode @ day 100. Death ~unchanged (exposure, not
+strategy). **The percept-gated shelter (appearance = the clock) fully substitutes for internal
+state on this task; all strategy lives in the environment design.** Costs: short days risky
+(collapse 34% @ 60), and pits+rocks+deadline is brutal at any day (collapse 51–69%, death 10–16%,
+harvest 0.34–0.83) — rocks remain the standing hard case (state pollution + deadline compound).
+**Changed:** nothing in src (pure experiment; `strategicLayer:false` is the existing toggle).
+**State:** smoke PASS (unchanged since v0.5.0). Numbers here; scratch script `shelter-noint.mjs`.
+**Next:** GOATS (Chris cleared it gated on this batch): goats as simpler layered AGENTS (shared
+species learner) that eat food/drink/avoid pits ± avoid the human; hunting = ATTACK adjacent →
+carcass FOOD → eat. Build then hunt-vs-forage experiment.
+
 ## 2026-07-21 — Pits arc closed: fear is shallow, subsumption's Pareto trap, rocks pollute, deadlines don't kill
 
 **Done (autonomous, per plan agreed with Chris):** five results, three of them honest reversals of my
