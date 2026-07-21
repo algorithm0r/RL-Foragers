@@ -129,8 +129,8 @@ var World = class World {
     // SHELTER ACTIVATION: the rest option can be gated to appear only after the field is CLEARED, or after
     // a TIME — so it can't tempt an early rest during foraging, and its appearance cues the return.
     if (PARAMETERS.enableShelter && !this.shelterActive) {
-      const trig = PARAMETERS.shelterActivate;
-      if ((trig === 'cleared' && this.remaining === 0) || (trig === 'time' && this.steps >= PARAMETERS.shelterActivateTime)) {
+      const trig = PARAMETERS.shelterActivate, clr = this.remaining === 0, dusk = this.steps >= PARAMETERS.shelterActivateTime;
+      if ((trig === 'cleared' && clr) || (trig === 'time' && dusk) || (trig === 'clearedOrTime' && (clr || dusk))) {
         this.shelterActive = true; this.grid[this.sy][this.sx] = World.SHELTER;
       }
     }

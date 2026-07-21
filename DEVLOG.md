@@ -3,6 +3,28 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-20 — Blended shelter trigger 'clearedOrTime' — the best shelter config (load-full-OR-nightfall)
+**Done:** `shelterActivate:'clearedOrTime'` — the shelter appears when the field is CLEARED *or* at a dusk
+step T (`shelterActivateTime`). Fixes pure-`cleared`'s failure: no longer "clear everything or collapse"
+— a dusk safety valve lets the agent home with a partial haul instead of dying when it can't sweep the
+last scattered item in time. Episode-budgeted (30k eps, 3 seeds, layered 1357, no homing aid):
+```
+              banked (of 4) / collapse
+  N=6   cleared      3.06 / 0.24     blend T=60%  3.47 / 0.05   ← strict win, both axes
+  N=10  cleared      2.78 / 0.30     blend T=60%  2.40 / 0.09   ← 3.3× less collapse, small harvest cost
+```
+**Findings:**
+1. **N=6: strict win** — blend banks MORE (3.47 vs 3.06) AND collapses 5× less (0.05 vs 0.24): the valve
+   turns would-be-collapse episodes into partial-harvest rests, lifting both the average and survival.
+2. **N=10: reliability win with a tradeoff** — collapse 0.30→0.09 for harvest 2.78→2.40. Pure `cleared`
+   forces a full sweep (banks 4 or dies 30%); the blend takes partial hauls at dusk to survive. Since
+   collapse = death, the safer point is better for a *reliable* component; T is the risk/reward dial.
+3. **T=60% is the knee** at both sizes: 50% truncates foraging (N=10 → 1.67), 75% leaves too little margin
+   to get home (collapse ticks up). Sweet spot ≈ 0.6·day.
+**Verdict:** `clearedOrTime` @ T≈0.6 is the best shelter config found — effective and the most ABM-natural
+("return when the load's full OR at nightfall"). **Changed:** `world.js` activation OR, `params.js` doc.
+**State:** smoke PASS. **Next:** adopt as the shelter default for experiments; day/arena sweep; or ABM endgame.
+
 ## 2026-07-20 — Removed the home-channel/beacon: it undermined the partial-observability premise
 **Done:** built, then REMOVED, a home-homing aid for the shelter return (tried it two ways: a separate
 'home' layer, then painting a phantom SHELTER into the window). Reverted both. `senseWindow` back to its

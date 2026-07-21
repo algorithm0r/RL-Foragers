@@ -22,9 +22,10 @@ var PARAMETERS = {
                           //   (coarse "how much of the day is left" → lets the agent learn WHEN to head home)
   shelterActivate: 'always', // WHEN the shelter appears / rest becomes available. 'always' (current); 'cleared'
                           //   (only after ALL resources gathered — forage first, then the rest option appears:
-                          //   removes rest-on-contact, and the appearance itself CUES the return); 'time' (after
-                          //   shelterActivateTime steps — a diurnal "return at dusk" curriculum).
-  shelterActivateTime: 40, // for shelterActivate:'time' — the step at which the shelter appears
+                          //   removes rest-on-contact, cues the return); 'time' (after shelterActivateTime steps — a
+                          //   diurnal "dusk" curriculum); 'clearedOrTime' (cleared OR dusk — load-full-or-nightfall:
+                          //   rewards full sweeps but a dusk safety valve stops the "clear-everything-or-collapse" cliff).
+  shelterActivateTime: 40, // for 'time'/'clearedOrTime' — the dusk step at which the shelter appears if not yet cleared
 
   // --- agent architecture ---
   agent: 'layered',       // 'flat' (Stage-1 baseline, one window) | 'layered' (Stage 2: L1/L3/L5 + confidence)

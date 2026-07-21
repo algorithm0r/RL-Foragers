@@ -32,7 +32,8 @@ smoke PASS @ pre-commit (exit 0, this session — mechanics + base-sweep + shelt
 - **DQN vs tabular — budget-matched, it's a near-tie.** Raw DQN beat layered on 12×12 (58 vs 137) — but that was ~90% an UPDATE-BUDGET confound (DQN got 32 grad-samples/step, tabular got 1). Give the table Dyna-Q **replay** and it hits 65±1 ≈ dqn-32 58±2, MORE stable, interpretable, no NN tuning, compute-comparable. DQN keeps only a small (~11%) real generalization edge; at equal 1:1 budget the table *beats* the net (137 vs 1061).
 - **Replay is task-dependent (opt-in, K=4).** Sweep/coverage: big win, saturates at K=4 (109±40 → 65). Shelter/sparse-terminal: HURTS (collapse 1%→49% — uniform replay drowns the rare head-home transitions). Default OFF; `qReplayK=4` when on.
 - **Shelter under-gathering — CRACKED by gating the shelter's appearance.** Reward-shaping (stock² carrot, resources-left stick) and vanilla replay all failed (it's policy-discovery, not reward). But `shelterActivate:'cleared'` (shelter appears only after the field is swept) removes the rest-on-contact temptation and lifts harvest to **2.82/0.30 on N=10** (episode-budgeted, still rising) and **3.30 on N=6** — with the plain layered agent treating the shelter as an in-view goal cell (no homing aid needed). Residual N=10 collapse is under-training + coverage, not a missing mechanism.
-- **Home-channel/beacon: tried and REMOVED** — painting a home signal into the perceptual window injects oracle info (the same move for food = the greedy oracle) and undermines the partial-obs premise. Homing, if ever learned, must be an honest separate bearing sense, not perception.
+- **Best shelter config = `clearedOrTime` @ T≈0.6·day** (load-full-OR-nightfall). Beats pure `cleared` — N=6 strict win (3.47/0.05 vs 3.06/0.24), N=10 reliability win (collapse 0.30→0.09 for harvest 2.78→2.40). Dusk safety valve removes the "clear-everything-or-collapse" cliff.
+- **Home-channel/beacon: tried and REMOVED** — painting a home signal into the perceptual window injects oracle info (same move for food = greedy oracle) and undermines the partial-obs premise. Homing stays an honest in-view goal cell.
 
 ## Branches
 - `main`
@@ -43,7 +44,7 @@ smoke PASS @ pre-commit (exit 0, this session — mechanics + base-sweep + shelt
 - Probe idea: push density until the monolithic learner *does* strain — does any factored/compressed variant then pay off?
 
 ## Next action
-Confirm the N=10 shelter collapse is under-training (episode-budgeted sweep across day-length/arena), or move to the ABM endgame.
+Adopt `clearedOrTime` @ T≈0.6 as the shelter default + a day/arena sweep to map the risk/reward frontier, or move to the ABM endgame.
 
 ## Blockers
 - none
