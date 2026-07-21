@@ -10,12 +10,15 @@ var PARAMETERS = {
   enableShelter: false,   // + shelter (×1): REST there ends the day, banking reward = rewardPerUnit·
                           //   (min(food,water) if water else food); adds a bearing + satiety sense
   enablePits: false,      // + pits: entering one is death (terminal, −pitPenalty)
+  enableRocks: false,     // + rocks: neutral obstacles — moving into one is blocked (stay put, normal
+                          //   step cost, so bumping is learnably wasteful through the existing reward)
   gridN: 10,              // arena side length (torus)
   nFood: 10,              // items placed PER resource type each episode
   nWater: 6,              // water items (shelter/central-place mode only)
   nTypes: 1,              // sweep mode: number of distinct resource types, each with its own collect
                           // action (type1='eat', type2='drink', type≥3='c'+t). Cells take values 1..nTypes.
   nPits: 3,               // pits (when enablePits)
+  nRocks: 8,              // rocks (when enableRocks)
   maxStepsPerEpisode: 500, // step cutoff → episode ends. SHELTER mode: this is the DAY LENGTH — reach the
                           //   shelter and REST before it expires, or the agent COLLAPSES (−collapsePenalty).
   timeBuckets: 4,         // shelter mode: granularity of the time-remaining signal in the internal state
@@ -141,12 +144,14 @@ var PARAM_SCHEMA = [
   { key: 'enableWater', label: '+ Water (2nd resource)', type: 'checkbox' },
   { key: 'enableShelter', label: '+ Shelter (rest ends day)', type: 'checkbox' },
   { key: 'enablePits', label: '+ Pits (death)', type: 'checkbox' },
+  { key: 'enableRocks', label: '+ Rocks (block)', type: 'checkbox' },
   { key: 'relevanceFilter', label: 'Relevance filter (U-Tree)', type: 'checkbox' },
   // sliders
   { key: 'gridN', label: 'Arena N', min: 4, max: 20, step: 1, resets: true },
   { key: 'nFood', label: 'Food', min: 0, max: 30, step: 1, resets: true },
   { key: 'nWater', label: 'Water', min: 0, max: 30, step: 1, resets: true },
   { key: 'nPits', label: 'Pits', min: 0, max: 12, step: 1, resets: true },
+  { key: 'nRocks', label: 'Rocks', min: 0, max: 24, step: 1, resets: true },
   { key: 'maxStepsPerEpisode', label: 'Day length', min: 20, max: 1000, step: 20 },
   { key: 'collapsePenalty', label: 'Collapse −M', min: 0, max: 100, step: 5 },
   { key: 'explore', label: 'Exploration', type: 'select', options: ['greedy', 'ucb', 'egreedy'] },

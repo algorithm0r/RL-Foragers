@@ -6,7 +6,8 @@
 //   + enableShelter   REST at the shelter (×1) ends the day early, banking reward = rewardPerUnit ·
 //                     (min(food,water) if water else food). Adds a shelter bearing + satiety sense.
 //   + enablePits      entering a pit is death (terminal, −pitPenalty).
-// Cells: empty/food/water/shelter/pit. The agent is always at the view centre (torus wraps), so
+//   + enableRocks     rocks block movement (bump = stay put, normal step cost) — neutral obstacles.
+// Cells: empty/food/water/shelter/pit/rock. The agent is always at the view centre (torus wraps), so
 // absolute position isn't in the state. The world holds all state; the Observer draws it.
 var World = class World {
   constructor(width, height) {
@@ -34,6 +35,7 @@ var World = class World {
       if (this.shelterActive) this.grid[this.sy][this.sx] = World.SHELTER;
     }
     if (PARAMETERS.enablePits) for (let i = 0; i < PARAMETERS.nPits; i++) place(World.PIT);
+    if (PARAMETERS.enableRocks) for (let i = 0; i < PARAMETERS.nRocks; i++) place(World.ROCK);
     if (PARAMETERS.enableShelter) { // central-place mode: food (+ water)
       for (let i = 0; i < PARAMETERS.nFood; i++) place(World.FOOD);
       if (PARAMETERS.enableWater) for (let i = 0; i < PARAMETERS.nWater; i++) place(World.WATER);
@@ -105,7 +107,9 @@ var World = class World {
     let out;
     if (typeof act === 'number') { // a move (0..7 → World.DIRS)
       const dir = World.DIRS[act], N = this.N;
-      this.ax = ((this.ax + dir[0]) % N + N) % N; this.ay = ((this.ay + dir[1]) % N + N) % N;
+      const nx = ((this.ax + dir[0]) % N + N) % N, ny = ((this.ay + dir[1]) % N + N) % N;
+      // rocks block: the bump wastes the step (normal step cost) but the agent stays put
+      if (!(PARAMETERS.enableRocks && this.grid[ny][nx] === World.ROCK)) { this.ax = nx; this.ay = ny; }
       if (PARAMETERS.enablePits && this.grid[this.ay][this.ax] === World.PIT) return { reward: -PARAMETERS.pitPenalty, done: true, died: true };
       out = { reward: PARAMETERS.rewardStep, done: false };
     } else if (act === 'rest') {
@@ -194,7 +198,7 @@ World.buildActions = function () {
   return a;
 };
 
-// cell types
-World.EMPTY = 0; World.FOOD = 1; World.WATER = 2; World.SHELTER = 3; World.PIT = 4;
+// cell types (values 3+ collide with high-K sweep resource types — hazards/obstacles are for K ≤ 2)
+World.EMPTY = 0; World.FOOD = 1; World.WATER = 2; World.SHELTER = 3; World.PIT = 4; World.ROCK = 5;
 // 8 move directions [dx, dy]: N, NE, E, SE, S, SW, W, NW (y grows downward)
 World.DIRS = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];

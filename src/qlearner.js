@@ -49,9 +49,11 @@ var QLearner = class QLearner {
     return best[randomInt(best.length)];
   }
 
-  // ε-greedy
+  // ε-greedy. `lastRandom` records whether THIS pick was the ε random draw — the death-attribution
+  // signal (was a fatal move exploration noise or the learned policy?).
   select(state) {
-    if (Math.random() < PARAMETERS.epsilon) return randomInt(this.nActions);
+    this.lastRandom = Math.random() < PARAMETERS.epsilon;
+    if (this.lastRandom) return randomInt(this.nActions);
     return this.bestAction(state);
   }
 

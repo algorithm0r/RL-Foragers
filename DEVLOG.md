@@ -3,6 +3,35 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-20 — Pits arc (Stage 3F): rocks + death attribution + the 171-run grid (H1/H2 decisive)
+
+**Done:** (1) **Rocks** (`World.ROCK`): neutral obstacles — bump = stay put + normal −1 step cost;
+`enableRocks`/`nRocks` + schema + observer. Completes the valence spectrum (approach/goal/avoid/ignore).
+(2) **Death attribution**: every ε-draw site records `lastRandom` (agent/qlearner), so each death is
+tagged random-draw vs learned-argmax — the noise-vs-policy decomposition (replaces the "analytic ε
+floor," which Chris correctly killed: adjacency is policy-shaped, the floor is 0). (3) A hardwired
+pit-veto reflex was designed and **REJECTED** (beacon lesson: auto-avoidance deletes the
+avoidance-learning phenomenon). (4) **`pits.mjs` grid**: 5 agents × 4 explorers (subsumption×UCB
+skipped, unimplemented) × pits {0,3,6} × 3 seeds, 16k EPISODES each → 171 packets in `pits`.
+**Results:** • **Layered+ε-greedy is the only arch that survives AND clears** (3 pits: ~6% tail
+death, 90% clear @ 77 steps; curve 0.32→0.056 still falling; tail deaths ~61% the ε-draw itself →
+policy deaths ~2.2%). • **The state wall turns LETHAL**: flat-5 dies 86%/100% (3/6 pits) under every
+explorer — never revisits → never learns → perishes (attribution ~99% policy). Strongest pro-layering
+result yet. • **Subsumption structurally can't learn danger**: ~24% death at 3 pits, IDENTICAL across
+greedy/ε — goal-gated arbitration gives hazards no vote; fear has nowhere to live (but it clears in
+43 steps — fearless = fast). Cleanest layering-vs-subsumption discriminator so far. • **UCB damage
+scales with state count** (flat-3 12.6% / layered 53% / flat-5 96%+ death) — forced-untried ≈ one
+death per state. • **Layered-greedy survives by quitting** (~64 deaths then 0 deaths AND 0 clears).
+• **ε 0.005 vs 0.01 is a real tradeoff, not dominance** (0.005: −1pp death, −7pp clear) → default
+stays 0.01.
+**Changed:** DEVPLAN Stage 3F written + updated (reflex rejection recorded; Stage 5a wolves&goats
+design pinned: combat/carcass/HP mechanics, health-conditional risk, fight/flight/feed). Full-shell
+permissions granted in `.claude/settings.local.json` (project-local, git-ignored).
+**State:** smoke PASS @ v0.4.0-dirty (rock bar added; pit LEARNING bar pending — thresholds from
+grid, task open). Runs in DB. H1 Q-table probe + H3 replay check in flight.
+**Next:** H1 probe & H3 verdicts → rocks×pits interaction → Stage C gauntlet (day length × pits) →
+smoke bar + arc close. (Chris away ~2 days; running autonomously per agreed plan.)
+
 ## 2026-07-20 — Session: public repo + DQN baseline/budget decomposition + shelter SOLVED
 **Done:** three arcs (each has its own detailed entry below). (1) **Published** as public repo
 github.com/algorithm0r/RL-Foragers (MIT, README). (2) **DQN baseline** (`src/dqn.js`, dependency-free MLP)

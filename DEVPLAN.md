@@ -198,6 +198,58 @@ diversity — complementary trade with density), and **per-resource factoring** 
 trajectory-bounded, ~flat in K), so there's no ceiling to escape, and per-resource binarization
 discards the cross-resource joint structure the sweep needs. Same shape as the U-Tree result.
 
+### Stage 3F — Pits: valence discrimination + safe exploration  [ ACTIVE ]
+Pits are the first **negative-valence** percept — until now "approach any non-zero cell" was never
+punished, so the multi-type window has never had to discriminate value, only detect. (Mechanics
+already built: `World.PIT`, terminal death −`pitPenalty` through `applyAction`, `deathRate` EMA,
+placement in sweep and shelter modes. Anchor datapoint in hand: pits-only under UCB = **97% death**.)
+Hypotheses, each falsifiable:
+- **H1 (layer division of labor):** avoidance lives entirely in the 3×3 — the pit must be seen one
+  step *before* entry. flat-1 dies at random-walk rate forever; flat-3 captures ~all survival;
+  layered matches flat-3's death rate at layered harvest speed. Interpretability probe: read
+  `Q₃ₓ₃(pit-adjacent, move-into) ≈ −pitPenalty` straight from the table; the 1×1 carries nothing.
+- **H2 (exploration safety — the headline):** benign-world explorers are *structurally* wrong in
+  lethal worlds, and the three we already have make sharply different death predictions. UCB's
+  untried-forced rule mandates stepping onto visible pits (the 97% — negative control). ε-greedy
+  pays a permanent blood tax: an irreducible, never-annealing floor ≈ ε · P(pit-adjacent) ·
+  (lethal/9) — compute it analytically; measured ≈ predicted means the POLICY is fine and deaths
+  are pure noise. **greedy + strategic init** injects no noise at all: an early death burst while
+  optimism burns off (≈ one death per pit-direction pattern, learned arena-wide via translation
+  invariance), then ~zero forever. If greedy-init wins on deaths AND harvest, that's the honest
+  safe-explorer — no new mechanism. (A hardwired pit-veto reflex was considered and REJECTED —
+  beacon lesson: auto-avoiding pits deletes the avoidance-learning phenomenon pits exist to test.)
+- **H3 (cross-arc ties):** death is sparse-terminal → replay should HURT avoidance (same mechanism
+  as shelter collapse). Window translation-invariance → "pit-NE" is ONE table entry arena-wide, so
+  avoidance should learn *faster* than foraging.
+- **Stage C (ABM payoff):** full gauntlet food+water+shelter(`clearedOrTime`)+pits, sweep day
+  length — does deadline pressure push agents onto risky paths past pits (death rate rising as the
+  day tightens)? Emergent risk-taking under time pressure.
+- **Rocks (new cell type, `World.ROCK`):** completes the valence spectrum the window must
+  discriminate — approach (food/water) · goal (shelter) · avoid (pit) · **ignore-but-route-around**
+  (rock). Move into rock = blocked, stay put, normal −1 step cost (bumping is learnably wasteful
+  through the existing reward — no new machinery). Breaks "approach any non-zero cell" a second,
+  softer way, and makes navigation spatial: detours, corridors, rock-forced risky routes past pits.
+Build: rocks (`enableRocks`/`nRocks`, blocked-move dynamics, observer draw, schema) · `pits.mjs`
+harness (agents × explorers × nPits/nRocks, **episode-budgeted**) → `pits` collection · smoke bars
+(rock blocks & costs −1; layered death rate falls with training; greedy-init death burst
+extinguishes). Metrics reported jointly (deathRate + cleared-rate + steps) — steps conditional on
+survival is survivorship-biased.
+- [x] rocks: `World.ROCK`, blocked-move in `applyAction`, spawn placement, UI/schema, observer
+- [x] `pits.mjs` Stage-A grid: {flat-1,flat-3,flat-5,layered,subsumption} × {greedy,eg005,eg01,ucb}
+      × nPits {0,3,6}, 16k episodes, 3 seeds → 171 packets in `pits` (rocks split to its own run).
+      DECISIVE: layered+ε-greedy alone survives AND clears; flat-5 wall turns lethal (86–100% death);
+      subsumption can't learn danger (goal-gated arbitration, ~24% death, ε-independent); UCB damage
+      ∝ state count; layered-greedy survives by quitting; ε .005 vs .01 a tradeoff → default stays .01.
+- [x] ~~analytic ε-death-floor~~ → replaced by DEATH ATTRIBUTION (`lastRandom` tag): no fixed floor
+      exists (adjacency is policy-shaped — Chris); measured: tail deaths ~61% ε-draw for layered.
+- [ ] per-layer Q probe for H1 (read the fear out of the L3 table; quantify subsumption's missing fear)
+- [ ] replay-hurts-avoidance check (H3, cheap)
+- [ ] Stage C gauntlet: day-length sweep with pits + rocks + gated shelter
+- [ ] rocks×pits interaction (route-around cost; rock-forced risk corridors)
+**Done when:** the Stage-A grid is in the DB and decisive on H1/H2 (who carries avoidance; do the
+explorers' death signatures match prediction — ε floor vs greedy-init burst vs UCB catastrophe),
+and the gauntlet answers whether deadline pressure buys deaths.
+
 ### Stage 4 — Learned filters: which *bits* matter  [ PLANNED — U-Tree probe done & shelved ]
 Move from fixed receptive fields to **learned relevance** — the G-algorithm / U-Tree lineage:
 split state on a cell/channel bit only when statistics show it changes the Q. This is the
@@ -211,10 +263,37 @@ machinery is the part shelved. → forward pointer: revisit only if a real state
 **Done when:** an agent learns to ignore an irrelevant added channel (e.g. random noise bits)
 without loss of foraging performance, and to attend to a relevant one.
 
-### Stage 5 — Shared, stochastic worlds + hunting  [ PLANNED ]
-Multiple agents → the env becomes non-deterministic (why the *agent* stays model-free/robust).
-Add a `prey`/`predator` channel and hunting/avoidance sub-behaviors composed the same way.
-**Done when:** {{NEXT STAGE}}
+### Stage 5 — Moving entities, then shared worlds  [ PLANNED — next after 3F ]
+**5a — wolves & goats (scripted movers): moving threats and moving food.** The first
+NON-DETERMINISTIC environment — the regime the whole model-free bet exists for. What's new vs pits:
+- Avoidance becomes a BEHAVIOR, not a veto: a wolf makes a moving *region* risky; being caught is a
+  sequence of positioning mistakes, so danger credit must propagate far further back than pit-death.
+- Goats = the mirror: gathering becomes interception; against a fleeing goat, greedy approach may
+  never close. Wolf/goat completes the valence symmetry (pit/food with dynamics).
+- The window's Markov assumption breaks honestly: a snapshot says "wolf NE," not "closing or
+  leaving" — velocity is hidden state. Prediction: snapshot agents handle random-walk movers but
+  strain against pursuers → the first PRINCIPLED case for a memory/history layer (two-frame state).
+- **Combat / predation economy (Chris's design):** ATTACK an adjacent goat or wolf → it turns to
+  FOOD (carcass). Wolves fight back: a bite is a big negative penalty, and ~3 bites KILL the agent.
+  So everything is food at a risk price — static food free, goats run, wolves fight — and valence
+  becomes CONTINGENT, not fixed per type. Health (HP) is new INTERNAL state and must be in the
+  percept (INT layer: health + threat, like satiety/time in shelter mode) or the headline behavior
+  is unlearnable: **health-conditional risk attitude** (3-HP agent hunts the wolf; 1-HP agent flees
+  the same wolf — same window, opposite action, disambiguated only internally). Cumulative
+  bite-death gives a learnable GRADIENT into death (HP-in-state propagates fear up the health
+  ladder) vs the pit's cliff. Fight/flight/feed arbitration = subsumption's classic home turf AND
+  its predicted failure mode: the right priority ordering is health-dependent, which a fixed stack
+  can't express but confidence-weighting + INT can — a clean architecture-discriminating test.
+- Design axes: movement policy curriculum (random-walk first, then chase/flee — dynamics before
+  adversariality); speed ratios (goats catchable, wolves escapable — e.g. movers act every other
+  tick, else degenerate); kill thresholds (goat = 1 hit; multi-hit wolves make hunting a committed
+  exchange, not a timing trick); when wolves bite (retaliation only vs every adjacent tick — the
+  latter prices the approach, not just the fight); the economy's numbers (wolf carcass ≫ goat or
+  nobody rational hunts wolves — sweep carcass value vs expected bite cost for the
+  avoider→hunter policy flip).
+**5b — shared worlds:** multiple LEARNING agents; prey/predators are other learners, not scripts.
+**Done when (5a):** an agent in a wolves+goats world learns to hunt and evade scripted movers, and
+we know whether the snapshot window suffices or a memory layer is required.
 
 ---
 

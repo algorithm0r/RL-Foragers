@@ -10,7 +10,7 @@ var Observer = class Observer {
     const w = this.world, N = w.N;
     const board = Math.min(ctx.canvas.width, ctx.canvas.height);
     const cell = board / N;
-    const COLORS = ['#141a22', '#3fbf6f', '#4aa3ff', '#e8b23a', '#7a1f1f']; // empty food water shelter pit
+    const COLORS = ['#141a22', '#3fbf6f', '#4aa3ff', '#e8b23a', '#7a1f1f', '#6e7681']; // empty food water shelter pit rock
 
     for (let y = 0; y < N; y++) {
       for (let x = 0; x < N; x++) {

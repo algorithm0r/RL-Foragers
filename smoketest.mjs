@@ -2,7 +2,7 @@
 // and that the base food-sweep model LEARNS. Prints the numbers for the DEVLOG entry.
 //   node smoketest.mjs
 //   M) mechanics: base eat+clear · +water drink · +shelter rest banks min(F,W) · +pits death ·
-//                 shelter day-end COLLAPSE (−M) · time-of-day signal buckets the day remaining
+//                 +rocks block · shelter day-end COLLAPSE (−M) · time-of-day signal buckets the day
 //   B) decoupling: window length is receptiveField², independent of arena size
 //   L) learning: base sweep (layered + ε-greedy) — steps-to-clear falls
 //   S) shelter: with the collapse penalty + time signal, the agent learns to forage-then-rest
@@ -21,7 +21,7 @@ for (const f of ['util.js', 'params.js', 'engine.js', 'qlearner.js', 'utree.js',
 }
 const { PARAMETERS: P, World, GameEngine } = globalThis;
 const clear = (w) => { for (let y = 0; y < w.N; y++) for (let x = 0; x < w.N; x++) w.grid[y][x] = World.EMPTY; };
-const base = () => { P.agent = 'flat'; P.enableWater = false; P.enableShelter = false; P.enablePits = false; P.gridN = 6; P.receptiveField = 3; P.qReplay = false; P.restStickC = 0; }; // replay/stick off → fast, focused; validated separately
+const base = () => { P.agent = 'flat'; P.enableWater = false; P.enableShelter = false; P.enablePits = false; P.enableRocks = false; P.gridN = 6; P.receptiveField = 3; P.qReplay = false; P.restStickC = 0; }; // replay/stick off → fast, focused; validated separately
 
 // --- M: mechanics per toggle ---
 base(); P.nFood = 2;
@@ -56,6 +56,12 @@ clear(wp); wp.ax = 2; wp.ay = 2; wp.grid[2][3] = World.PIT;
 r = wp.applyAction(2); // move East into the pit
 const mPit = r.done && r.died === true && r.reward === -P.pitPenalty;
 
+base(); P.enableRocks = true;
+const wr = new World(800, 600);
+clear(wr); wr.ax = 2; wr.ay = 2; wr.grid[2][3] = World.ROCK;
+r = wr.applyAction(2); // move East into the rock: blocked — stay put, pay the step
+const mRock = !r.done && r.reward === P.rewardStep && wr.ax === 2 && wr.ay === 2;
+
 base(); P.enableShelter = true; P.maxStepsPerEpisode = 5; P.collapsePenalty = 50;
 const wc = new World(800, 600);
 clear(wc); // no shelter underfoot → the day just runs out
@@ -67,7 +73,7 @@ const wtc = new World(800, 600);
 const tFresh = wtc.timeCode(); wtc.steps = 99; const tEnd = wtc.timeCode();
 const mTime = tFresh === '3' && tEnd === '0'; // fresh day = top bucket, almost over = bucket 0
 
-const mechanics = mEat && mClear && mDrink && mRest && mStick && mPit && mCollapse && mTime;
+const mechanics = mEat && mClear && mDrink && mRest && mStick && mPit && mRock && mCollapse && mTime;
 
 // --- B: decoupling ---
 let decoupled = true;
@@ -109,7 +115,7 @@ const dqnOk = finiteW && qProbe.every(Number.isFinite) && wD.cleared > 3; // ran
 const ok = mechanics && decoupled && learned && sheltered && dqnOk;
 console.log('smoke:' +
   ' M mech=' + mechanics + ' (eat=' + mEat + ' clear=' + mClear + ' drink=' + mDrink + ' rest=' + mRest +
-  ' stick=' + mStick + ' pit=' + mPit + ' collapse=' + mCollapse + ' time=' + mTime + ')' +
+  ' stick=' + mStick + ' pit=' + mPit + ' rock=' + mRock + ' collapse=' + mCollapse + ' time=' + mTime + ')' +
   ' | B decoupled=' + decoupled +
   ' | L base-sweep steps-to-clear=' + late.toFixed(1) + ' (' + wL.cleared + ' cleared)' +
   ' | S shelter banked=' + wS.meanReward().toFixed(2) + ' collapseRate=' + wS.collapseRate().toFixed(3) +

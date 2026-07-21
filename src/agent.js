@@ -22,6 +22,7 @@ var FlatAgent = class FlatAgent {
     const action = PARAMETERS.explore === 'ucb' ? this.learner.selectUCB(state, PARAMETERS.ucbC)
       : PARAMETERS.explore === 'egreedy' ? this.learner.select(state)
         : this.learner.bestAction(state); // 'greedy' — exploration comes from the strategic init
+    this.lastRandom = PARAMETERS.explore === 'egreedy' && this.learner.lastRandom === true;
     const outcome = world.applyAction(action);
     const nextState = outcome.done ? null : world.senseState();
     this.learner.learn(state, action, outcome.reward, nextState);
@@ -147,8 +148,9 @@ var LayeredAgent = class LayeredAgent {
     const states = this.statesFor(world);
     const combined = this.combine(states);
     this.lastWeights = combined.weights;
+    this.lastRandom = PARAMETERS.explore === 'egreedy' && Math.random() < PARAMETERS.epsilon;
     const action = PARAMETERS.explore === 'ucb' ? this.selectUCB(states, combined)
-      : PARAMETERS.explore === 'egreedy' ? (Math.random() < PARAMETERS.epsilon ? randomInt(this.nActions) : this.argmax(combined.q))
+      : this.lastRandom ? randomInt(this.nActions)
         : this.argmax(combined.q); // 'greedy' — exploration comes from the strategic init (defaultQ)
 
     const outcome = world.applyAction(action);
@@ -215,7 +217,8 @@ var SubsumptionAgent = class SubsumptionAgent {
   act(world) {
     const states = this.statesFor(world);
     const active = this.activeLayer(states), L = this.layers[active], st = states[active];
-    const action = Math.random() < PARAMETERS.epsilon ? randomInt(this.nActions) : L.learner.bestAction(st);
+    this.lastRandom = Math.random() < PARAMETERS.epsilon; // subsumption is always ε-greedy (ε=0 → greedy)
+    const action = this.lastRandom ? randomInt(this.nActions) : L.learner.bestAction(st);
     const outcome = world.applyAction(action);
     const next = outcome.done ? null : this.statesFor(world);
     this.learnTransition(states, action, outcome.reward, next);
