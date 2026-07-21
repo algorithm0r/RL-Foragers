@@ -3,6 +3,30 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-20 — Shelter under-gathering is a POLICY-DISCOVERY problem, not reward or homing
+**Done:** three probes into why shelter mode under-gathers (banks ~0.7 of 4). All negative, and they
+converge on one diagnosis.
+1. **No-homing baseline** (layered 1357, shelter on, strategicLayer OFF): the agent treats the shelter
+   as a goal cell and rests-on-contact ~97% of episodes with ~1% collapse — at EVERY arena size (6–14),
+   because on generous days (2N²) it wanders into the shelter's window. The **INT/bearing layer is
+   near-dead-weight here.** It only earns its keep under TIGHT deadlines (N=12, day 30: collapse 21%→6%
+   with INT) where you must beeline home — and even then it banks *less* (safety over harvest).
+2. **stock² carrot** (prior): no effect on harvest.
+3. **−restStickC·resources_left stick** (resources-left, not time-left, so fast foragers rest free): sweep
+   c∈{0..40} — harvest stays ~0.7 while collapse climbs 1%→54%. The stick makes rest-on-contact negative
+   but the agent responds by NOT resting (dodging the penalty) → wanders → collapses, rather than
+   gathering more (it can't find the last scattered food — the coverage problem).
+**Diagnosis (triple-confirmed):** under-gathering is **policy discovery / exploration**, not reward and
+not homing. Both reward manipulations point the gradient the right way and both fail identically: the
+agent can't DISCOVER "clear the field, then walk home and rest" via ε-greedy. Homing is orthogonal
+(the window handles it as a goal cell; bearing only matters under deadline pressure).
+**Changed:** `world.js` (rest reward −restStickC·remaining), `params.js` (`restStickC`, default 0 —
+it harms), smoke (stick mechanic + loosened the flaky unseeded DQN bar 20→3). All defaults OFF.
+**Next:** stop tuning reward. Levers are (a) representation — home as a synthetic direction CHANNEL in the
+3×3 (reuse nav, make homing trivial) so the agent's only hard job is foraging, which it can do; and/or
+(b) exploration / credit assignment (eligibility traces to propagate the terminal rest reward along the
+whole gather-then-home trajectory). Or move to the ABM endgame.
+
 ## 2026-07-20 — Replay is task-dependent (sweet spot K=4, hurts shelter); stock² doesn't fix under-gathering
 **Done:** two tuning threads after the budget control. (1) **Replay-K sweep** (12×12 sweep arena, layered,
 3 seeds): the knee is **K=4** — steps-to-clear 109±40 (K=0) → 65±4 (K=4), and K=8/16/32/64 are flat

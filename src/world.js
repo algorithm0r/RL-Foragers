@@ -106,9 +106,9 @@ var World = class World {
       out = { reward: PARAMETERS.rewardStep, done: false };
     } else if (act === 'rest') {
       // rest at the shelter banks a SUPERLINEAR reward in the day's haul: rewardPerUnit·stock² (stock =
-      // food+water). Quadratic so each extra item is worth more than the last — the pressure to keep
-      // foraging that a linear reward lacked (linear + collapse made "rest early with anything" optimal).
-      if (this.cell(0, 0) === World.SHELTER) { const s = this.bankedStock(); return { reward: PARAMETERS.rewardPerUnit * s * s, done: true, rested: true }; }
+      // food+water), MINUS restStickC per resource still uncollected — the "stick" that makes resting with
+      // food left on the table go negative (breaks rest-on-contact), while a cleared field rests penalty-free.
+      if (this.cell(0, 0) === World.SHELTER) { const s = this.bankedStock(); return { reward: PARAMETERS.rewardPerUnit * s * s - PARAMETERS.restStickC * this.remaining, done: true, rested: true }; }
       out = { reward: PARAMETERS.rewardStep, done: false };
     } else {
       // collect actions: 'eat'=type 1, 'drink'=type 2, 'c'+t=type t. Succeeds iff that type is underfoot.

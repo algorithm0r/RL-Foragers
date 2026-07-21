@@ -59,6 +59,11 @@ var PARAMETERS = {
                           //   food+water). Superlinear → rewards bigger hauls, fights early-rest under-gathering.
   collapsePenalty: 50,    // shelter mode: penalty for the day expiring in the field (never made it home to
                           //   rest). Flat −M; resting with nothing (0) still beats collapse (−M) → homing dominates.
+  restStickC: 0,          // shelter mode: rest reward loses restStickC per RESOURCE still uncollected (uses
+                          //   resources-left, not time-left, so a fast forager that CLEARED the field rests
+                          //   penalty-free). OFF by default: the sweep showed it doesn't lift harvest — it just
+                          //   trades early-rest for collapse (c=15 → 54% collapse). Under-gathering is a
+                          //   policy-DISCOVERY problem, not a reward one (stock² carrot also failed).
   pitPenalty: 50,         // reward on entering a pit (terminal death)
 
   // --- DQN baseline (agent='dqn') — a small dependency-free MLP: one-hot window → hidden ReLU →

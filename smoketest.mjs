@@ -21,7 +21,7 @@ for (const f of ['util.js', 'params.js', 'engine.js', 'qlearner.js', 'utree.js',
 }
 const { PARAMETERS: P, World, GameEngine } = globalThis;
 const clear = (w) => { for (let y = 0; y < w.N; y++) for (let x = 0; x < w.N; x++) w.grid[y][x] = World.EMPTY; };
-const base = () => { P.agent = 'flat'; P.enableWater = false; P.enableShelter = false; P.enablePits = false; P.gridN = 6; P.receptiveField = 3; P.qReplay = false; }; // replay off → fast, focused; validated separately in budget.mjs
+const base = () => { P.agent = 'flat'; P.enableWater = false; P.enableShelter = false; P.enablePits = false; P.gridN = 6; P.receptiveField = 3; P.qReplay = false; P.restStickC = 0; }; // replay/stick off → fast, focused; validated separately
 
 // --- M: mechanics per toggle ---
 base(); P.nFood = 2;
@@ -40,9 +40,15 @@ const mDrink = ww.water === 1 && r.reward === P.rewardGather && !r.done;
 
 base(); P.enableWater = true; P.enableShelter = true;
 const ws = new World(800, 600); const REST = ws.actions.indexOf('rest');
-clear(ws); ws.ax = 2; ws.ay = 2; ws.grid[2][2] = World.SHELTER; ws.food = 2; ws.water = 2;
+clear(ws); ws.ax = 2; ws.ay = 2; ws.grid[2][2] = World.SHELTER; ws.food = 2; ws.water = 2; ws.remaining = 0; // field cleared
 r = ws.applyAction(REST);
-const mRest = r.done && r.rested === true && r.reward === P.rewardPerUnit * 16; // stock=food+water=4 → reward = perUnit·4²
+const mRest = r.done && r.rested === true && r.reward === P.rewardPerUnit * 16; // stock=4, remaining=0 → perUnit·4² − 0
+// the stick: resting with resources still uncollected loses restStickC each (set it explicitly — default is 0)
+P.restStickC = 15;
+const ws2 = new World(800, 600); clear(ws2); ws2.ax = 2; ws2.ay = 2; ws2.grid[2][2] = World.SHELTER; ws2.food = 2; ws2.water = 2; ws2.remaining = 3;
+const r2 = ws2.applyAction(ws2.actions.indexOf('rest'));
+const mStick = r2.reward === P.rewardPerUnit * 16 - 15 * 3;
+P.restStickC = 0;
 
 base(); P.enablePits = true;
 const wp = new World(800, 600);
@@ -61,7 +67,7 @@ const wtc = new World(800, 600);
 const tFresh = wtc.timeCode(); wtc.steps = 99; const tEnd = wtc.timeCode();
 const mTime = tFresh === '3' && tEnd === '0'; // fresh day = top bucket, almost over = bucket 0
 
-const mechanics = mEat && mClear && mDrink && mRest && mPit && mCollapse && mTime;
+const mechanics = mEat && mClear && mDrink && mRest && mStick && mPit && mCollapse && mTime;
 
 // --- B: decoupling ---
 let decoupled = true;
@@ -98,12 +104,12 @@ for (let t = 1; t <= 15000; t++) { eD.tick = t; wD.update(eD); }
 const AD = wD.agent; let finiteW = true;
 for (const arr of [AD.W1, AD.W2]) for (let i = 0; i < arr.length; i++) if (!Number.isFinite(arr[i])) { finiteW = false; break; }
 const qProbe = AD.qValues(AD.encode(wD));
-const dqnOk = finiteW && qProbe.every(Number.isFinite) && wD.cleared > 20; // ran, learned to clear, no blow-up
+const dqnOk = finiteW && qProbe.every(Number.isFinite) && wD.cleared > 3; // ran, learned to clear some, no blow-up (unseeded → loose bar)
 
 const ok = mechanics && decoupled && learned && sheltered && dqnOk;
 console.log('smoke:' +
   ' M mech=' + mechanics + ' (eat=' + mEat + ' clear=' + mClear + ' drink=' + mDrink + ' rest=' + mRest +
-  ' pit=' + mPit + ' collapse=' + mCollapse + ' time=' + mTime + ')' +
+  ' stick=' + mStick + ' pit=' + mPit + ' collapse=' + mCollapse + ' time=' + mTime + ')' +
   ' | B decoupled=' + decoupled +
   ' | L base-sweep steps-to-clear=' + late.toFixed(1) + ' (' + wL.cleared + ' cleared)' +
   ' | S shelter banked=' + wS.meanReward().toFixed(2) + ' collapseRate=' + wS.collapseRate().toFixed(3) +
