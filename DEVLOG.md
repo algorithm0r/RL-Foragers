@@ -3,6 +3,27 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-20 — Removed the home-channel/beacon: it undermined the partial-observability premise
+**Done:** built, then REMOVED, a home-homing aid for the shelter return (tried it two ways: a separate
+'home' layer, then painting a phantom SHELTER into the window). Reverted both. `senseWindow` back to its
+clean 2-arg form; no `homeChannel`.
+**Why (the design call):** the whole thesis is foraging under PARTIAL OBSERVABILITY — the layered
+receptive fields exist because the agent can't see the whole arena. Painting an out-of-view shelter into
+the perceptual window injects oracle information; and by the same logic you could paint the nearest
+food's direction — which is just the greedy oracle, and would gut the layered forager entirely (nothing
+left to learn). The principled line isn't shelter-vs-food, it's *legitimate sensory primitive* (home
+bearing = path integration, real in foragers) vs *the search problem we're studying* (finding food). But
+the projection expresses even the legitimate case the wrong way (disguises a bearing as perception).
+**And we don't need it:** the plain layered agent already handles the shelter honestly as an in-view goal
+cell — no-homing baseline rests ~97%, and `shelterActivate:'cleared'` reaches 2.82/0.30 on N=10 (still
+rising) and 3.30 on N=6 with NO homing aid. The separate 'home' layer also actively broke it (all-dark
+overlay → huge count → high confidence → a blind layer dominated foraging: 0.09/98% collapse on N=10).
+**Kept:** `shelterActivate` gating (the real fix), `restStickC` (knob, default 0), the honest INT/bearing
+layer option (`strategicLayer`). **State:** smoke PASS.
+**Next:** the residual N=10 collapse (0.30) is under-training + coverage, not a missing mechanism — accept
+it, or budget more episodes. If learned homing under tight deadlines ever matters, do it as an honest
+separate bearing sense (or a scripted path-integration reflex), never as perception. Or the ABM endgame.
+
 ## 2026-07-20 — Gating the shelter's APPEARANCE cracks under-gathering (env-shaping beats reward-shaping)
 **Done:** `shelterActivate` — the shelter/rest option can appear only after the field is CLEARED, after a
 TIME, or ALWAYS (default, unchanged). Idea: remove the rest-on-contact temptation during foraging and let

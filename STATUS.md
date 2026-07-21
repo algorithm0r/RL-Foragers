@@ -31,19 +31,19 @@ smoke PASS @ pre-commit (exit 0, this session — mechanics + base-sweep + shelt
 - **Shelter/central-place:** learns forage-then-rest (rested 12k, collapse 0.4%, banked 0.65 @ 250k). Time-of-day signal ~2× harvest & ~4× fewer collapses vs blind-to-time. Risk-averse / under-gathers at collapse:perUnit=1:1 → tune the ratio.
 - **DQN vs tabular — budget-matched, it's a near-tie.** Raw DQN beat layered on 12×12 (58 vs 137) — but that was ~90% an UPDATE-BUDGET confound (DQN got 32 grad-samples/step, tabular got 1). Give the table Dyna-Q **replay** and it hits 65±1 ≈ dqn-32 58±2, MORE stable, interpretable, no NN tuning, compute-comparable. DQN keeps only a small (~11%) real generalization edge; at equal 1:1 budget the table *beats* the net (137 vs 1061).
 - **Replay is task-dependent (opt-in, K=4).** Sweep/coverage: big win, saturates at K=4 (109±40 → 65). Shelter/sparse-terminal: HURTS (collapse 1%→49% — uniform replay drowns the rare head-home transitions). Default OFF; `qReplayK=4` when on.
-- **Shelter under-gathering — CRACKED by gating the shelter's appearance.** Reward-shaping (stock² carrot, resources-left stick) and vanilla replay all failed (it's policy-discovery, not reward). But `shelterActivate:'cleared'` (shelter appears only after the field is swept) removes the rest-on-contact temptation and **quadruples harvest** (0.85 → 3.17 of 4 on N=6). New cost: collapse rises (must clear-then-home in time; 60% on N=10 — coverage/deadline). INT/bearing layer *hurts* gated mode. **Next = the synthesis:** `cleared` gating + home-direction-channel (reliable homing) → high harvest AND low collapse.
+- **Shelter under-gathering — CRACKED by gating the shelter's appearance.** Reward-shaping (stock² carrot, resources-left stick) and vanilla replay all failed (it's policy-discovery, not reward). But `shelterActivate:'cleared'` (shelter appears only after the field is swept) removes the rest-on-contact temptation and lifts harvest to **2.82/0.30 on N=10** (episode-budgeted, still rising) and **3.30 on N=6** — with the plain layered agent treating the shelter as an in-view goal cell (no homing aid needed). Residual N=10 collapse is under-training + coverage, not a missing mechanism.
+- **Home-channel/beacon: tried and REMOVED** — painting a home signal into the perceptual window injects oracle info (the same move for food = the greedy oracle) and undermines the partial-obs premise. Homing, if ever learned, must be an honest separate bearing sense, not perception.
 
 ## Branches
 - `main`
 
-## Open
-- **Shelter synthesis (the live build):** `cleared` gating fixed harvest but raised collapse (homing/deadline). Add a home-direction CHANNEL (lit-cell homing, reuse the 3×3 nav) so the post-clear return is reliable → target high harvest AND low collapse. Then a day-length/arena sweep to map where it holds.
+- **Shelter:** `cleared` gating is the fix (harvest 2.82–3.30, no homing aid). Open: is the N=10 residual collapse (0.30) just under-training/coverage (budget more episodes to confirm), and a day-length/arena sweep to map where it holds. Homing stays honest (in-view goal cell; no perceptual beacon).
 - Adaptive reach: layers up to ~arena size; where do they stop paying?
 - ABM endgame: multiple agents in a shared (stochastic) world; moving prey to hunt / predators to avoid.
 - Probe idea: push density until the monolithic learner *does* strain — does any factored/compressed variant then pay off?
 
 ## Next action
-Build the home-direction channel and pair it with `cleared` gating (the synthesis); then a day/arena sweep. Or the ABM endgame.
+Confirm the N=10 shelter collapse is under-training (episode-budgeted sweep across day-length/arena), or move to the ABM endgame.
 
 ## Blockers
 - none
