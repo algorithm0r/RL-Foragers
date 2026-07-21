@@ -3,6 +3,27 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-20 — Session: public repo + DQN baseline/budget decomposition + shelter SOLVED
+**Done:** three arcs (each has its own detailed entry below). (1) **Published** as public repo
+github.com/algorithm0r/RL-Foragers (MIT, README). (2) **DQN baseline** (`src/dqn.js`, dependency-free MLP)
++ the **budget×representation control**: the DQN's apparent win over the layered tabular agent was ~90% an
+UPDATE-BUDGET confound — budget-matched, tabular + Dyna-Q replay ≈ DQN (65 vs 58 on 12×12), and at 1:1 the
+table beats the net. Replay is task-dependent → opt-in (K=4 sweet spot; hurts sparse-terminal shelter).
+(3) **Shelter / central-place foraging SOLVED by environment-percept shaping.** Reward-shaping (stock²
+carrot, resources-left stick) and replay all failed — under-gathering is policy DISCOVERY not incentive.
+Fix: gate *when* the shelter appears. `shelterActivate:'clearedOrTime'` @ T≈0.6·day (load-full-OR-nightfall)
+is best: N=6 strict win (3.47/0.05 vs cleared 3.06/0.24), N=10 reliability win (collapse 0.30→0.09). A
+home-beacon-in-perception was built then REMOVED (Chris's catch: it injects oracle info, undermines the
+partial-obs premise — the same move for food = the greedy oracle).
+**Changed:** new `src/dqn.js`; `qlearner.js` (learnQ), `agent.js` (replay, shelter), `world.js`
+(shelterActivate, collapse, time signal, stock² reward), `params.js`, `ui.js`, `smoketest.mjs`; new
+harnesses `dqn.mjs`/`budget.mjs`/`replayk.mjs`; `LICENSE`, README; DEVLOG/DEVPLAN/STATUS.
+**State:** smoke PASS @ `1c7d1b1` (mechanics incl. stick/collapse/time + base-sweep 35 steps + shelter
++ DQN stability). Repo pushed to origin. Defaults unchanged/backward-safe (replay off, stick 0,
+shelterActivate 'always').
+**Next:** adopt `clearedOrTime` as the shelter default + day/arena sweep; or +pits with gated shelter
+(value-discrimination test); or the ABM endgame (multi-agent / hunting).
+
 ## 2026-07-20 — Blended shelter trigger 'clearedOrTime' — the best shelter config (load-full-OR-nightfall)
 **Done:** `shelterActivate:'clearedOrTime'` — the shelter appears when the field is CLEARED *or* at a dusk
 step T (`shelterActivateTime`). Fixes pure-`cleared`'s failure: no longer "clear everything or collapse"

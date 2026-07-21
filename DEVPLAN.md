@@ -41,8 +41,14 @@ statistical predictability of tabular methods that a neural net would throw away
   the DAY LENGTH; rest at the shelter banks `rewardPerUnit·gathered`, but if the day expires in the
   field the agent **collapses** (terminal `−collapsePenalty`). A **time-of-day signal** (bucketed day
   remaining) in the INT state makes homing timeable — ablation: the clock ~2× the harvest and ~4×
-  fewer collapses vs blind-to-time. The agent learns to forage-then-rest but is **risk-averse / under-
-  gathers** at collapse:perUnit = 1:1 — tuning that ratio (and day length) is the shelter experiment.
+  fewer collapses vs blind-to-time. ~~The agent learns to forage-then-rest but under-gathers.~~
+  **SOLVED by environment-percept shaping, not reward.** Reward-shaping (stock² carrot, resources-left
+  stick) and vanilla replay all failed → under-gathering is policy DISCOVERY, not incentive. The fix:
+  `shelterActivate` gates *when* the shelter appears — `'cleared'` (after the field is swept: removes the
+  rest-on-contact temptation, cues the return) quadrupled harvest, and **`'clearedOrTime'` @ T≈0.6·day**
+  (load-full-OR-nightfall, a dusk safety valve) is the best config: N=6 strict win 3.47/0.05 vs cleared
+  3.06/0.24, N=10 reliability win (collapse 0.30→0.09). Homing stays an honest in-view goal cell — a
+  home-beacon-in-perception was tried and REMOVED (it injects oracle info, undermines partial obs).
 - **DQN baseline (`agent='dqn'`, `src/dqn.js`) — the "guard against a straw man" (Stage 3E), built.**
   A small dependency-free MLP (one-hot window → hidden ReLU → Q/action; replay + target net + annealed
   ε). Head-to-head (3 seeds, 250k ticks): **matches** the layered tabular agent on the easy sweep and
