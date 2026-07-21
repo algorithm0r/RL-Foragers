@@ -3,6 +3,31 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-20 — Gating the shelter's APPEARANCE cracks under-gathering (env-shaping beats reward-shaping)
+**Done:** `shelterActivate` — the shelter/rest option can appear only after the field is CLEARED, after a
+TIME, or ALWAYS (default, unchanged). Idea: remove the rest-on-contact temptation during foraging and let
+the shelter's *appearance* cue the return, instead of tuning reward. Test (food-only, 4 food, day=2N²,
+layered 1357, harvest of 4):
+```
+              N=6 banked / collapse      N=10 banked / collapse
+  always      0.85 / 2%                  0.64 / 1%
+  cleared     3.17 / 21%   ← 4× harvest  1.61 / 60%   ← coverage/deadline bites
+  time        1.27 / 9%                  1.38 / 11%
+```
+**Findings:**
+1. **`cleared` gating quadruples harvest** (0.85 → 3.17 of 4 on N=6) — the first thing to actually fix
+   under-gathering. Confirms the diagnosis: it was the rest-on-contact TEMPTATION, not the incentive.
+   Environment-shaping succeeds where reward-shaping (stock² carrot, resources-left stick) failed.
+2. **New cost = collapse:** must clear ALL then reach home before the day ends → misses on bigger arenas
+   (60% on N=10, where clearing the last scattered item is a coverage problem that eats the clock).
+3. **INT/bearing layer HURTS gated mode** (noINT 3.17 > +INT 2.21) — more evidence it's dead-weight/harmful.
+4. **`time` gating** = gentler middle ground (harvest ~1.3, collapse ~0.1, keeps a soft tradeoff).
+**Changed:** `world.js` (reserve shelter cell at spawn, activate on trigger), `params.js` (`shelterActivate`,
+`shelterActivateTime`). Default 'always' → smoke unchanged (PASS).
+**Next — the synthesis:** `cleared` gating + a reliable HOME-DIRECTION CHANNEL (lit-cell homing) should give
+BOTH high harvest AND low collapse — gating fixes *when* to return, the home channel fixes *getting there*.
+The collapse cost is precisely a homing-reliability problem, so the two ideas compose.
+
 ## 2026-07-20 — Shelter under-gathering is a POLICY-DISCOVERY problem, not reward or homing
 **Done:** three probes into why shelter mode under-gathers (banks ~0.7 of 4). All negative, and they
 converge on one diagnosis.

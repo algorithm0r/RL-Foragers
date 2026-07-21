@@ -20,6 +20,11 @@ var PARAMETERS = {
                           //   shelter and REST before it expires, or the agent COLLAPSES (−collapsePenalty).
   timeBuckets: 4,         // shelter mode: granularity of the time-remaining signal in the internal state
                           //   (coarse "how much of the day is left" → lets the agent learn WHEN to head home)
+  shelterActivate: 'always', // WHEN the shelter appears / rest becomes available. 'always' (current); 'cleared'
+                          //   (only after ALL resources gathered — forage first, then the rest option appears:
+                          //   removes rest-on-contact, and the appearance itself CUES the return); 'time' (after
+                          //   shelterActivateTime steps — a diurnal "return at dusk" curriculum).
+  shelterActivateTime: 40, // for shelterActivate:'time' — the step at which the shelter appears
 
   // --- agent architecture ---
   agent: 'layered',       // 'flat' (Stage-1 baseline, one window) | 'layered' (Stage 2: L1/L3/L5 + confidence)

@@ -31,19 +31,19 @@ smoke PASS @ pre-commit (exit 0, this session — mechanics + base-sweep + shelt
 - **Shelter/central-place:** learns forage-then-rest (rested 12k, collapse 0.4%, banked 0.65 @ 250k). Time-of-day signal ~2× harvest & ~4× fewer collapses vs blind-to-time. Risk-averse / under-gathers at collapse:perUnit=1:1 → tune the ratio.
 - **DQN vs tabular — budget-matched, it's a near-tie.** Raw DQN beat layered on 12×12 (58 vs 137) — but that was ~90% an UPDATE-BUDGET confound (DQN got 32 grad-samples/step, tabular got 1). Give the table Dyna-Q **replay** and it hits 65±1 ≈ dqn-32 58±2, MORE stable, interpretable, no NN tuning, compute-comparable. DQN keeps only a small (~11%) real generalization edge; at equal 1:1 budget the table *beats* the net (137 vs 1061).
 - **Replay is task-dependent (opt-in, K=4).** Sweep/coverage: big win, saturates at K=4 (109±40 → 65). Shelter/sparse-terminal: HURTS (collapse 1%→49% — uniform replay drowns the rare head-home transitions). Default OFF; `qReplayK=4` when on.
-- **Shelter under-gathering = POLICY DISCOVERY, not reward/homing (triple-confirmed):** stock² carrot, −c·resources_left stick (→ trades early-rest for 54% collapse), AND vanilla replay all fail. No-homing baseline rests fine (shelter = goal cell; bearing only matters under tight deadlines). Agent can't *discover* clear-field-then-home via ε-greedy. Levers: home-as-direction-channel (trivialize homing) or eligibility traces.
+- **Shelter under-gathering — CRACKED by gating the shelter's appearance.** Reward-shaping (stock² carrot, resources-left stick) and vanilla replay all failed (it's policy-discovery, not reward). But `shelterActivate:'cleared'` (shelter appears only after the field is swept) removes the rest-on-contact temptation and **quadruples harvest** (0.85 → 3.17 of 4 on N=6). New cost: collapse rises (must clear-then-home in time; 60% on N=10 — coverage/deadline). INT/bearing layer *hurts* gated mode. **Next = the synthesis:** `cleared` gating + home-direction-channel (reliable homing) → high harvest AND low collapse.
 
 ## Branches
 - `main`
 
 ## Open
-- **Shelter under-gathering (the live problem):** it's policy-discovery, not reward. Next levers: (a) home-as-direction-channel in the 3×3 (reuse nav, trivialize homing so the agent's only hard job is foraging); (b) eligibility traces (TD(λ)) to propagate the terminal rest reward along the gather-then-home trajectory.
+- **Shelter synthesis (the live build):** `cleared` gating fixed harvest but raised collapse (homing/deadline). Add a home-direction CHANNEL (lit-cell homing, reuse the 3×3 nav) so the post-clear return is reliable → target high harvest AND low collapse. Then a day-length/arena sweep to map where it holds.
 - Adaptive reach: layers up to ~arena size; where do they stop paying?
 - ABM endgame: multiple agents in a shared (stochastic) world; moving prey to hunt / predators to avoid.
 - Probe idea: push density until the monolithic learner *does* strain — does any factored/compressed variant then pay off?
 
 ## Next action
-Attack shelter under-gathering (on-policy/eligibility traces or prioritized replay), or move to the ABM endgame.
+Build the home-direction channel and pair it with `cleared` gating (the synthesis); then a day/arena sweep. Or the ABM endgame.
 
 ## Blockers
 - none

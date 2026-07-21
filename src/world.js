@@ -28,7 +28,11 @@ var World = class World {
     for (let i = cells.length - 1; i > 0; i--) { const j = randomInt(i + 1); const t = cells[i]; cells[i] = cells[j]; cells[j] = t; }
     let k = 0;
     const place = (type) => { const c = cells[k++]; this.grid[(c / N) | 0][c % N] = type; return c; };
-    if (PARAMETERS.enableShelter) { const s = place(World.SHELTER); this.sx = s % N; this.sy = (s / N) | 0; }
+    if (PARAMETERS.enableShelter) { // reserve the cell; it only becomes a visible/rest-able SHELTER once active
+      const s = place(World.EMPTY); this.sx = s % N; this.sy = (s / N) | 0;
+      this.shelterActive = PARAMETERS.shelterActivate === 'always';
+      if (this.shelterActive) this.grid[this.sy][this.sx] = World.SHELTER;
+    }
     if (PARAMETERS.enablePits) for (let i = 0; i < PARAMETERS.nPits; i++) place(World.PIT);
     if (PARAMETERS.enableShelter) { // central-place mode: food (+ water)
       for (let i = 0; i < PARAMETERS.nFood; i++) place(World.FOOD);
@@ -120,6 +124,14 @@ var World = class World {
         out = this.gatherResult(); out.collected = type; // which type → per-resource reward routing
       } else {
         out = { reward: PARAMETERS.rewardStep, done: false };
+      }
+    }
+    // SHELTER ACTIVATION: the rest option can be gated to appear only after the field is CLEARED, or after
+    // a TIME — so it can't tempt an early rest during foraging, and its appearance cues the return.
+    if (PARAMETERS.enableShelter && !this.shelterActive) {
+      const trig = PARAMETERS.shelterActivate;
+      if ((trig === 'cleared' && this.remaining === 0) || (trig === 'time' && this.steps >= PARAMETERS.shelterActivateTime)) {
+        this.shelterActive = true; this.grid[this.sy][this.sx] = World.SHELTER;
       }
     }
     // END OF DAY (shelter mode): maxStepsPerEpisode is the day length. If it just expired and the day
