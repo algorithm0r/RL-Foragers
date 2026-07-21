@@ -288,6 +288,55 @@ var MultiResourceAgent = class MultiResourceAgent {
   }
 };
 
+// The goats' shared species-level brain: a stripped-down LayeredAgent — window layers only, its own
+// (smaller) stack and ε, goat-centric sensing (world.senseGoatWindow). ONE instance serves every
+// goat, so a kill or a pit death teaches the species, not the individual, and knowledge survives
+// the individual's death. Same count-based confidence coupling as the forager.
+var GoatBrain = class GoatBrain {
+  constructor(nActions) {
+    this.nActions = nActions;
+    this.layers = PARAMETERS.goatLayers.map((size) => ({
+      kind: 'window', size, r: (size - 1) >> 1, label: 'G' + size, learner: new QLearner(nActions),
+    }));
+  }
+
+  confidence(count) { return count / (count + PARAMETERS.confidenceK); }
+  statesFor(world, g) { return this.layers.map((L) => world.senseGoatWindow(g, L.r)); }
+
+  combine(states) {
+    const raw = this.layers.map((L, i) => this.confidence(L.learner.getStateCount(states[i])));
+    let sum = 0; for (const w of raw) sum += w;
+    const weights = sum > 0 ? raw.map((w) => w / sum) : raw.map(() => 1 / this.layers.length);
+    const q = new Array(this.nActions).fill(0);
+    for (let i = 0; i < this.layers.length; i++) {
+      if (weights[i] === 0) continue;
+      const learner = this.layers[i].learner, st = states[i];
+      for (let a = 0; a < this.nActions; a++) q[a] += weights[i] * learner.getQ(st, a);
+    }
+    return { q, weights };
+  }
+
+  argmax(q) {
+    let m = -Infinity; const best = [];
+    for (let a = 0; a < q.length; a++) {
+      if (q[a] > m) { m = q[a]; best.length = 0; best.push(a); }
+      else if (q[a] === m) best.push(a);
+    }
+    return best[randomInt(best.length)];
+  }
+
+  select(states) {
+    if (Math.random() < PARAMETERS.goatEpsilon) return randomInt(this.nActions);
+    return this.argmax(this.combine(states).q);
+  }
+
+  learn(states, action, reward, nextStates) {
+    for (let i = 0; i < this.layers.length; i++) {
+      this.layers[i].learner.learn(states[i], action, reward, nextStates ? nextStates[i] : null);
+    }
+  }
+};
+
 // factory: World builds its agent through this, so the sim core stays agent-agnostic
 function makeAgent(nActions) {
   if (PARAMETERS.agent === 'flat') return new FlatAgent(nActions);

@@ -35,6 +35,13 @@ var Observer = class Observer {
       }
     }
 
+    // goats (living only — a dead goat's cell shows its carcass, which is just FOOD terrain)
+    if (w.goats) for (const g of w.goats) {
+      if (!g.alive) continue;
+      ctx.fillStyle = '#d9a066'; ctx.beginPath();
+      ctx.arc((g.x + 0.5) * cell, (g.y + 0.5) * cell, Math.max(3, cell * 0.28), 0, TAU); ctx.fill();
+    }
+
     // the forager
     ctx.fillStyle = '#f32e26'; ctx.beginPath();
     ctx.arc((w.ax + 0.5) * cell, (w.ay + 0.5) * cell, Math.max(3, cell * 0.32), 0, TAU); ctx.fill();

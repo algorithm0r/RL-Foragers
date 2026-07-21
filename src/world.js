@@ -7,14 +7,22 @@
 //                     (min(food,water) if water else food). Adds a shelter bearing + satiety sense.
 //   + enablePits      entering a pit is death (terminal, −pitPenalty).
 //   + enableRocks     rocks block movement (bump = stay put, normal step cost) — neutral obstacles.
-// Cells: empty/food/water/shelter/pit/rock. The agent is always at the view centre (torus wraps), so
-// absolute position isn't in the state. The world holds all state; the Observer draws it.
+//   + enableGoats     goats: prey AGENTS (shared species learner, GoatBrain) that eat food, drink
+//                     water, die in pits, learn. Forager gains ATTACK: fell an ADJACENT goat → its
+//                     cell becomes FOOD (carcass) → step on and eat. Goats are solid (block moves).
+// Cells: empty/food/water/shelter/pit/rock (+GOAT/AGENT as percept overlays — goats occlude the
+// terrain they stand on). The agent is always at the view centre (torus wraps), so absolute
+// position isn't in the state. The world holds all state; the Observer draws it.
 var World = class World {
   constructor(width, height) {
     this.width = width; this.height = height;
-    this.actions = World.buildActions();          // dynamic: moves(+eat)(+drink)(+rest)
+    this.actions = World.buildActions();          // dynamic: moves(+eat)(+drink)(+rest)(+attack)
     this.agent = makeAgent(this.actions.length);  // flat or layered; nActions matches the mode
+    // the goats' shared species-level brain — persists across episodes (goats learn as a population)
+    this.goatActions = World.buildGoatActions();
+    this.goatBrain = PARAMETERS.enableGoats ? new GoatBrain(this.goatActions.length) : null;
     this.episodes = 0; this.cleared = 0; this.rested = 0; this.died = 0; this.collapsed = 0;
+    this.goatsKilled = 0; this.goatPitDeaths = 0; this.goatEaten = 0; // hunts / goat pit losses / resources goats consumed
     this.emaSteps = null; this.emaReward = null; this.emaDeath = null; this.emaCollapse = null;
     this.spawn();
   }
@@ -46,10 +54,39 @@ var World = class World {
       this.remaining = K * PARAMETERS.nFood;
     }
     const a = cells[k++]; this.ax = a % N; this.ay = (a / N) | 0;
+    // goats spawn on unclaimed cells (terrain under them stays whatever it is — they occlude it)
+    this.goats = []; this.goatAt = new Array(N * N).fill(-1); // cell index → goat index (occupancy)
+    if (PARAMETERS.enableGoats) for (let i = 0; i < PARAMETERS.nGoats; i++) {
+      const c = cells[k++]; const g = { x: c % N, y: (c / N) | 0, alive: true, lastStates: null, lastAction: -1 };
+      this.goats.push(g); this.goatAt[c] = i;
+    }
     this.food = 0; this.water = 0; this.steps = 0;
   }
 
-  cell(dx, dy) { const N = this.N; return this.grid[((this.ay + dy) % N + N) % N][((this.ax + dx) % N + N) % N]; }
+  goatIndexAt(x, y) { return this.goatAt[y * this.N + x]; } // -1 if none
+
+  // terrain at an absolute cell with the GOAT overlay: a living goat occludes what it stands on.
+  // (The human is NOT overlaid here — this is the human's own percept; see senseGoatWindow.)
+  cellAbs(x, y) {
+    if (PARAMETERS.enableGoats && this.goatIndexAt(x, y) >= 0) return World.GOAT;
+    return this.grid[y][x];
+  }
+
+  cell(dx, dy) { const N = this.N; return this.cellAbs(((this.ax + dx) % N + N) % N, ((this.ay + dy) % N + N) % N); }
+
+  // a goat's percept: window around IT — terrain, other goats as GOAT, the forager as AGENT.
+  // (Its own cell shows the terrain under it, so "food underfoot" is visible to eat.)
+  senseGoatWindow(g, r) {
+    const N = this.N;
+    let s = '';
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      const x = ((g.x + dx) % N + N) % N, y = ((g.y + dy) % N + N) % N;
+      if (x === this.ax && y === this.ay) { s += World.AGENT.toString(36); continue; }
+      const gi = this.goatIndexAt(x, y);
+      s += (gi >= 0 && !(dx === 0 && dy === 0)) ? World.GOAT.toString(36) : this.grid[y][x].toString(36);
+    }
+    return s;
+  }
 
   // agent-centered window of radius r as a categorical string (one digit per cell), torus wraparound
   // `channel` (a resource type) binarizes the window to that type only ('1'/'0') — for per-resource
@@ -108,10 +145,31 @@ var World = class World {
     if (typeof act === 'number') { // a move (0..7 → World.DIRS)
       const dir = World.DIRS[act], N = this.N;
       const nx = ((this.ax + dir[0]) % N + N) % N, ny = ((this.ay + dir[1]) % N + N) % N;
-      // rocks block: the bump wastes the step (normal step cost) but the agent stays put
-      if (!(PARAMETERS.enableRocks && this.grid[ny][nx] === World.ROCK)) { this.ax = nx; this.ay = ny; }
+      // rocks and living goats block: the bump wastes the step but the agent stays put
+      const blocked = (PARAMETERS.enableRocks && this.grid[ny][nx] === World.ROCK) ||
+        (PARAMETERS.enableGoats && this.goatIndexAt(nx, ny) >= 0);
+      if (!blocked) { this.ax = nx; this.ay = ny; }
       if (PARAMETERS.enablePits && this.grid[this.ay][this.ax] === World.PIT) return { reward: -PARAMETERS.pitPenalty, done: true, died: true };
       out = { reward: PARAMETERS.rewardStep, done: false };
+    } else if (act === 'attack') {
+      // the hunt, first half: fell an ADJACENT goat → its cell becomes FOOD (carcass, +1 to
+      // remaining) — the payoff comes from the second half (walk on, eat). Attack itself costs a
+      // step, succeed or fail; the value gap (defaultQ=0 > wander −1) gets it tried strategically.
+      out = { reward: PARAMETERS.rewardStep, done: false };
+      for (let a = 0; a < 8; a++) {
+        const d = World.DIRS[a], N = this.N;
+        const gx = ((this.ax + d[0]) % N + N) % N, gy = ((this.ay + d[1]) % N + N) % N;
+        const gi = this.goatIndexAt(gx, gy);
+        if (gi >= 0) {
+          const g = this.goats[gi];
+          g.alive = false; this.goatAt[gy * this.N + gx] = -1; this.goatsKilled++;
+          // teach the species brain the death: one extra terminal update on the goat's last (s,a)
+          if (g.lastStates) this.goatBrain.learn(g.lastStates, g.lastAction, -PARAMETERS.pitPenalty, null);
+          if (this.grid[gy][gx] === World.EMPTY) this.remaining++; // carcass on a resource replaces it — no double count
+          this.grid[gy][gx] = World.FOOD;
+          break;
+        }
+      }
     } else if (act === 'rest') {
       // rest at the shelter banks a SUPERLINEAR reward in the day's haul: rewardPerUnit·stock² (stock =
       // food+water), MINUS restStickC per resource still uncollected — the "stick" that makes resting with
@@ -155,8 +213,52 @@ var World = class World {
 
   totalItems() { return PARAMETERS.enableShelter ? PARAMETERS.nFood + (PARAMETERS.enableWater ? PARAMETERS.nWater : 0) : (PARAMETERS.nTypes || 1) * PARAMETERS.nFood; }
 
+  // one goat's turn: sense → select → apply → learn, on the SHARED species brain. lastStates/action
+  // are kept so an attack on the human's turn can deliver the terminal lesson to the right (s,a).
+  goatStep(g, i) {
+    const states = this.goatBrain.statesFor(this, g);
+    const action = this.goatBrain.select(states);
+    const res = this.applyGoatAction(g, i, action);
+    const next = res.done ? null : this.goatBrain.statesFor(this, g);
+    this.goatBrain.learn(states, action, res.reward, next);
+    g.lastStates = states; g.lastAction = action;
+  }
+
+  // goat dynamics mirror the forager's: moves blocked by rocks/active shelter/other goats/the
+  // human; pits kill (terminal for THAT goat); eat/drink consume the terrain underfoot.
+  applyGoatAction(g, i, actionIndex) {
+    const act = this.goatActions[actionIndex], N = this.N;
+    if (typeof act === 'number') {
+      const d = World.DIRS[act];
+      const nx = ((g.x + d[0]) % N + N) % N, ny = ((g.y + d[1]) % N + N) % N;
+      const t = this.grid[ny][nx];
+      const blocked = (PARAMETERS.enableRocks && t === World.ROCK) || t === World.SHELTER ||
+        this.goatIndexAt(nx, ny) >= 0 || (nx === this.ax && ny === this.ay);
+      if (!blocked) {
+        this.goatAt[g.y * N + g.x] = -1;
+        g.x = nx; g.y = ny;
+        if (PARAMETERS.enablePits && this.grid[ny][nx] === World.PIT) {
+          g.alive = false; this.goatPitDeaths++;
+          return { reward: -PARAMETERS.pitPenalty, done: true };
+        }
+        this.goatAt[ny * N + nx] = i;
+      }
+      return { reward: PARAMETERS.rewardStep, done: false };
+    }
+    const want = act === 'eat' ? World.FOOD : World.WATER;
+    if (this.grid[g.y][g.x] === want) {
+      this.grid[g.y][g.x] = World.EMPTY; this.remaining--; this.goatEaten++;
+      return { reward: PARAMETERS.rewardGather, done: false };
+    }
+    return { reward: PARAMETERS.rewardStep, done: false };
+  }
+
   update(engine) {
     const res = this.agent.act(this);
+    // goats take their turns after the forager, unless its action just ended the day
+    if (!res.done && PARAMETERS.enableGoats) {
+      for (let i = 0; i < this.goats.length; i++) { const g = this.goats[i]; if (g.alive) this.goatStep(g, i); }
+    }
     const ema = (p, v) => (p === null ? v : 0.98 * p + 0.02 * v);
     if (res.done) {
       this.episodes++;
@@ -195,10 +297,20 @@ World.buildActions = function () {
     const K = PARAMETERS.nTypes || 1;
     for (let t = 1; t <= K; t++) a.push(t === 1 ? 'eat' : t === 2 ? 'drink' : 'c' + t);
   }
+  if (PARAMETERS.enableGoats) a.push('attack');
   return a;
 };
 
-// cell types (values 3+ collide with high-K sweep resource types — hazards/obstacles are for K ≤ 2)
+// the goats' action set: 8 moves + eat (+ drink when water exists in the world)
+World.buildGoatActions = function () {
+  const a = [0, 1, 2, 3, 4, 5, 6, 7, 'eat'];
+  if (PARAMETERS.enableWater || (PARAMETERS.nTypes || 1) >= 2) a.push('drink');
+  return a;
+};
+
+// cell types (values 3+ collide with high-K sweep resource types — hazards/obstacles are for K ≤ 2).
+// GOAT/AGENT are percept-overlay values only, never stored in the terrain grid.
 World.EMPTY = 0; World.FOOD = 1; World.WATER = 2; World.SHELTER = 3; World.PIT = 4; World.ROCK = 5;
+World.GOAT = 6; World.AGENT = 7;
 // 8 move directions [dx, dy]: N, NE, E, SE, S, SW, W, NW (y grows downward)
 World.DIRS = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];

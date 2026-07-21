@@ -21,7 +21,7 @@ for (const f of ['util.js', 'params.js', 'engine.js', 'qlearner.js', 'utree.js',
 }
 const { PARAMETERS: P, World, GameEngine } = globalThis;
 const clear = (w) => { for (let y = 0; y < w.N; y++) for (let x = 0; x < w.N; x++) w.grid[y][x] = World.EMPTY; };
-const base = () => { P.agent = 'flat'; P.enableWater = false; P.enableShelter = false; P.enablePits = false; P.enableRocks = false; P.gridN = 6; P.receptiveField = 3; P.qReplay = false; P.restStickC = 0; }; // replay/stick off → fast, focused; validated separately
+const base = () => { P.agent = 'flat'; P.enableWater = false; P.enableShelter = false; P.enablePits = false; P.enableRocks = false; P.enableGoats = false; P.gridN = 6; P.receptiveField = 3; P.qReplay = false; P.restStickC = 0; }; // replay/stick off → fast, focused; validated separately
 
 // --- M: mechanics per toggle ---
 base(); P.nFood = 2;
@@ -73,7 +73,34 @@ const wtc = new World(800, 600);
 const tFresh = wtc.timeCode(); wtc.steps = 99; const tEnd = wtc.timeCode();
 const mTime = tFresh === '3' && tEnd === '0'; // fresh day = top bucket, almost over = bucket 0
 
-const mechanics = mEat && mClear && mDrink && mRest && mStick && mPit && mRock && mCollapse && mTime;
+// goats: attack fells the ADJACENT goat → carcass FOOD (+1 remaining on empty); walk on and eat it;
+// a living goat BLOCKS the forager's move; goats eat terrain underfoot; goats die in pits.
+base(); P.enableGoats = true; P.nGoats = 1; P.nFood = 2;
+const wg = new World(800, 600); const ATT = wg.actions.indexOf('attack');
+clear(wg);
+const g0 = wg.goats[0];
+wg.goatAt[g0.y * wg.N + g0.x] = -1; wg.ax = 2; wg.ay = 2; g0.x = 3; g0.y = 2; wg.goatAt[2 * wg.N + 3] = 0;
+wg.remaining = 5;
+r = wg.applyAction(2); // move E into the living goat: blocked
+const mGoatBlock = wg.ax === 2 && wg.ay === 2 && r.reward === P.rewardStep;
+r = wg.applyAction(ATT);
+const mAttack = !g0.alive && wg.grid[2][3] === World.FOOD && wg.remaining === 6 && !r.done;
+wg.applyAction(2); // now the carcass cell is walkable
+r = wg.applyAction(wg.actions.indexOf('eat'));
+const mCarcass = r.reward === P.rewardGather && wg.grid[2][3] === World.EMPTY && wg.ax === 3;
+
+base(); P.enableGoats = true; P.nGoats = 1;
+const wq = new World(800, 600); const gq = wq.goats[0];
+clear(wq); wq.ax = (gq.x + 3) % wq.N; wq.ay = (gq.y + 3) % wq.N; // human well away from the goat
+wq.grid[gq.y][gq.x] = World.FOOD; wq.remaining = 3;
+r = wq.applyGoatAction(gq, 0, 8); // 'eat' (index 8: 8 moves then eat)
+const mGoatEat = r.reward === P.rewardGather && wq.remaining === 2 && wq.grid[gq.y][gq.x] === World.EMPTY;
+P.enablePits = true; wq.grid[gq.y][(gq.x + 1) % wq.N] = World.PIT;
+r = wq.applyGoatAction(gq, 0, 2); // move E into the pit
+const mGoatPit = r.done && !gq.alive && r.reward === -P.pitPenalty;
+
+const mechanics = mEat && mClear && mDrink && mRest && mStick && mPit && mRock && mCollapse && mTime &&
+  mGoatBlock && mAttack && mCarcass && mGoatEat && mGoatPit;
 
 // --- B: decoupling ---
 let decoupled = true;
@@ -102,6 +129,16 @@ for (let t = 1; t <= 250000; t++) { eS.tick = t; wS.update(eS); }
 // competence: it reliably reaches shelter and rests (rarely collapses) and banks positive reward
 const sheltered = wS.rested > 3000 && wS.collapseRate() < 0.1 && wS.meanReward() > 0.3;
 
+// --- G: a goat world RUNS — shelter mode + 3 goat agents, no crash, goats actually forage/die ---
+base(); P.agent = 'layered'; P.layers = [1, 3, 5]; P.strategicLayer = false; P.explore = 'egreedy'; P.epsilon = 0.01;
+P.enableShelter = true; P.enableGoats = true; P.nGoats = 3; P.nTypes = 1;
+P.gridN = 10; P.nFood = 6; P.maxStepsPerEpisode = 100; P.shelterActivate = 'clearedOrTime'; P.shelterActivateTime = 60;
+P.goatLayers = [1, 3]; P.goatEpsilon = 0.05;
+const wG = new World(800, 600), eG = new GameEngine();
+for (let t = 1; t <= 100000; t++) { eG.tick = t; wG.update(eG); }
+const goatsOk = wG.episodes > 500 && Number.isFinite(wG.meanReward()) && (wG.goatEaten + wG.goatsKilled) > 10;
+P.shelterActivate = 'always';
+
 // --- P: pits — the layered agent LEARNS avoidance (death EMA falls well under the untrained ~40%)
 base(); P.agent = 'layered'; P.layers = [1, 3, 5]; P.explore = 'egreedy'; P.epsilon = 0.01;
 P.enablePits = true; P.nPits = 3; P.gridN = 10; P.nFood = 10; P.nTypes = 1; P.maxStepsPerEpisode = 500;
@@ -127,14 +164,16 @@ for (const arr of [AD.W1, AD.W2]) for (let i = 0; i < arr.length; i++) if (!Numb
 const qProbe = AD.qValues(AD.encode(wD));
 const dqnOk = finiteW && qProbe.every(Number.isFinite) && wD.cleared > 3; // ran, learned to clear some, no blow-up (unseeded → loose bar)
 
-const ok = mechanics && decoupled && learned && sheltered && pitsOk && dqnOk;
+const ok = mechanics && decoupled && learned && sheltered && goatsOk && pitsOk && dqnOk;
 console.log('smoke:' +
   ' M mech=' + mechanics + ' (eat=' + mEat + ' clear=' + mClear + ' drink=' + mDrink + ' rest=' + mRest +
-  ' stick=' + mStick + ' pit=' + mPit + ' rock=' + mRock + ' collapse=' + mCollapse + ' time=' + mTime + ')' +
+  ' stick=' + mStick + ' pit=' + mPit + ' rock=' + mRock + ' collapse=' + mCollapse + ' time=' + mTime +
+  ' goatBlock=' + mGoatBlock + ' attack=' + mAttack + ' carcass=' + mCarcass + ' goatEat=' + mGoatEat + ' goatPit=' + mGoatPit + ')' +
   ' | B decoupled=' + decoupled +
   ' | L base-sweep steps-to-clear=' + late.toFixed(1) + ' (' + wL.cleared + ' cleared)' +
   ' | S shelter banked=' + wS.meanReward().toFixed(2) + ' collapseRate=' + wS.collapseRate().toFixed(3) +
   ' (' + wS.rested + ' rested)' +
+  ' | G goats eps=' + wG.episodes + ' eaten=' + wG.goatEaten + ' killed=' + wG.goatsKilled +
   ' | P pits death(last2k)=' + pDeath.toFixed(3) + ' (' + wP.cleared + ' cleared)' +
   ' | D dqn=' + dqnOk + ' (cleared=' + wD.cleared + ')' +
   ' -> ' + (ok ? 'PASS' : 'FAIL'));

@@ -19,6 +19,14 @@ var PARAMETERS = {
                           // action (type1='eat', type2='drink', type≥3='c'+t). Cells take values 1..nTypes.
   nPits: 3,               // pits (when enablePits)
   nRocks: 8,              // rocks (when enableRocks)
+  enableGoats: false,     // + goats: prey AGENTS on a shared species-level layered learner — they eat
+                          //   food, drink water, die in pits, and learn (incl. fear of the forager).
+                          //   The forager gains an ATTACK action: fell an ADJACENT goat → its cell
+                          //   becomes FOOD (carcass) → step on and eat (the two-action hunt).
+  nGoats: 3,              // goats per episode (when enableGoats)
+  goatLayers: [1, 3],     // the goats' (simpler) window stack — same confidence coupling
+  goatEpsilon: 0.05,      // goat ε-greedy rate (species learner; higher than the forager's — prey
+                          //   lifetimes are short and coverage matters more than polish)
   maxStepsPerEpisode: 500, // step cutoff → episode ends. SHELTER mode: this is the DAY LENGTH — reach the
                           //   shelter and REST before it expires, or the agent COLLAPSES (−collapsePenalty).
   timeBuckets: 4,         // shelter mode: granularity of the time-remaining signal in the internal state
@@ -149,6 +157,7 @@ var PARAM_SCHEMA = [
   { key: 'enableShelter', label: '+ Shelter (rest ends day)', type: 'checkbox' },
   { key: 'enablePits', label: '+ Pits (death)', type: 'checkbox' },
   { key: 'enableRocks', label: '+ Rocks (block)', type: 'checkbox' },
+  { key: 'enableGoats', label: '+ Goats (prey agents)', type: 'checkbox' },
   { key: 'relevanceFilter', label: 'Relevance filter (U-Tree)', type: 'checkbox' },
   // sliders
   { key: 'gridN', label: 'Arena N', min: 4, max: 20, step: 1, resets: true },
@@ -156,6 +165,7 @@ var PARAM_SCHEMA = [
   { key: 'nWater', label: 'Water', min: 0, max: 30, step: 1, resets: true },
   { key: 'nPits', label: 'Pits', min: 0, max: 12, step: 1, resets: true },
   { key: 'nRocks', label: 'Rocks', min: 0, max: 24, step: 1, resets: true },
+  { key: 'nGoats', label: 'Goats', min: 0, max: 8, step: 1, resets: true },
   { key: 'maxStepsPerEpisode', label: 'Day length', min: 20, max: 1000, step: 20 },
   { key: 'collapsePenalty', label: 'Collapse −M', min: 0, max: 100, step: 5 },
   { key: 'explore', label: 'Exploration', type: 'select', options: ['greedy', 'ucb', 'egreedy'] },
