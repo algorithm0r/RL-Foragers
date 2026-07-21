@@ -3,6 +3,45 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-21 — Stage 5a GOATS: prey become competitors, not quarry — and the premium isn't optional
+
+**Done (autonomous, Chris cleared goats-first):** built goats as PREY AGENTS (not scripts) —
+`World.GOAT`/`AGENT` percept overlays, solid-entity occupancy + move-blocking, one shared species
+brain (`GoatBrain`: smaller [1,3] layered stack, goat-centric windows, ε=.05) so a death teaches the
+population; goats eat food, drink water, die in pits, learn. Forager gained the two-action hunt:
+`attack` fells an adjacent goat → carcass FOOD → walk on and eat. Goat turn loop runs after the
+forager each tick. `goats.mjs` grid (nGoats {0,3,6} × pits {0,3} × 3 seeds, 16k eps, no-INT
+clearedOrTime shelter world) → `goats` collection. Smoke: 5 mechanics bars + a goat-world stability
+run, all PASS.
+**Findings (grid + 3 table/ablation probes + a scarcity falsification sweep):**
+1. **Goats are costly competitors, saturating:** harvest 1.64→1.0 at 3 goats, no further drop at 6
+   (finite field; goats compete with each other). Goats eat ~7 resources/ep — more than the forager
+   banks.
+2. **Emergent shared ecological clock:** collapse FELL 39%→17% with goats — goats eating decrements
+   `remaining`, so the field clears sooner, the `clearedOrTime` shelter appears sooner. The gate we
+   built as the forager's clock is now accelerable by other species. Unintended, very ABM.
+3. **Hunting DECLINES with training (not emerges):** kills/ep decay monotonically (0.06–0.26 →
+   0.02–0.10). Constant ε ⇒ this is the PREDATOR abandoning hunting as foraging Q rises above
+   attack's flat ~0, NOT prey evading. Probe: forager L3 goat-adjacent Q(attack)≈0.01 vs Q(best)≈5.1,
+   argmax-attacks=0%. **No-attack ablation costs ~0.05–0.10 harvest = seed noise** → the hunt option
+   is worth ≈nothing at a +1 carcass.
+4. **Prey learned NO fear — correctly:** goat G3 human-adjacent Q(toward)−0.22 > Q(away)−0.34,
+   argmax-toward 8%. The forager attacks 0% ⇒ predation is pure ε-noise ⇒ nothing to fear. The
+   predator declined to predate, so fear never had a gradient.
+5. **Scarcity does NOT rescue hunting (falsification of my own "competitors when fed" guess):**
+   starving free food to nFood=1 still leaves kills decaying to ~0.05. The two-action + banked-reward
+   + γ-discounted hunt can't compete with direct foraging even when hungry. **The wolf-tier premium
+   (carcass worth ≫1) — or a one-action hunt — is REQUIRED, not a flavor knob.**
+**Headline:** give an optimizer cheap prey and it treats them as FURNITURE THAT STEALS LUNCH —
+competitors killed only by accident. In-model proof that hunting must PAY before it's done.
+**Changed:** goats params+schema; world entity/attack/turn-loop; `GoatBrain`; observer; smoke.
+DEVPLAN 5a updated; the ⚠ conjunction question is still untouched (no HP yet).
+**State:** smoke PASS @ v0.6.0 (goat bars incl. stability). Grid in DB (`goats`, 18 packets);
+probes+scarcity are scratch console runs, numbers here.
+**Next (Chris's call — a real fork):** to make hunting emerge, pick a lever — (a) carcass premium
+(wolf-tier economy, the natural bridge to wolves), (b) one-action hunt (attack yields food directly),
+(c) prey as the ONLY food. Then wolves (HP, bite-back) — which forces the conjunction-state decision.
+
 ## 2026-07-21 — No-INT shelter (Chris's call): the INT layer was a safety governor — dropping it RAISES harvest
 
 **Done:** 4-arm × day {60,100,200} × 3-seed batch (16k episodes): intOn-plain (the missing control) /

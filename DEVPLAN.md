@@ -276,7 +276,7 @@ machinery is the part shelved. → forward pointer: revisit only if a real state
 **Done when:** an agent learns to ignore an irrelevant added channel (e.g. random noise bits)
 without loss of foraging performance, and to attend to a relevant one.
 
-### Stage 5 — Moving entities, then shared worlds  [ PLANNED — next after 3F ]
+### Stage 5 — Moving entities, then shared worlds  [ ACTIVE — 5a goats built, first batch done ]
 ⚠ **Design constraint from the 3F gauntlet:** the factored INT+window state cannot express
 conditional-risk policies (the clock and the hazard never meet in one state). Health-conditional
 boldness (1-HP flees the wolf a 3-HP agent hunts) has the SAME structure — HP in INT, wolf in
@@ -310,8 +310,14 @@ NON-DETERMINISTIC environment — the regime the whole model-free bet exists for
   latter prices the approach, not just the fight); the economy's numbers (wolf carcass ≫ goat or
   nobody rational hunts wolves — sweep carcass value vs expected bite cost for the
   avoider→hunter policy flip).
-**5a-GOATS FIRST (Chris, 2026-07-21): goats before wolves, and goats are AGENTS, not scripts.**
-Cleared to build autonomously once the no-INT shelter batch lands clean. Scope:
+**5a-GOATS — BUILT & FIRST BATCH DONE (2026-07-21).** Result: **prey become COMPETITORS, not
+quarry** — the forager treats cheap goats as furniture that steals food, hunts them only by ε-
+accident (attack Q≈0 vs forage Q≈5; no-attack ablation ≈ free), and because it doesn't hunt, the
+goats correctly learn no fear. Scarcity doesn't rescue it (starved to nFood=1, hunting still decays).
+The two-action + banked + discounted hunt can't beat direct foraging → **carcass premium or one-
+action hunt is REQUIRED**, decision pending for Chris. Also found: goats are an emergent shared
+ecological clock (they clear the field → shelter appears sooner → collapse 39%→17%). Full write-up
+in DEVLOG 2026-07-21. Original scope as built:
 - **Goats run a simpler version of the same architecture** (shared species-level layered learner,
   e.g. [1,3], ε-greedy): they eat food, drink water, avoid pits — and can learn to avoid the human
   (their deaths near the human teach fear via their own Q). The human's world goes NON-STATIONARY

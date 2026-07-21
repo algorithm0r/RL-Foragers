@@ -5,58 +5,52 @@
 **Verified:** 2026-07-18 (scaffold) — last cold audit (`/audit`); the State section is trusted only as of this date
 
 ## Stage
-**Stage 3F (pits) DONE** — the lethal-world arc, run autonomously while Chris away (2026-07-20/21
-per agreed plan). Headline: **layered+ε-greedy is the only architecture that both survives and
-clears**; in lethal worlds the confidence WEIGHTING is exactly what matters (subsumption is trapped
-on a Pareto frontier). Next: **Stage 5a wolves & goats** (design pinned, incl. combat/HP economy and
-the ⚠ conjunction-state constraint), evolution beyond that (genes tiers sketched in conversation).
+**Stage 5a (goats) — built, first batch done** (autonomous, per Chris's clearance while away). Goats
+are PREY AGENTS on a shared species brain; the forager got a two-action ATTACK→eat hunt. Headline:
+**cheap prey become competitors, not quarry** — the forager ignores them and forages the free food;
+hunting must PAY (premium or one-action hunt) before it emerges. Prior arc: Stage 3F (pits) DONE —
+lethal worlds, layered+ε-greedy alone survives and clears. Next: Chris picks the hunt-payoff lever,
+then wolves (HP/bite-back → forces the ⚠ conjunction-state decision).
 
 ## State
-`GridForager` toggles: food sweep · +water · +shelter (gated, `clearedOrTime`) · +pits (terminal
-death) · **+rocks (block, NEW)**. Agents: flat / layered / subsumption (+ opt-in
-`subsumptionHazardArb` variant, default OFF — control untouched) / per-resource multis / DQN.
-**Death attribution** instrumented (`lastRandom` at every ε-draw): deaths decompose noise vs policy.
-`pits.mjs` harness → `pits` collection (171 packets, 16k episodes × 3 seeds). Follow-up probes
-(fear-band, hazard-arb, rocks-long, gauntlet) were scratch runs — numbers live in the DEVLOG.
-smoke PASS ×3 @ v0.5.0 (new **P** bar: layered@3pits last-2k death < 0.15, measured 0.088; fixed an
-nTypes leak between smoke sections).
+`GridForager` toggles: food sweep · +water · +shelter (gated `clearedOrTime`) · +pits (death) ·
++rocks (block) · **+goats (prey agents, NEW)**. Agents: flat / layered / subsumption (+opt-in
+`subsumptionHazardArb`) / multis / DQN. **Goats:** `GoatBrain` shared species learner (layers [1,3],
+ε=.05), `World.GOAT`/`AGENT` percept overlays, occupancy map, solid-entity blocking, goats
+eat/drink/die-in-pits/learn. Forager `attack` fells adjacent goat → carcass FOOD → eat. INT
+(strategic) layer confirmed a safety governor and left OFF by default in shelter experiments.
+smoke PASS @ v0.6.0 (goat mechanics ×5 + goat-world stability; also the pit-learning bar and all
+prior bars).
 
-## Metrics (pits arc; multi-seed; grid in DB, probes in DEVLOG)
-- **Grid (10×10, 10 food):** layered eg01 @ 3 pits: ~6% tail death, 90% clear, 77 steps (curve still
-  falling; ~61% of tail deaths are the ε-draw itself → policy deaths ~2.2%). flat-3: 3× the deaths,
-  half the clears. **flat-5 PERISHES (86–100% death)** — the state wall turns lethal (never revisits
-  → never learns). flat-1 structurally blind (deaths ∝ ε).
-- **Explorers:** UCB damage ∝ state count (flat-3 13% / layered 53% / flat-5 96%+). Layered-greedy
-  survives by QUITTING (~64 deaths then 0 deaths, 0 clears). ε .005 vs .01 = real tradeoff (−1pp
-  death, −7pp clear) → **default stays ε=0.01**.
-- **Subsumption ~24% death, ε-independent = ARBITRATION STARVATION** (its L3 has ZERO "pit but no
-  goal" states; layered's 90 such states carry the fear, 4,290 visits each). Hazard-aware variant:
-  17% death but clear 75→43% — fixed priority can't avoid AND seek; **blending dominates both
-  corners**. Fear is SHALLOW (rank, not magnitude, decides argmax).
-- **Replay HELPS pits** (5.7→4.5% death, K=4) — H3 falsified; rule: replay hurts iff the critical
-  transition is rare in the buffer (shelter), helps when abundant/generalizing (deaths, coverage).
-- **Rocks×pits super-additive** (0% + 5.7% → 25% @ 8 rocks): state POLLUTION (fear relearned per
-  rock context); 48k: slow learning not a wall → first real Stage-4 relevance-filtering motivation.
-- **Gauntlet: deadlines don't buy deaths** — death tracks EXPOSURE (4.3→6.7% as days lengthen),
-  collapse absorbs the deadline (21→11%). Cause: INT clock and window hazard never share a state →
-  conditional risk-taking inexpressible (⚠ same structure as wolves-arc health-conditional boldness).
+## Metrics (goats arc; grid in DB `goats` 18 packets; probes in DEVLOG)
+- **Competition cost saturates:** harvest 1.64 (0 goats) → 1.0 (3) → 0.99 (6). Goats eat ~7
+  resources/ep (> forager's bank).
+- **Emergent shared clock:** collapse 39%→17% with goats (they clear the field → shelter fires
+  sooner). The `clearedOrTime` gate is accelerable by other species.
+- **Hunting declines, doesn't emerge:** kills/ep decay (0.06–0.26 → 0.02–0.10); it's the predator
+  quitting (forage Q≈5 ≫ attack Q≈0.01, argmax-attacks 0%), not prey evading. No-attack ablation
+  ≈ free (~0.05–0.10 harvest = noise).
+- **Prey learn no fear — correctly** (Q toward human −0.22 > away −0.34; predation is ε-noise).
+- **Scarcity doesn't rescue hunting** (nFood 6→1, kills still decay) → two-action+banked+discounted
+  hunt loses to direct foraging even when hungry. Premium/one-action hunt REQUIRED.
+- Prior (pits, in DB `pits` 171 packets): layered+ε-greedy alone survives AND clears; flat-5 wall
+  turns lethal; subsumption can't learn danger (arbitration starvation); in lethal worlds the
+  confidence WEIGHTING is what matters. No-INT shelter: dropping INT trades collapse for harvest, EV+.
 
 ## Branches
 - `main` (pushed to origin)
 
 ## Open
-- **Stage 5a wolves & goats**: settle the conjunction-state representation FIRST (joint INT×window /
-  health-augmented window / learned conjunctions) — else health-conditional boldness may be
-  unlearnable by construction. Then: scripted movers, combat/carcass/HP economy, speed ratios.
-- Evolution (post-multi-agent): gene tiers sketched — valences first (the reward-shaping arc's
-  principled answer), then γ/ε (mortality-coupled), then architecture (layers as genes).
-- Replay: task-dependent map now has 3 points (sweep helps / shelter hurts / pits helps) — consider
-  per-mode default or leave opt-in.
-- Adaptive reach; ABM endgame (multi-agent shared worlds).
+- **Hunt-payoff lever (Chris's fork):** (a) carcass premium (wolf-tier, bridges to wolves), (b)
+  one-action hunt, (c) prey as sole food. Decides whether goats stay competitors or become quarry.
+- **Wolves (5b):** HP, bite-back, ~3-bite death → forces the ⚠ conjunction-state decision (health×
+  window; the pits gauntlet proved factored INT+window can't express conditional-risk policies).
+- Evolution (post-multi-agent): gene tiers sketched — valences first, then γ/ε, then architecture.
+- Rocks remain the standing hard case (state pollution); Stage-4 relevance filtering the likely fix.
 
 ## Next action
-Chris returns: review pits-arc DEVLOG entries (two, 2026-07-20/21) + decide Stage 5a conjunction
-representation, then build wolves & goats.
+Chris returns: review the two 2026-07-21 DEVLOG entries (no-INT shelter, goats), pick the hunt-payoff
+lever, then build wolves.
 
 ## Blockers
 - none
