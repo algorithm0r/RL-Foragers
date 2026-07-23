@@ -390,6 +390,12 @@ in DEVLOG 2026-07-21/22. Original scope as built:
   - [x] **v1b.4 — browser viz of generations.** "Evolve ⇄ Sim" button → `EvoRunner` animates the population
     foraging (Speed-driven), a mean/best fitness curve grows, a gene readout updates per gen. Browser evo is a
     SIMPLIFIED single-run-per-gen loop (smooth watching); headless runners stay the faithful science.
+  - [x] **v1b.7 — REPLICATES (8 seeds × 8 conditions → `evoreps` DB).** `evoreps.mjs`/`evoreps-run.sh`/
+    `evoreps-agg.mjs`. **Replication CORRECTED the single-seed claims:** CONFIRMED loop-works (8/8) and pit
+    knife-edge (full 55±19 vs full-pits 2.6±2.9) and hunting-BEHAVIOR-tracks-scarcity (kills scarce ~16 vs
+    dense ~4); **REFUTED** "attack-instinct-tracks-scarcity" (evolved attack initialQ ~0 in all conditions,
+    inert; hunting same with instincts on/off → driven by LEARNING not the gene) and "felt-step-softening"
+    (−0.78±0.29, within noise). Reframes v1c: culture, not an innate gene, is the promising route to hunting.
 - [ ] **v1c — culture.** Per-agent tables already exist; add `broadcastRange` so each transition updates
   agents in range (∞ ≡ shared, local ≡ CULTURE, 0 ≡ individual). Test the hunting-culture hypothesis.
 - [ ] **v1d — persistence.** Store genomes + Q-tables in the DB (lineages, resume, analysis).

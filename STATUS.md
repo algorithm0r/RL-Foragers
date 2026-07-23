@@ -23,19 +23,19 @@ batches of evoBatchSize each run (learning persists across runs); `nextGeneratio
 (age ≥ evoProtect) within the worst evoCull·P slots, survivors keep tables (Lamarckian), newborns fresh +
 protected. **UI:** `PARAM_SCHEMA` rows carry `group` (collapsible) + `showIf` (contextual). smoke PASS.
 
-## Metrics (this session)
-- **Evolution v1b.1 — felt-reward genome** (`evosmoke.mjs`, 30×30 / pop16 / K4×life500 / 25 gens, seeded):
-  meanFit **115→342**, meanAge **0→7.9**. Genome now carries the FELT reward (rewardGather/rewardStep/
-  confidenceK) the agent learns on; fitness = TRUE food, so evolution can't inflate it — instead it
-  **softened the felt step-cost −0.77→−0.31** (hand-tuned −1 is too punishing for dense foraging), held
-  rGather ~0.8, drifted confidenceK ~27. ε→0.01, α→0.44, γ→0.62. (One seeded run — held loosely.)
-- **v1a eval regime:** persistent individuals, K shared-map batched runs, Lamarckian survivors + juvenile
-  protection — meanAge climbs (elites persist), single-run noise removed.
-- ⇒ Stage-6 Done-when progressing: loop + low-noise eval + readable felt-reward choices. Ahead: instinct
-  vectors (attack/5a wall), shelter regime, culture/hunting hypothesis.
-- **Prior (unchanged):** hunting resolved by replay (greedy kills 0.05→~3.0, 3 seeds); goats as
-  competitors ~40% harvest cost; no-INT shelter wins EV; pits layered+ε-greedy survives+clears.
-- All universal "unlearnable" claims retracted — findings = "did not emerge under conditions tested".
+## Metrics (this session) — 8-seed REPLICATED (`evoreps`), supersedes earlier one-seed numbers
+- **CONFIRMED across 8 seeds:** the evolutionary loop raises fitness (8/8 in every condition); the **pit
+  knife-edge** (`full` fitRise 55±19 vs `full-pits` 2.6±2.9, deaths 1.44); **hunting BEHAVIOR tracks
+  scarcity** (greedy kills scarce ~16–18 vs dense ~3–4).
+- **REFUTED by replication** (were one-seed noise): "attack INSTINCT tracks scarcity" — evolved attack
+  initialQ ~0 in ALL conditions (scarce 0.01±0.13, dense 0.00±0.13; 4/8 = chance), and hunting is the SAME
+  instincts-ON vs OFF → hunting is driven by **learning + scarcity, NOT the gene** (instinct vectors built
+  correctly but INERT here). "Felt-step softening" — food rStep −0.78±0.29, within noise of init ~−0.85.
+- **Full genome + regimes built + proven:** felt reward (gather/step/perUnit/confidenceK), per-action
+  instincts, central-place no-INT multi-shelter, combined world (+pits), persistent Lamarckian individuals,
+  K shared-map batched eval + juvenile protection, browser evo viz. 64-rep DB in `evoreps`.
+- **Prior (unchanged):** hunting resolved by replay (greedy kills 0.05→~3.0, 3 seeds); no-INT shelter wins
+  EV; pits layered+ε-greedy survives+clears. All universal "unlearnable" claims retracted.
 
 ## Branches
 - `main` (pushed to origin)
@@ -54,10 +54,11 @@ protected. **UI:** `PARAM_SCHEMA` rows carry `group` (collapsible) + `showIf` (c
 fitness = banked stock. v1b.5 (no pits): bankedFit 30→111, evolved a POSITIVE attack instinct (+0.54) under
 scarcity — foraging + hunting + homing co-evolve. v1b.6 (pits): a KNIFE-EDGE — 8 pits stall the loop
 (training exploration-deaths drown the signal), 3 pits survive weakly though the learned greedy policy is
-competent (banked 5.0, kills 5.3, deaths 1.8). **v1b.4 browser viz done** — "Evolve ⇄ Sim" button animates the population foraging + a live fitness
-curve/gene readout (simplified single-run-per-gen; headless runners are the faithful science; needs a browser
-open to see). **Next:** spec + build a REPLICATES (multi-seed) version of the evo tests to firm the one-seed
-findings (attack-instinct-tracks-scarcity, felt-step-softening, pit knife-edge). Deferred: pit signal-collapse fix.
+competent (banked 5.0, kills 5.3, deaths 1.8). **v1b DONE incl. replicates.** 8-seed `evoreps` replication CONFIRMED the loop + pit knife-edge + hunting-
+behavior-tracks-scarcity, and REFUTED the one-seed attack-instinct-tracks-scarcity + felt-step-softening
+claims (the instinct gene is inert; hunting is learned). **Next: v1c — culture** (per-agent tables +
+`broadcastRange`: ∞≡shared, local≡culture, 0≡individual) — now the promising route to a hunting population,
+since the innate instinct gene doesn't get selected. Deferred: pit signal-collapse fix (many knobs available).
 
 ## Blockers
 - none

@@ -3,6 +3,35 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-23 — v1b.7: REPLICATES (8 seeds × 8 conditions) — replication corrects the single-seed findings
+
+**Done:** Built the replicates harness — `evoreps.mjs <condition> <seed>` writes a self-describing packet
+per run to the `evoreps` MongoDB collection; `evoreps-run.sh` runs all 8×8=64 in parallel (bounded);
+`evoreps-agg.mjs` aggregates mean±std + directional consistency. Ran it (64 reps, ~2 min).
+
+**What the 8-seed replication says (this SUPERSEDES the loosely-held one-seed claims above):**
+- **CONFIRMED — the loop works:** fitRise > 0 in **8/8** seeds in every condition (full-pits 6/8).
+- **CONFIRMED — pit knife-edge:** `full` fitRise **55±19** vs `full-pits` **2.6±2.9** (deaths 1.44). Robust.
+- **CONFIRMED — hunting BEHAVIOR tracks scarcity:** greedy kills scarce **~16–18** vs dense **~3–4**.
+- **REFUTED — "attack INSTINCT tracks scarcity"** (the v1b.2 single-seed claim, +0.14/−0.17). Across seeds
+  the evolved attack `initialQ` is **~0 in EVERY condition** (scarce 0.01±0.13, dense 0.00±0.13; directional
+  only **4/8 = chance**). The gene is **INERT** — no directional selection. And hunting is the SAME with
+  instincts **ON vs OFF** (scarce-on 15.9 vs scarce-off 18.6 kills) → the evolved instinct is **NOT** what
+  drives hunting; **learning + scarcity** is. The single-seed sign was noise (σ±0.13 ≫ the 0.14 "signal").
+- **REFUTED — "felt-step softening"** (the v1b.1 single-seed −0.77→−0.31). food rStep **−0.78±0.29** across
+  seeds, within noise of init ~−0.85 (softer in only 4/8); `shelter` even hardened it (−1.21).
+
+**Honest headline:** replication refuted my two loosely-held single-seed findings and confirmed the two I
+held most firmly (loop, pit knife-edge) plus a cleaner truth — hunting BEHAVIOR tracks scarcity via
+LEARNING, while the per-action instinct GENE is inert (built correctly, but not selected in a way that
+matters here). This is why we replicate. The instinct-vs-learning split reframes v1c: maybe CULTURE
+(update-broadcast), not an innate gene, is what a hunting population needs.
+
+**Changed:** new `evoreps.mjs`, `evoreps-run.sh`, `evoreps-agg.mjs`. smoke unaffected (no src change).
+
+**Next:** v1c — culture (per-agent tables + `broadcastRange`), now the more promising route to hunting
+than the (inert) instinct gene.
+
 ## 2026-07-23 — v1b.4: browser evolution viz (watch generations run live)
 
 **Done:** An "Evolve ⇄ Sim" button toggles the browser into evolution mode. `EvoRunner` (a GameEngine
