@@ -27,12 +27,14 @@ prior bars).
   resources/ep (> forager's bank).
 - **Emergent shared clock:** collapse 39%→17% with goats (they clear the field → shelter fires
   sooner). The `clearedOrTime` gate is accelerable by other species.
-- **Hunting doesn't emerge — mechanism = OPPORTUNITY COST** (nailed 2026-07-22 after Chris killed
-  my credit-assignment guess: moving is the same delayed-reward shape and IS learned). Attack's
-  learned value stays ~0.5 vs foraging 4–8; greedy-eval shows the learned policy NEVER hunts even
-  after UCB forces attack exploration (cold-start refuted). NOT the two-action shape, NOT budget, NOT
-  exploration. Spatial 9-food carcass premium (`goatExplodeRadius`) does NOT fix it; only the
-  one-action hunt (`goatHuntOneAction`) makes hunting emerge, partly by fiat (immediate +1).
+- **Two-action hunt NEVER learns; one-action does (CLEAN run, 2026-07-22 after Chris disentangled
+  the confounds — non-competing goats via `goatEatRespawn`, clearing needs goats via
+  `goatsCountToClear`, ε-greedy not UCB).** Greedy-policy eval: 2-action greedy kills 0.05 (nFood=0,
+  hunting MANDATORY, no other food) / 0.00 (nFood=6) — never adopted. 1-action greedy kills 0.66
+  (nFood=0, adopts 48%) / 0.005 (nFood=6, ignored — foraging worth 31 ≫ attack). Corrects the earlier
+  "opportunity cost" framing (at nFood=0 there's no better alternative, yet 2-action still won't
+  hunt → the multi-step attack→navigate→eat chain just doesn't bootstrap as a greedy behavior).
+  Spatial 9-food premium (`goatExplodeRadius`) also does NOT rescue 2-action.
 - **Prey learn no fear — correctly** (Q toward human −0.22 > away −0.34; predation is ε-noise).
 - **Scarcity doesn't rescue hunting** (nFood 6→1, kills still decay) → two-action+banked+discounted
   hunt loses to direct foraging even when hungry. Premium/one-action hunt REQUIRED.
@@ -44,11 +46,10 @@ prior bars).
 - `main` (pushed to origin)
 
 ## Open
-- **Hunt-payoff lever (Chris's fork, now informed):** a premium alone does NOT work (opportunity
-  cost — carcass value < foraging's 4–8 even at 9-food burst). Real options: (a) one-action hunt
-  (`goatHuntOneAction`, accept reward-by-fiat), (b) carcass genuinely worth > foraging (wolf-tier),
-  (c) prey as sole food (but nFood=0 also breaks forage-navigation training). Decides quarry vs
-  competitor.
+- **Hunt design (Chris's fork, now cleanly answered):** the two-action attack→navigate→eat hunt is
+  NOT a viable learned behavior (never adopted, even mandatory-to-clear with no other food). Use the
+  ONE-action hunt (`goatHuntOneAction`) for anything meant to be learned — and it only gets used when
+  food is scarce. Wolves should therefore use a one-action attack.
 - **Wolves (5b):** HP, bite-back, ~3-bite death → forces the ⚠ conjunction-state decision (health×
   window; the pits gauntlet proved factored INT+window can't express conditional-risk policies).
 - Evolution (post-multi-agent): gene tiers sketched — valences first, then γ/ε, then architecture.

@@ -76,9 +76,10 @@ const wtc = new World(800, 600);
 const tFresh = wtc.timeCode(); wtc.steps = 99; const tEnd = wtc.timeCode();
 const mTime = tFresh === '3' && tEnd === '0'; // fresh day = top bucket, almost over = bucket 0
 
-// goats: attack fells the ADJACENT goat → carcass FOOD (+1 remaining on empty); walk on and eat it;
-// a living goat BLOCKS the forager's move; goats eat terrain underfoot; goats die in pits.
-base(); P.enableGoats = true; P.nGoats = 1; P.nFood = 2;
+// goats: a living goat BLOCKS the forager; ATTACK fells the adjacent goat → carcass FOOD, and with
+// goatsCountToClear the goat leaves `remaining` (−1) as the carcass enters (+1) → NET ZERO; walk on,
+// eat it (−1). Goats eating RESPAWN the resource (net-zero supply). Goats die in pits.
+base(); P.enableGoats = true; P.nGoats = 1; P.nFood = 2; // goatsCountToClear/goatEatRespawn default ON
 const wg = new World(800, 600); const ATT = wg.actions.indexOf('attack');
 clear(wg);
 const g0 = wg.goats[0];
@@ -87,20 +88,23 @@ wg.remaining = 5;
 r = wg.applyAction(2); // move E into the living goat: blocked
 const mGoatBlock = wg.ax === 2 && wg.ay === 2 && r.reward === P.rewardStep;
 r = wg.applyAction(ATT);
-const mAttack = !g0.alive && wg.grid[2][3] === World.FOOD && wg.remaining === 6 && !r.done;
+const mAttack = !g0.alive && wg.grid[2][3] === World.FOOD && wg.remaining === 5 && !r.done; // goat −1, carcass +1 = net 0
 wg.applyAction(2); // now the carcass cell is walkable
 r = wg.applyAction(wg.actions.indexOf('eat'));
-const mCarcass = r.reward === P.rewardGather && wg.grid[2][3] === World.EMPTY && wg.ax === 3;
+const mCarcass = r.reward === P.rewardGather && wg.grid[2][3] === World.EMPTY && wg.ax === 3 && wg.remaining === 4; // eat −1
 
+// goat eating RESPAWNS (net-zero to the agent's supply): remaining unchanged, food still on the board
 base(); P.enableGoats = true; P.nGoats = 1;
 const wq = new World(800, 600); const gq = wq.goats[0];
 clear(wq); wq.ax = (gq.x + 3) % wq.N; wq.ay = (gq.y + 3) % wq.N; // human well away from the goat
 wq.grid[gq.y][gq.x] = World.FOOD; wq.remaining = 3;
 r = wq.applyGoatAction(gq, 0, 8); // 'eat' (index 8: 8 moves then eat)
-const mGoatEat = r.reward === P.rewardGather && wq.remaining === 2 && wq.grid[gq.y][gq.x] === World.EMPTY;
+let foodCells = 0; for (let y = 0; y < wq.N; y++) for (let x = 0; x < wq.N; x++) if (wq.grid[y][x] === World.FOOD) foodCells++;
+const mGoatEat = r.reward === P.rewardGather && wq.remaining === 3 && wq.grid[gq.y][gq.x] === World.EMPTY && foodCells === 1; // respawned elsewhere
 P.enablePits = true; wq.grid[gq.y][(gq.x + 1) % wq.N] = World.PIT;
+const remBefore = wq.remaining;
 r = wq.applyGoatAction(gq, 0, 2); // move E into the pit
-const mGoatPit = r.done && !gq.alive && r.reward === -P.pitPenalty;
+const mGoatPit = r.done && !gq.alive && r.reward === -P.pitPenalty && wq.remaining === remBefore - 1; // dead goat leaves the clear-count
 
 const mechanics = mEat && mClear && mDrink && mRest && mStick && mPit && mRock && mCollapse && mTime &&
   mGoatBlock && mAttack && mCarcass && mGoatEat && mGoatPit;

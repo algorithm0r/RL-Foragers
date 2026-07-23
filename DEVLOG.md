@@ -3,6 +3,45 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-22 — CLEAN goats (Chris disentangled the confounds): two-action hunt never learns; one-action does
+
+**Context:** Chris flagged that the goats arc had too many tangled confounds and the prior conclusions
+(incl. my "opportunity cost") were measured in a muddied world. Three fixes, all his:
+(1) goats were COMPETITORS (ate the agent's food) → `goatEatRespawn` (eaten resources respawn
+elsewhere, net-zero supply). (2) clearing IGNORED goats → `goatsCountToClear` (living goats count
+toward `remaining`, so hunting is on the critical path to the shelter, not an optional side-behavior).
+(3) my cold-start test leaned on UCB, which we already ruled out as pathological → dropped UCB, use
+ε-greedy + the decisive greedy-policy eval.
+**Clean experiment (ε-greedy, non-competing goats, clearing needs goats, NO-food then WITH-food,
+greedy-eval = freeze exploration and measure the LEARNED policy's kills):**
+| hunt | nFood | GREEDY kills/ep | Q(attack) | Q(best) | adopts |
+| 2-action | 0 | **0.048** | −0.11 | 1.95 | 5% |
+| 2-action | 6 | **0.000** | 0.38 | 35.4 | 1% |
+| 1-action | 0 | **0.657** | 19.7 | 23.8 | 48% |
+| 1-action | 6 | 0.005 | 1.44 | 31.7 | 3% |
+**ROBUST finding (survives all confound removal):** the two-action attack→navigate→eat hunt is
+NEVER adopted by the learned policy — not even at nFood=0 where hunting is MANDATORY to clear and
+there is NO alternative food (greedy kills 0.05, Q(attack) negative). One-action hunting IS adopted,
+but only when food-scarce (nFood=0: greedy kills 0.66, adopts 48%; nFood=6: ignored, foraging worth
+31 ≫ attack 1.4). **This CORRECTS the prior "opportunity cost" story** (467adc2): at nFood=0 there's
+no better alternative, so opportunity cost can't be it — the two-action hunt simply doesn't bootstrap
+as a greedy behavior.
+**Inferred mechanism (tentative — I've been wrong on mechanism repeatedly today, stating this as
+consistent-with-data, not proven):** two regimes, same outcome. nFood=6 → foraging value (35) dwarfs
+attack (0.4). nFood=0 → the whole value landscape stays low (Q_best 1.95); the agent never assembles
+the multi-step hunt-and-eat chain — plausibly no simpler foraging to train the approach/eat sub-skills
+on, and no immediate signal to lift attack into the policy. One-action collapses the chain to a single
+immediately-rewarded step → learnable (when worth it).
+**Changed:** `goatEatRespawn` + `goatsCountToClear` (both default ON) + `respawnResource`; attack/
+goat-eat/goat-pit now maintain `remaining` correctly (goat −1 on death, carcass +1, net-zero on
+empty). Smoke goat bars rewritten for the new bookkeeping (net-zero kill, respawn eat, dead-goat
+decrement) — PASS. Prior goats conclusions (a50a8ec, 467adc2) stand as "measured under competition/
+optional-hunt — superseded by the clean run for the hunt-learnability question."
+**State:** smoke PASS @ v0.6.0+. Clean run is a scratch console experiment; numbers here.
+**Next (Chris's call):** hunting needs the one-action form to be learnable at all (and food-scarcity
+to be chosen); the two-action hunt is not a viable learned behavior here. Wolves (HP/bite-back) should
+therefore use a one-action attack, and will force the conjunction-state question.
+
 ## 2026-07-22 — Why hunting doesn't emerge: it's opportunity cost, not the two-action structure
 
 **Context:** Chris challenged my off-the-cuff claim that the two-action hunt fails because attack

@@ -35,6 +35,13 @@ var PARAMETERS = {
                           //   the goat (food++ and immediate rewardGather), no walk-to-carcass. Tests
                           //   whether the blocker is the COST/REWARD SPLIT across two actions (attack
                           //   pays −1, a separate eat collects the payoff) rather than the payoff size.
+  goatEatRespawn: true,   // when a goat eats a resource, RESPAWN it on a random empty cell (net-zero
+                          //   to the agent's supply) — removes the goat-as-COMPETITOR confound so a
+                          //   hunting experiment measures hunting, not resource depletion. Goats still
+                          //   forage & learn; the agent's larder is untouched.
+  goatsCountToClear: true, // living goats count toward `remaining` — CLEARING the field requires
+                          //   killing (and consuming) the goats too, so hunting is on the critical
+                          //   path to the shelter, not an optional side-behavior.
   maxStepsPerEpisode: 500, // step cutoff → episode ends. SHELTER mode: this is the DAY LENGTH — reach the
                           //   shelter and REST before it expires, or the agent COLLAPSES (−collapsePenalty).
   timeBuckets: 4,         // shelter mode: granularity of the time-remaining signal in the internal state

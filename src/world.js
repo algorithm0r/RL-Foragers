@@ -60,7 +60,20 @@ var World = class World {
       const c = cells[k++]; const g = { x: c % N, y: (c / N) | 0, alive: true, lastStates: null, lastAction: -1 };
       this.goats.push(g); this.goatAt[c] = i;
     }
+    // living goats count toward clearing → hunting is on the critical path, not an optional extra
+    if (PARAMETERS.enableGoats && PARAMETERS.goatsCountToClear) this.remaining += this.goats.length;
     this.food = 0; this.water = 0; this.steps = 0;
+  }
+
+  // put a resource of `type` on a random empty cell (goat-respawn: net-zero to the agent's supply).
+  // returns false if the board is full (caller then lets the count actually drop).
+  respawnResource(type) {
+    const N = this.N, empties = [];
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      if (this.grid[y][x] === World.EMPTY && this.goatIndexAt(x, y) < 0 && !(x === this.ax && y === this.ay)) empties.push(y * N + x);
+    }
+    if (!empties.length) return false;
+    const c = empties[randomInt(empties.length)]; this.grid[(c / N) | 0][c % N] = type; return true;
   }
 
   goatIndexAt(x, y) { return this.goatAt[y * this.N + x]; } // -1 if none
@@ -180,6 +193,7 @@ var World = class World {
         if (gi >= 0) {
           const g = this.goats[gi];
           g.alive = false; this.goatAt[gy * this.N + gx] = -1; this.goatsKilled++;
+          if (PARAMETERS.enableGoats && PARAMETERS.goatsCountToClear) this.remaining--; // the goat is off the board
           // teach the species brain the death: one extra terminal update on the goat's last (s,a)
           if (g.lastStates) this.goatBrain.learn(g.lastStates, g.lastAction, -PARAMETERS.pitPenalty, null);
           if (PARAMETERS.goatHuntOneAction) {
@@ -261,6 +275,7 @@ var World = class World {
         g.x = nx; g.y = ny;
         if (PARAMETERS.enablePits && this.grid[ny][nx] === World.PIT) {
           g.alive = false; this.goatPitDeaths++;
+          if (PARAMETERS.goatsCountToClear) this.remaining--; // a goat that dies on its own is off the board
           return { reward: -PARAMETERS.pitPenalty, done: true };
         }
         this.goatAt[ny * N + nx] = i;
@@ -269,7 +284,10 @@ var World = class World {
     }
     const want = act === 'eat' ? World.FOOD : World.WATER;
     if (this.grid[g.y][g.x] === want) {
-      this.grid[g.y][g.x] = World.EMPTY; this.remaining--; this.goatEaten++;
+      this.grid[g.y][g.x] = World.EMPTY; this.goatEaten++;
+      // respawn elsewhere (net-zero to the agent's supply) so goats aren't COMPETITORS; only if that
+      // fails (board full) does the resource actually leave the field.
+      if (!(PARAMETERS.goatEatRespawn && this.respawnResource(want))) this.remaining--;
       return { reward: PARAMETERS.rewardGather, done: false };
     }
     return { reward: PARAMETERS.rewardStep, done: false };
