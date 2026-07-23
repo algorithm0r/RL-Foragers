@@ -292,6 +292,11 @@ NON-DETERMINISTIC environment — the regime the whole model-free bet exists for
 - The window's Markov assumption breaks honestly: a snapshot says "wolf NE," not "closing or
   leaving" — velocity is hidden state. Prediction: snapshot agents handle random-walk movers but
   strain against pursuers → the first PRINCIPLED case for a memory/history layer (two-frame state).
+- **HUNTING RESOLVED (2026-07-23):** the two-action attack→eat hunt did not emerge under many
+  conditions (opportunity cost / exposure / motion all ruled out); the barrier was CREDIT ASSIGNMENT
+  through the multi-step chain (dead navigate-to-carcass middle link). **`qReplay` K=4 (Dyna-Q,
+  random or `qReplayRecent` backward) makes hunting emerge** (greedy kills 0.05→~3.0, 3 seeds). One-
+  action hunt (`goatHuntOneAction`) also works but is swallow-whole, not hunting. See DEVLOG 07-23.
 - **Combat / predation economy (Chris's design):** ATTACK an adjacent goat or wolf → it turns to
   FOOD (carcass). Wolves fight back: a bite is a big negative penalty, and ~3 bites KILL the agent.
   So everything is food at a risk price — static food free, goats run, wolves fight — and valence

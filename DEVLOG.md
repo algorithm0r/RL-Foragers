@@ -3,6 +3,29 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-23 — SESSION CLOSE: goats + hunting arc resolved (replay); evolution (Stage 6) spec'd
+
+**Done:** (detail in the per-arc entries below, 2026-07-20→23; this is the through-line.) Built the
+full multi-agent **goats** subsystem (prey agents on a shared GoatBrain, two-action attack→eat hunt),
+then chased "hunting doesn't emerge" through ~a dozen probes and 5+ of my WRONG mechanism guesses
+(credit-split, slow-learning, cold-start, opportunity-cost, exposure, motion — each falsified). Chris
+forced clean instruments at every turn (disentangle confounds by design, drop pathological UCB, fair
+per-action sampling, run in parallel) and we jointly diagnosed a broken credit-assignment MIDDLE LINK
+(navigate-to-carcass). **REPLAY solved it** (greedy kills 0.05→~3.0, confirmed 3 seeds; motion ruled
+out). Earlier in session: **pits arc closed** (layered+ε-greedy alone survives+clears; weighting
+matters in lethal worlds) and **no-INT shelter** (INT layer is a safety governor; dropping it raises
+harvest EV). **Stage 6 EVOLUTION spec'd** (Chris): evolve the meta-params we hand-tuned; per-action
+initial-Q/bonus = evolved instincts; culture via broadcast-in-range = social credit-propagation.
+**Changed:** goats params/mechanics (`enableGoats`, `goatEatRespawn`, `goatsCountToClear`,
+`goatStationary`, `goatExplodeRadius`, `goatHuntOneAction`, `qReplayRecent`); `GoatBrain`; world
+entity/attack/turn-loop; observer; smoke (goat bars + hunt-emergence + seeded determinism). DEVPLAN
+Stage 6 pinned. 3 memory notes (disentangle-confounds, run-in-parallel, beacon-redefinition/overclaim).
+**State:** smoke PASS @ v0.6.0-4-gd871acf. `goats`/`pits` DB collections populated. Hunting-via-replay
+confirmed (scratch parallel runs). All universal "unlearnable" claims retracted — findings stated as
+"did not emerge under conditions tested."
+**Next:** Stage 6 **v1a** — evolutionary loop (discrete generations, 30×30 / pop 16 start, 1-gene ε
+genome) on the new time-boxed, food-respawning, placed-shelter world. Awaiting Chris's go on scope.
+
 ## 2026-07-23 — Hunting SOLVED by replay: the barrier was credit assignment, not motion/opportunity/exposure
 
 **The positive resolution of the goats arc** (after Chris forced clean instruments + we jointly
