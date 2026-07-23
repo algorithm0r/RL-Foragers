@@ -3,6 +3,25 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-23 — v1b.5: the COMBINED full world (shelter + goats + food) co-evolves
+
+**Done:** Integrated every proven piece into one evo regime (`evofull.mjs`): renewable scarce food +
+stationary renewable goats (prey) + no-INT multi-shelter, full genome (ε/α/γ + felt gather/step/perUnit/
+confidenceK + per-action instincts incl. attack), fitness = banked stock (carcass food counts — a hunt is
+food you carry home). Actions = 8 moves + eat + rest + attack. **Required ZERO src changes** — it ran
+purely by config, which validates the EvoWorld design (shelter placement + goat placement + banking + attack
+all compose).
+
+**Result** (`evofull.mjs`, 20×20, pop16, 6 goats, 9 shelters, scarce food, no-INT, seeded): banked-stock
+fitness **30→111**; the evolved `attack` instinct is **POSITIVE (initialQ +0.54, bonus 0.35)** — under
+scarcity evolution chose an innate hunting drive (consistent with the earlier hunt sweep). Greedy (frozen):
+banked/run 1.3, kills/run 0.3 (hunting present, not dominant). ε→0.01, α→0.54, γ→0.61, rewardPerUnit→69.
+Foraging + hunting + homing CO-EVOLVE under one selection pressure. One seed, held loosely.
+
+**Changed:** new `evofull.mjs` only. smoke unaffected (no src change).
+
+**Next:** v1b.6 — add PITS (terminal death) to the combined world + a felt pitPenalty gene (Chris).
+
 ## 2026-07-23 — v1b.3b: no-INT MULTI-shelter central-place (correcting v1b.3a's bearing crutch)
 
 **Correction (Chris caught it):** v1b.3a ran the shelter regime with `strategicLayer=true` — which re-added

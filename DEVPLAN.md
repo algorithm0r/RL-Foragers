@@ -380,6 +380,10 @@ in DEVLOG 2026-07-21/22. Original scope as built:
       a forager finds a shelter only by SEEING it in its window; a `evoShelterGrid`² grid of spaced shelters
       raises the find-chance. `evoshelter.mjs` (no-INT, 9 shelters): banked fitness 37→46 (noisy), greedy
       banked/run 2.0 — weaker/noisier than the bearing-crutched run, as expected (no-bearing homing is hard).
+  - [x] **v1b.5 — combined full world** (`evofull.mjs`): shelter + goats + food in one regime, full genome,
+    fitness = banked stock (carcasses count). Ran with ZERO src changes. bankedFit 30→111; evolved a POSITIVE
+    attack instinct (+0.54) under scarcity — foraging + hunting + homing co-evolve.
+  - [ ] **v1b.6 — add PITS to the combined world** (terminal death + felt pitPenalty gene). [Chris]
   - [ ] **v1b.4 — browser viz of generations** (fitness curve + evolved-gene readout).
 - [ ] **v1c — culture.** Per-agent tables already exist; add `broadcastRange` so each transition updates
   agents in range (∞ ≡ shared, local ≡ CULTURE, 0 ≡ individual). Test the hunting-culture hypothesis.
