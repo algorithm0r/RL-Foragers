@@ -433,6 +433,31 @@ we know whether the snapshot window suffices or a memory layer is required.
 
 ---
 
+### Stage 7 — NATURAL SELECTION (no GA): a continuous ecology  [ ACTIVE — v2a built 2026-07-23, Chris spec ]
+Drop the genetic algorithm entirely. No external fitness, no discrete generations, no cull/breed —
+**selection IS survival + reproduction** in one continuous world. `EcoWorld` (`src/ecology.js`).
+- **Energy:** agents forage for energy; metabolism drains it each tick; food is a renewable FLOW
+  (`ecoFoodPerTick`) → carrying capacity is EMERGENT (≈ foodFlow·foodValue/metab).
+- **Reproduce = an ACTION** with the evolved felt reward `rewardReproduce` (the drive to breed is under
+  selection). Two thresholds (Chris): adjacent partner both ≥ T → **sexual**, each pays T, offspring =
+  crossover; else self ≥ 2T → **asexual**, pays 2T, offspring = mutated clone. Offspring: **FRESH table**.
+- **Death:** starvation (energy ≤ 0) + a random hazard. Continuous time; population size fluctuates.
+- **Why it matters:** fresh-table offspring + juvenile mortality mean the evolved PRIORS (initialQ, felt
+  rewards) finally decide who survives infancy → the instinct genes come under REAL selection (the two
+  things that made them inert in the GA — Lamarckian tables, no juvenile death — are both removed here).
+- [x] **v2a — the ecology runs + SELF-REGULATES.** Fresh-table founders bootstrap foraging; with a food
+  FLOW the population settles at an EMERGENT carrying capacity (~163 on 30×30, well under the cap), stable
+  births≈deaths. Endogenous selection: rewardGather UP (0.02→0.87), ε DOWN (0.41→0.06), rewardReproduce
+  stays viable (~0.51). No GA. (An earlier refill-to-density run blew to the hard cap and drove reproduction
+  negative — a cap artifact, not real regulation; the food-flow model fixed it.)
+- [ ] **v2b — mate-finding dynamics** (the sexual/asexual balance, spatial mate search).
+- [ ] **v2c — the full world under natural selection** (goats/shelter/pits + the instinct-selection test).
+**Done when:** a population self-regulates at an emergent carrying capacity over long continuous time, and
+we can read the life-history strategy natural selection produced (forage/breed/hoard balance, and whether
+the instinct priors now evolve non-neutrally).
+
+---
+
 ## Design decisions, and the literature they lean on
 - **Summing Q across layers** = factored / additive value functions (Guestrin–Koller–Parr;
   VDN, `Q ≈ Σ Qᵢ`). Exact only when reward/transitions factor into those scopes — ours don't

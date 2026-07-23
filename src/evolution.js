@@ -78,6 +78,7 @@ var Genome = class Genome {
       confidenceK: this.expr('confidenceK'), defaultQ: 0,
       rewardGather: this.expr('rewardGather'), rewardStep: this.expr('rewardStep'),
       rewardRest: this.expr('rewardRest'), rewardPit: this.expr('rewardPit'), restExponent: this.expr('restExponent'),
+      rewardReproduce: this.expr('rewardReproduce'),
       initialQ: PARAMETERS.evoUseInstincts ? this.exprVec('initialQ') : null,   // instinct off → null (getQ falls back to defaultQ)
     };
   }
@@ -98,6 +99,8 @@ Genome.GENES = {
   rewardRest:   { min: -1, max: 1     }, // felt: rest banks rewardRest · stock^restExponent
   rewardPit:    { min: -1, max: 1     }, // felt: reward on entering a pit (a reward like any other — can be negative)
   restExponent: { min: 0,  max: 2     }, // exponent on stock in the rest reward (was hardcoded 2)
+  rewardReproduce: { min: -1, max: 1, init: [0.6, 1.0] }, // felt reward for the REPRODUCE action (ecology). init
+                                                          //   positive so the founding population breeds; then selected.
   confidenceK:  { min: 1,  max: 100   }, // layered coupling: count→confidence saturation
 };
 // per-ACTION vector gene — the single evolved INSTINCT: initialQ[a] = the prior VALUE of an unseen

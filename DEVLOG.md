@@ -3,6 +3,36 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-23 — Stage 7 v2a: natural selection (no GA) — a continuous self-regulating ecology
+
+**Done (Chris's spec):** dropped the genetic algorithm entirely. New `src/ecology.js` — `EcoWorld`, a
+continuous world where **selection IS survival + reproduction**: no external fitness, no generations, no
+cull/breed.
+- Agents carry ENERGY; forage for it; pay metabolism each tick; **die** of starvation (energy≤0) or a
+  random hazard. Food is a **FLOW** (`ecoFoodPerTick`) → carrying capacity is EMERGENT.
+- **Reproduce is an ACTION** with the evolved felt reward `rewardReproduce` (new gene) — the drive to breed
+  is itself under selection. Two thresholds: adjacent partner both ≥ T → sexual (each pays T, offspring =
+  crossover); else self ≥ 2T → asexual (pays 2T, mutated clone). Offspring get **FRESH tables**. Agents
+  sense a coarse energy bucket so they can learn to reproduce only when they can afford it.
+
+**Result** (`ecosmoke.mjs`, 30×30, seeded, 8000 ticks): population **self-regulates at ~163** — an emergent
+carrying capacity from the food flow, well under the safety cap, stable **births≈deaths** (2389 births,
+1783 starved, 503 hazard). Endogenous selection shaped the genome: **rewardGather 0.02→0.87** (forage),
+**ε 0.41→0.06** (near-greedy), **rewardReproduce ~0.51** (breeding stays viable). No GA — pure ecology.
+
+**Tuning notes:** first energetics were too harsh (135-tick runway vs ~hundreds to learn foraging → EXTINCT
+at t=223). A forgiving-but-refill-to-density run bootstrapped but blew to the hard cap (800) and drove
+rewardReproduce to −0.36 — a cap artifact (offspring starve at the cap), NOT real regulation, and 11 min
+slow. Switching food from refill-to-density to a fixed FLOW (ecoFoodPerTick) gave a genuine, fast,
+self-regulating carrying capacity. Wired `ecology.js` into index.html; smoke unaffected (eco is a separate
+runner). DEVPLAN Stage 7 spec'd (v2b mate-finding dynamics, v2c full world + instinct-selection test).
+
+**Why this matters:** fresh-table offspring + juvenile mortality are exactly the two things whose absence
+made the instinct priors inert in the GA — so this is the regime where `initialQ` / felt-reward priors
+should finally evolve non-neutrally (they decide who survives infancy). That test is v2c.
+
+**Next:** tighten/observe the ecology (mate-finding sexual-vs-asexual balance), then v2c.
+
 ## 2026-07-23 — Refactor 3 + the definitive instinct answer: initialQ[attack] is NOT selectable
 
 **Chris's degeneracy fix, executed on the clean instrument.** With the normalized single-gene genome,

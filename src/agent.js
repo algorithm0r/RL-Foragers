@@ -37,10 +37,11 @@ var FlatAgent = class FlatAgent {
 // deliberately separate from fitness (the true objective).
 var feltReward = function (cfg, out) {
   switch (out.event) {
-    case 'gather': return cfg.rewardGather;
-    case 'rest':   return cfg.rewardRest * Math.pow(out.stock, cfg.restExponent);
-    case 'pit':    return cfg.rewardPit;
-    default:       return cfg.rewardStep; // 'step' — moves, misses, the attack cost
+    case 'gather':    return cfg.rewardGather;
+    case 'rest':      return cfg.rewardRest * Math.pow(out.stock, cfg.restExponent);
+    case 'pit':       return cfg.rewardPit;
+    case 'reproduce': return cfg.rewardReproduce;   // ecology: felt reward for a successful reproduce
+    default:          return cfg.rewardStep; // 'step' — moves, misses, the attack cost, a failed reproduce
   }
 };
 

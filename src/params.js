@@ -183,6 +183,20 @@ var PARAMETERS = {
   evoShelterGrid: 3,      // central-place mode: shelters are a g×g evenly-spaced grid (g² shelters). With NO
                           //   bearing/INT, more shelters = higher chance a SEEKING forager sees one in its window.
 
+  // --- ecology (Stage 7) — NATURAL selection, no GA. Agents forage for ENERGY, pay metabolism each tick,
+  //   REPRODUCE as an action at an energy threshold (sexual with an adjacent partner: each pays T; else
+  //   asexual solo at 2T), and DIE from starvation (energy≤0) or a random hazard. Continuous time; the
+  //   population size is EMERGENT (food supply → carrying capacity). Offspring get FRESH Q-tables. ---
+  ecoPop0: 60,            // founding population size
+  ecoFoodValue: 12,       // energy gained per food eaten
+  ecoMetabolism: 0.5,     // energy drained per tick (cost of living)
+  ecoFoodPerTick: 8,      // NEW food items per tick (a food FLOW) → carrying capacity ≈ ecoFoodPerTick·foodValue/metab
+  ecoReproThreshold: 130, // T: energy to reproduce sexually (each parent pays T); asexual needs 2T
+  ecoBirthEnergy: 250,    // energy an offspring starts with (its runway = birthEnergy/metab ticks to learn foraging)
+  ecoHazard: 0.0004,      // per-tick random death probability (nothing is immortal)
+  ecoFoodDensity: 0.08,   // INITIAL food stock (fraction of cells); thereafter food arrives at ecoFoodPerTick
+  ecoMaxPop: 600,         // hard safety cap on population (prevents runaway — a healthy run stays well under)
+
   // --- engine ---
   updatesPerDraw: 20,     // fast-forward: sim updates per rendered frame (learning is fast, drawing slow)
 
