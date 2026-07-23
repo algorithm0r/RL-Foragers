@@ -3,6 +3,33 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-23 — Hunting SOLVED by replay: the barrier was credit assignment, not motion/opportunity/exposure
+
+**The positive resolution of the goats arc** (after Chris forced clean instruments + we jointly
+diagnosed the broken middle link + Chris called replay/stationary/parallel). Two targeted interventions
+on the confirmed broken chain (eat learned Q=10.6, but the middle "navigate-to-adjacent-carcass" link
+dead Q=0.3, so attack can't bootstrap Q=0.24):
+- **Prey MOTION is NOT the barrier.** `goatStationary` (food-like stationary prey): greedy kills 0.01
+  — no better than moving (0.05). A stable carcass didn't help; scratch "moving carcasses are transient."
+- **Replay IS the fix — hunting emerges.** `qReplay` K=4 (both random and new `qReplayRecent` =
+  last-K backward): greedy-policy kills **0.05 → ~3.0**, confirmed across 3 seeds (rnd 2.4–3.5, last
+  1.9–3.6; overlapping — random ≈ recent). Chain probe shows the predicted mechanism: replay lifts the
+  dead middle link (move Q 0.2→2.9) so attack bootstraps (0.4→3.7). Q(attack) 0.35→~4.
+**Conclusion:** the barrier to real two-action hunting was CREDIT ASSIGNMENT through the multi-step
+attack→navigate→eat chain — replay propagates the eat-reward back so the chain assembles. NOT motion,
+NOT opportunity cost, NOT exposure/sampling (all ruled out over the arc). Refines the replay
+task-dependence rule (one coherent statement now): **replay helps tasks that need credit pushed through
+a multi-step chain (sweep coverage, hunting); hurts tasks where it drowns a rare critical transition
+(shelter homing).** Stated at honest strength: hunting EMERGES with replay here — no universal claim.
+**Changed:** `goatStationary` + `qReplayRecent` params (both default off); `doReplay` backward-pass
+branch; goat-turn skip when stationary. All runs parallel (per Chris). Smoke PASS.
+**Meta:** the culture idea (broadcast updates in range) is the cross-agent analogue of this replay fix —
+social credit-propagation — and the per-action initial-Q/bonus genes are the evolved-instinct analogue.
+Both feed Stage 6.
+**State:** smoke PASS @ v0.6.0+. Confirmation is scratch (parallel) runs; numbers here.
+**Next:** Stage 6 EVOLUTION (spec pinned in DEVPLAN, Chris 2026-07-23) — awaiting go on v1a scope
+(discrete generations, 30×30 / pop 16 start).
+
 ## 2026-07-22 — Retraction: "two-action hunt not learnable" is an overclaim; exposure is ample; one-action ≠ hunting
 
 **Chris corrected three things, all right:**

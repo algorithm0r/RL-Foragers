@@ -341,6 +341,35 @@ in DEVLOG 2026-07-21/22. Original scope as built:
 - NO health/HP yet (that's wolves) → the ⚠ conjunction question stays open for Chris; goats-only
   doesn't hit it.
 **5b — wolves + shared worlds:** wolves (fight back, bites, HP), then predators/prey as peer learners.
+
+### Stage 6 — EVOLUTION + culture: evolve the meta-params we've been hand-tuning  [ PLANNED — next build, Chris spec 2026-07-23 ]
+The payoff of the whole reward-shaping/meta-param struggle: **stop tuning it, select it.** The details
+we've debated (shelter timing, reward weights, ε, replay) become GENES and the population evolves them.
+- **World:** larger (20×20 / 50×50 / 100×100 — sweep). Multiple SHELTERS at PLACED (non-random, spaced/
+  gridded) locations. **Time-constrained episodes** (a lifetime = fixed step budget), NOT food-constrained.
+  **Food RESPAWNS** (renewable). Enough food that foraging is viable on its own → hunting is a *choice*
+  vs a working baseline. Shelters appear in the **last quarter** of the lifetime.
+- **Population:** fixed size (10 or 20 — sweep). All agents forage the SAME world simultaneously.
+- **Selection:** fitness = food foraged (stock). Bottom X% culled; top foragers reproduce (mutation +
+  crossover of the genome). Generations over repeated lifetimes.
+- **Genome = all RL meta-params:** α, γ, ε, the reward weights (gather/step/pit/rest/collapse — the
+  *felt* reward), confidenceK, shelter-online timing, etc. PLUS two evolved-prior gene vectors tagged
+  **per ACTION** (not per state-action — too many): (a) an **initial-Q per action** and (b) an
+  **unexplored-bonus per action** (optimism applied to untried state-actions). These are evolved
+  INSTINCTS — an evolved initial-Q/bonus on `attack` is an innate predatory drive that makes the agent
+  sample attack enough to discover its value (directly attacks the 5a "attack never bootstraps" wall).
+- **Q-table architecture (unified):** each agent OWNS a Q-table; every transition BROADCASTS to agents
+  within `broadcastRange`, who also update. range=∞ ≡ shared table (start here, = Chris's "for now
+  shared"); range=local ≡ CULTURE (own tables, shared local updates); range=0 ≡ pure individual. Per-
+  agent α/γ genes need per-agent tables, so build this from the start at full broadcast.
+  **Culture hypothesis (Chris):** individuals may not learn hunting, but with local update-broadcast a
+  CULTURE of hunting can emerge — social credit-propagation, the cross-agent analogue of replay (which
+  fixed hunting in 5a). The 5a negative ("individuals don't learn hunting") is the motivating puzzle.
+- **Infra:** persist Q-tables + genomes to the DB (lineages, resume, analysis).
+- **Curriculum (open):** may need to train "eat then hunt" — Chris has another idea for this (TBD).
+**Done when:** a population over generations evolves its meta-params, fitness rises, and we can read
+what evolution CHOSE for the params we kept hand-tuning (shelter timing, valences, ε) — and whether a
+hunting culture emerges under local broadcast.
 **Done when (5a):** an agent in a wolves+goats world learns to hunt and evade scripted movers, and
 we know whether the snapshot window suffices or a memory layer is required.
 

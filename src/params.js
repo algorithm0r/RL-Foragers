@@ -42,6 +42,9 @@ var PARAMETERS = {
   goatsCountToClear: true, // living goats count toward `remaining` — CLEARING the field requires
                           //   killing (and consuming) the goats too, so hunting is on the critical
                           //   path to the shelter, not an optional side-behavior.
+  goatStationary: false,  // goats DON'T move (skip their turn) — stationary, food-like prey. Isolates
+                          //   whether prey MOTION is what breaks the hunt chain (a moving goat's
+                          //   carcass is transient; a stationary goat is a stable target to learn on).
   maxStepsPerEpisode: 500, // step cutoff → episode ends. SHELTER mode: this is the DAY LENGTH — reach the
                           //   shelter and REST before it expires, or the agent COLLAPSES (−collapsePenalty).
   timeBuckets: 4,         // shelter mode: granularity of the time-remaining signal in the internal state
@@ -126,6 +129,10 @@ var PARAMETERS = {
                           //   (collapse 1%→49%: uniform replay drowns the rare head-home transitions).
   qReplayK: 4,            // sweet spot: the K-sweep saturates at 4 (K=4 captures the full benefit; 8/16/
                           //   32/64 add nothing measurable). 4 replays/step, ~8× cheaper than 32.
+  qReplayRecent: false,   // replay the LAST K transitions in REVERSE (newest→oldest) instead of K
+                          //   random ones — backward credit propagation along the actual trajectory
+                          //   (eligibility-trace-like). Aimed at broken multi-step chains (the hunt:
+                          //   eat-reward flows back through move back to attack in one step).
   qReplayCap: 20000,      // replay buffer capacity
   qReplayWarmup: 1000,    // real steps before replay kicks in
 

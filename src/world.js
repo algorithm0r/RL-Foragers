@@ -295,8 +295,9 @@ var World = class World {
 
   update(engine) {
     const res = this.agent.act(this);
-    // goats take their turns after the forager, unless its action just ended the day
-    if (!res.done && PARAMETERS.enableGoats) {
+    // goats take their turns after the forager, unless its action just ended the day. Stationary
+    // goats skip their turn entirely — food-like prey that sit still (isolates the motion variable).
+    if (!res.done && PARAMETERS.enableGoats && !PARAMETERS.goatStationary) {
       for (let i = 0; i < this.goats.length; i++) { const g = this.goats[i]; if (g.alive) this.goatStep(g, i); }
     }
     const ema = (p, v) => (p === null ? v : 0.98 * p + 0.02 * v);

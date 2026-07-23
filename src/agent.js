@@ -95,7 +95,14 @@ var LayeredAgent = class LayeredAgent {
     const R = this.replay;
     R.buf[R.pos] = { states, action, reward, nextStates }; R.pos = (R.pos + 1) % R.cap; if (R.filled < R.cap) R.filled++;
     if (++R.seen < PARAMETERS.qReplayWarmup) return;
-    for (let b = 0; b < PARAMETERS.qReplayK; b++) { const s = R.buf[randomInt(R.filled)]; this.replayTransition(s.states, s.action, s.reward, s.nextStates); }
+    if (PARAMETERS.qReplayRecent) {
+      // backward pass over the last K transitions (newest→oldest) → credit flows along the trajectory
+      for (let b = 1; b <= PARAMETERS.qReplayK && b <= R.filled; b++) {
+        const s = R.buf[(R.pos - b + R.cap) % R.cap]; this.replayTransition(s.states, s.action, s.reward, s.nextStates);
+      }
+    } else {
+      for (let b = 0; b < PARAMETERS.qReplayK; b++) { const s = R.buf[randomInt(R.filled)]; this.replayTransition(s.states, s.action, s.reward, s.nextStates); }
+    }
   }
 
   // confidence-weighted combined Q over actions. Returns {q:[...], weights:[...] normalized}.
