@@ -65,6 +65,23 @@ var World = class World {
 
   goatIndexAt(x, y) { return this.goatAt[y * this.N + x]; } // -1 if none
 
+  // a slain goat becomes food: FOOD on its own cell, plus (if goatExplodeRadius>0) on every EMPTY
+  // cell in that Chebyshev radius — the spatial hunt premium. Only EMPTY cells fill (a burst never
+  // overwrites resources, shelter, hazards, or a living goat) and each new FOOD bumps `remaining`.
+  dropCarcass(cx, cy) {
+    const N = this.N, R = PARAMETERS.goatExplodeRadius;
+    const fill = (x, y) => {
+      if (this.goatIndexAt(x, y) >= 0) return;
+      if (this.grid[y][x] === World.EMPTY) { this.grid[y][x] = World.FOOD; this.remaining++; }
+    };
+    if (this.grid[cy][cx] === World.EMPTY) this.remaining++;
+    this.grid[cy][cx] = World.FOOD; // the goat's own cell always becomes the carcass
+    for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
+      if (dx === 0 && dy === 0) continue;
+      fill(((cx + dx) % N + N) % N, ((cy + dy) % N + N) % N);
+    }
+  }
+
   // terrain at an absolute cell with the GOAT overlay: a living goat occludes what it stands on.
   // (The human is NOT overlaid here — this is the human's own percept; see senseGoatWindow.)
   cellAbs(x, y) {
@@ -165,8 +182,13 @@ var World = class World {
           g.alive = false; this.goatAt[gy * this.N + gx] = -1; this.goatsKilled++;
           // teach the species brain the death: one extra terminal update on the goat's last (s,a)
           if (g.lastStates) this.goatBrain.learn(g.lastStates, g.lastAction, -PARAMETERS.pitPenalty, null);
-          if (this.grid[gy][gx] === World.EMPTY) this.remaining++; // carcass on a resource replaces it — no double count
-          this.grid[gy][gx] = World.FOOD;
+          if (PARAMETERS.goatHuntOneAction) {
+            // ONE-ACTION hunt: the attack itself consumes the goat — cost and reward in one action,
+            // like eating a food cell that fought back. No carcass to walk to.
+            this.food++; out = this.gatherResult(); out.collected = World.FOOD;
+          } else {
+            this.dropCarcass(gx, gy); // two-action hunt: carcass FOOD (+ burst) to walk onto and eat
+          }
           break;
         }
       }

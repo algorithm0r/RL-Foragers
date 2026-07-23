@@ -27,6 +27,14 @@ var PARAMETERS = {
   goatLayers: [1, 3],     // the goats' (simpler) window stack — same confidence coupling
   goatEpsilon: 0.05,      // goat ε-greedy rate (species learner; higher than the forager's — prey
                           //   lifetimes are short and coverage matters more than polish)
+  goatExplodeRadius: 0,   // carcass payoff: a killed goat drops FOOD on every EMPTY cell within this
+                          //   Chebyshev radius (0 = just its own cell, the base carcass; 1 = a 3×3
+                          //   burst, up to +9 food). The spatial hunt PREMIUM — does a big enough
+                          //   payoff finally make hunting worth the two-action cost? (Answer: NO.)
+  goatHuntOneAction: false, // collapse the hunt to ONE action: a successful ATTACK directly consumes
+                          //   the goat (food++ and immediate rewardGather), no walk-to-carcass. Tests
+                          //   whether the blocker is the COST/REWARD SPLIT across two actions (attack
+                          //   pays −1, a separate eat collects the payoff) rather than the payoff size.
   maxStepsPerEpisode: 500, // step cutoff → episode ends. SHELTER mode: this is the DAY LENGTH — reach the
                           //   shelter and REST before it expires, or the agent COLLAPSES (−collapsePenalty).
   timeBuckets: 4,         // shelter mode: granularity of the time-remaining signal in the internal state

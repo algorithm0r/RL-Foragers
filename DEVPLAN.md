@@ -314,10 +314,16 @@ NON-DETERMINISTIC environment — the regime the whole model-free bet exists for
 quarry** — the forager treats cheap goats as furniture that steals food, hunts them only by ε-
 accident (attack Q≈0 vs forage Q≈5; no-attack ablation ≈ free), and because it doesn't hunt, the
 goats correctly learn no fear. Scarcity doesn't rescue it (starved to nFood=1, hunting still decays).
-The two-action + banked + discounted hunt can't beat direct foraging → **carcass premium or one-
-action hunt is REQUIRED**, decision pending for Chris. Also found: goats are an emergent shared
-ecological clock (they clear the field → shelter appears sooner → collapse 39%→17%). Full write-up
-in DEVLOG 2026-07-21. Original scope as built:
+The two-action + banked + discounted hunt can't beat direct foraging. **Mechanism nailed
+(2026-07-22, after Chris killed my credit-assignment story): OPPORTUNITY COST** — attack's learned
+value stays ~0.5 vs foraging's 4–8, robust across food levels AND explorers (greedy-eval: learned
+policy never hunts even after UCB forces attack; cold-start refuted). NOT the two-action shape
+(moving is the same shape and learned), NOT sample budget, NOT exploration. A spatial premium
+(`goatExplodeRadius`=9-food burst) does NOT fix it. Only the one-action hunt (`goatHuntOneAction`)
+makes hunting emerge — and partly by fiat (immediate +1). So to make hunting RATIONAL: one-action
+hunt, or a carcass genuinely worth > foraging's 4–8 (wolf-tier). Also found: goats are an emergent
+shared ecological clock (clear the field → shelter appears sooner → collapse 39%→17%). Full write-ups
+in DEVLOG 2026-07-21/22. Original scope as built:
 - **Goats run a simpler version of the same architecture** (shared species-level layered learner,
   e.g. [1,3], ε-greedy): they eat food, drink water, avoid pits — and can learn to avoid the human
   (their deaths near the human teach fear via their own Q). The human's world goes NON-STATIONARY

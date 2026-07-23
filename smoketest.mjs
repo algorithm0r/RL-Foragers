@@ -20,6 +20,9 @@ for (const f of ['util.js', 'params.js', 'engine.js', 'qlearner.js', 'utree.js',
   indirectEval(src);
 }
 const { PARAMETERS: P, World, GameEngine } = globalThis;
+// seed the whole smoke deterministically → the competence bars are reproducible run-to-run (no more
+// unseeded flakiness, e.g. the DQN clear-count and the hunt-emergence kill rate).
+Math.random = (function (a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })(20260722);
 const clear = (w) => { for (let y = 0; y < w.N; y++) for (let x = 0; x < w.N; x++) w.grid[y][x] = World.EMPTY; };
 const base = () => { P.agent = 'flat'; P.enableWater = false; P.enableShelter = false; P.enablePits = false; P.enableRocks = false; P.enableGoats = false; P.gridN = 6; P.receptiveField = 3; P.qReplay = false; P.restStickC = 0; }; // replay/stick off → fast, focused; validated separately
 
@@ -137,7 +140,24 @@ P.goatLayers = [1, 3]; P.goatEpsilon = 0.05;
 const wG = new World(800, 600), eG = new GameEngine();
 for (let t = 1; t <= 100000; t++) { eG.tick = t; wG.update(eG); }
 const goatsOk = wG.episodes > 500 && Number.isFinite(wG.meanReward()) && (wG.goatEaten + wG.goatsKilled) > 10;
-P.shelterActivate = 'always';
+
+// one-action hunt makes hunting EMERGE (kills/ep late > early), where the two-action hunt decays.
+// No free food (nFood=0) so the goats are the only food → the signal is clean. Late-vs-early kills.
+P.enableGoats = true; P.nGoats = 3; P.goatHuntOneAction = true; P.nFood = 0; P.nWater = 2;
+P.gridN = 10; P.maxStepsPerEpisode = 100; P.shelterActivate = 'clearedOrTime'; P.shelterActivateTime = 60;
+const wH = new World(800, 600), eH = new GameEngine();
+const hK = []; let hEp = 0, hKill = 0;
+for (let t = 1; t <= 600000; t++) {
+  eH.tick = t; wH.update(eH);
+  if (wH.episodes > hEp) { hK.push(wH.goatsKilled - hKill); hEp = wH.episodes; hKill = wH.goatsKilled; }
+}
+const half = (hK.length / 2) | 0, m = (a) => a.reduce((s, x) => s + x, 0) / (a.length || 1);
+const killsEarly = m(hK.slice(0, half)), killsLate = m(hK.slice(half));
+// the ε-random attack floor is ~0.03 kills/ep; a sustained late rate ≫ that is DELIBERATE hunting
+// (which the two-action hunt never reaches — it decays to the floor). Absolute bar, not a ratio:
+// at nFood=0 hunting emerges fast, so a rise-ratio would already be saturated by the halfway split.
+const huntEmerges = killsLate > 0.15;
+P.goatHuntOneAction = false; P.shelterActivate = 'always';
 
 // --- P: pits — the layered agent LEARNS avoidance (death EMA falls well under the untrained ~40%)
 base(); P.agent = 'layered'; P.layers = [1, 3, 5]; P.explore = 'egreedy'; P.epsilon = 0.01;
@@ -164,7 +184,7 @@ for (const arr of [AD.W1, AD.W2]) for (let i = 0; i < arr.length; i++) if (!Numb
 const qProbe = AD.qValues(AD.encode(wD));
 const dqnOk = finiteW && qProbe.every(Number.isFinite) && wD.cleared > 3; // ran, learned to clear some, no blow-up (unseeded → loose bar)
 
-const ok = mechanics && decoupled && learned && sheltered && goatsOk && pitsOk && dqnOk;
+const ok = mechanics && decoupled && learned && sheltered && goatsOk && huntEmerges && pitsOk && dqnOk;
 console.log('smoke:' +
   ' M mech=' + mechanics + ' (eat=' + mEat + ' clear=' + mClear + ' drink=' + mDrink + ' rest=' + mRest +
   ' stick=' + mStick + ' pit=' + mPit + ' rock=' + mRock + ' collapse=' + mCollapse + ' time=' + mTime +
@@ -174,6 +194,7 @@ console.log('smoke:' +
   ' | S shelter banked=' + wS.meanReward().toFixed(2) + ' collapseRate=' + wS.collapseRate().toFixed(3) +
   ' (' + wS.rested + ' rested)' +
   ' | G goats eps=' + wG.episodes + ' eaten=' + wG.goatEaten + ' killed=' + wG.goatsKilled +
+  ' hunt1act=' + huntEmerges + ' (kills ' + killsEarly.toFixed(2) + '→' + killsLate.toFixed(2) + ')' +
   ' | P pits death(last2k)=' + pDeath.toFixed(3) + ' (' + wP.cleared + ' cleared)' +
   ' | D dqn=' + dqnOk + ' (cleared=' + wD.cleared + ')' +
   ' -> ' + (ok ? 'PASS' : 'FAIL'));

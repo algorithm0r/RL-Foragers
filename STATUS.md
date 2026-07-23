@@ -27,9 +27,12 @@ prior bars).
   resources/ep (> forager's bank).
 - **Emergent shared clock:** collapse 39%→17% with goats (they clear the field → shelter fires
   sooner). The `clearedOrTime` gate is accelerable by other species.
-- **Hunting declines, doesn't emerge:** kills/ep decay (0.06–0.26 → 0.02–0.10); it's the predator
-  quitting (forage Q≈5 ≫ attack Q≈0.01, argmax-attacks 0%), not prey evading. No-attack ablation
-  ≈ free (~0.05–0.10 harvest = noise).
+- **Hunting doesn't emerge — mechanism = OPPORTUNITY COST** (nailed 2026-07-22 after Chris killed
+  my credit-assignment guess: moving is the same delayed-reward shape and IS learned). Attack's
+  learned value stays ~0.5 vs foraging 4–8; greedy-eval shows the learned policy NEVER hunts even
+  after UCB forces attack exploration (cold-start refuted). NOT the two-action shape, NOT budget, NOT
+  exploration. Spatial 9-food carcass premium (`goatExplodeRadius`) does NOT fix it; only the
+  one-action hunt (`goatHuntOneAction`) makes hunting emerge, partly by fiat (immediate +1).
 - **Prey learn no fear — correctly** (Q toward human −0.22 > away −0.34; predation is ε-noise).
 - **Scarcity doesn't rescue hunting** (nFood 6→1, kills still decay) → two-action+banked+discounted
   hunt loses to direct foraging even when hungry. Premium/one-action hunt REQUIRED.
@@ -41,8 +44,11 @@ prior bars).
 - `main` (pushed to origin)
 
 ## Open
-- **Hunt-payoff lever (Chris's fork):** (a) carcass premium (wolf-tier, bridges to wolves), (b)
-  one-action hunt, (c) prey as sole food. Decides whether goats stay competitors or become quarry.
+- **Hunt-payoff lever (Chris's fork, now informed):** a premium alone does NOT work (opportunity
+  cost — carcass value < foraging's 4–8 even at 9-food burst). Real options: (a) one-action hunt
+  (`goatHuntOneAction`, accept reward-by-fiat), (b) carcass genuinely worth > foraging (wolf-tier),
+  (c) prey as sole food (but nFood=0 also breaks forage-navigation training). Decides quarry vs
+  competitor.
 - **Wolves (5b):** HP, bite-back, ~3-bite death → forces the ⚠ conjunction-state decision (health×
   window; the pits gauntlet proved factored INT+window can't express conditional-risk policies).
 - Evolution (post-multi-agent): gene tiers sketched — valences first, then γ/ε, then architecture.

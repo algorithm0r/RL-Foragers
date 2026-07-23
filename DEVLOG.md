@@ -3,6 +3,46 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-22 — Why hunting doesn't emerge: it's opportunity cost, not the two-action structure
+
+**Context:** Chris challenged my off-the-cuff claim that the two-action hunt fails because attack
+"pays −1 while a separate eat collects the reward" (a credit-assignment split). His one-liner killed
+it: **moving toward food is the identical delayed-reward shape** (move −1, later eat +1) and it's
+learned fine. So the split can't be the blocker. Chased the real mechanism through THREE more wrong
+guesses, each falsified by data, to a decisive answer. Recording the whole path — the wrong turns
+are the useful part.
+**The chase (all runs no-INT clearedOrTime shelter world, layered forager, 3 goats):**
+1. **"Just slow"?** NO — two-action nFood=0 run to 80k episodes: kills/ep flat at the ε-noise floor
+   (0.087→0.013), never climbs. Not a sample-budget issue.
+2. **Chain probe (nFood=0):** forager learned to EAT a carcass underfoot (Q=3.95) but NOT to APPROACH
+   adjacent food (Q(move-toward)=0.03) — because at nFood=0 there's no food to learn navigation on.
+   Looked like a broken-middle-link, but that's a nFood=0 artifact.
+3. **"Moderate food (trained navigation) rescues it"?** NO — nFood=3,5: kills still decay to ~0.022.
+4. **"Cold-start: attack never practiced on-policy so it never bootstraps into greedy"?** The
+   survivor of Chris's objection (foraging's mid-step IS practiced on-policy, attack's isn't).
+   Tested by FORCING attack exploration (ε=.10, UCB): kills rose in level but still DECAYED — the
+   shape of exploration noise, not learning. So then the decisive measurement:
+5. **GREEDY-policy eval (freeze exploration, learning off), nFood=2:** greedy kills/ep = **0.000
+   (ε.01), 0.000 (ε.10), 0.003 (UCB)** — the learned policy NEVER hunts, however hard attack was
+   explored. UCB pushed Q(attack) 0.04→0.51 but it stays far below Q(best) 4–8, so argmax never
+   picks it. **Cold-start REFUTED — exploration isn't the missing ingredient.**
+**Conclusion:** two-action hunting doesn't emerge because **attack's genuine backed-up value is low
+(~0.5 vs 4–8 for foraging)** — a carcass, discounted through the multi-step chain and competing with
+easier stationary food under a time-limited harvest, isn't worth the detour. OPPORTUNITY COST, robust
+across every food level (0/2/3/5/6) and every explorer. NOT the reward shape (Chris was right), NOT
+sample budget, NOT cold-start. One-action hunting "emerges" only because the immediate +1 makes attack
+competitive by fiat (reward-by-fiat, ~ shaping). **Honest caveat:** can't fully separate "0.51 is the
+true value" from "underestimate because exploratory training wastes the carcass" — but the behavioral
+finding (learned policy never hunts, all conditions) is robust.
+**Changed:** `goatExplodeRadius` (spatial carcass premium — tested, does NOT make hunting emerge) and
+`goatHuntOneAction` (one-action hunt — DOES, by fiat) added as params; `dropCarcass` helper. Smoke
+seeded for determinism (killed the flaky DQN bar) + a `hunt1act` emergence bar (one-action kills
+late > 0.15). All PASS ×2.
+**State:** smoke PASS @ v0.6.0+. Probes are scratch console runs, numbers here; no new DB collection.
+**Next (Chris's call):** the hunt design fork is now informed — a premium doesn't work; making
+hunting rational needs either the one-action hunt (accept reward-by-fiat) or a genuinely high-value
+carcass that beats foraging's ~4–8 (wolf-tier). Then wolves + the conjunction-state question.
+
 ## 2026-07-21 — Stage 5a GOATS: prey become competitors, not quarry — and the premium isn't optional
 
 **Done (autonomous, Chris cleared goats-first):** built goats as PREY AGENTS (not scripts) —
