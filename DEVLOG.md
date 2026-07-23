@@ -3,6 +3,27 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-23 — Refactor 2: normalized genome ([0,1], single sd, symmetric reward ranges, exponent gene)
+
+**Done (Chris's gene redesign):**
+- **Normalized storage.** Every gene stored in **[0,1]**, expressed to `[min,max]` on read; a SINGLE global
+  mutation sd (`Genome.MUT_SD=0.1`) replaces the per-gene `sd` magic numbers. `init` optional (default full
+  range) → evolution starts with maximal freedom. `Genome.expr(k)`/`exprVec(k)`; `express()` builds the cfg.
+- **Uniform, sign-free ranges.** ε,α [0,1]; γ [0,0.999]. All four reward genes share **[−1,1] with no forced
+  sign** (locking rewardStep<0 / rewardGather>0 pre-constrained evolution). `confidenceK` [1,100].
+- **`rewardPit`** replaces `pitPenalty` — pit is a reward like any other, can be negative.
+- **`restExponent`** gene [0,2]: rest banks `rewardRest·stock^restExponent` (was a hardcoded ²).
+- Renames live ONLY in the genome + `feltReward` (evo-only path); the World keeps `rewardPerUnit`/
+  `pitPenalty` for non-evo, so non-evo is untouched.
+
+**State:** smoke **PASS** (non-evo byte-identical). All evo runners green, and evolution now does sensible
+things on the free genome (one seed): evosmoke evolves a **positive eat prior** (initialQ[eat] −0.05→+0.76);
+evofull a **positive attack prior (+0.33)** and a **negative pit reward (−0.57)** — pits correctly felt as
+bad; evoshelter banks 21→198. genStats/runners report EXPRESSED values. `MODEL.md` gene tables updated.
+
+**Next:** Refactor 3 — re-run the instinct test (now single gene, symmetric range, SEVERE + POSITIVE init)
+to settle whether `initialQ[attack]` is selectable, on the clean instrument.
+
 ## 2026-07-23 — Refactor 1: agents run off precomputed local cfg (no global-swap); agent computes felt reward
 
 **Why (Chris):** the evo loop was overwriting ~10 `PARAMETERS.*` globals PER forager PER tick (a hack that

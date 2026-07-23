@@ -36,12 +36,12 @@ const G = hist.length, q = Math.max(1, Math.floor(G / 4));
 const avg = (a) => a.reduce((x, y) => x + y, 0) / a.length;
 const first = avg(hist.slice(0, q).map((h) => h.mean)), last = avg(hist.slice(G - q).map((h) => h.mean));
 
-console.log('gen  bankedFit  meanAge    ε      α      γ    | rGather rStep  perUnit');
+console.log('gen  bankedFit  meanAge    ε      α      γ    | rGather rStep  rRest  restExp');
 for (const i of [0, Math.floor(G / 4), Math.floor(G / 2), Math.floor((3 * G) / 4), G - 1]) {
   const h = hist[i], g = h.genes;
   console.log(String(i).padStart(3) + '  ' + h.mean.toFixed(1).padStart(8) + '  ' + h.meanAge.toFixed(1).padStart(5) +
     '   ' + g.epsilon.toFixed(3) + '  ' + g.alpha.toFixed(3) + '  ' + g.gamma.toFixed(3) +
-    '  | ' + g.rewardGather.toFixed(2).padStart(6) + ' ' + g.rewardStep.toFixed(2).padStart(6) + ' ' + g.rewardPerUnit.toFixed(0).padStart(5));
+    '  | ' + g.rewardGather.toFixed(2).padStart(6) + ' ' + g.rewardStep.toFixed(2).padStart(6) + ' ' + g.rewardRest.toFixed(2).padStart(6) + ' exp ' + g.restExponent.toFixed(2));
 }
 // PASS = the population learns central-place foraging: banked-stock fitness climbs, and the greedy
 // (frozen) policy banks a positive stock (foragers actually return + rest, not just forage-and-collapse).

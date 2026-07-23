@@ -29,7 +29,7 @@ P.evoPopSize = 16; P.evoGenerations = 20; P.evoRuns = 4; P.evoBatchSize = 8; P.e
 P.evoLifetime = 400; P.evoCull = 0.5; P.evoMutRate = 0.5;
 
 const ATT = World.buildActions().indexOf('attack');
-const meanVec = (pop, key, a) => pop.reduce((s, A) => s + A.genome[key][a], 0) / pop.length;
+const meanVec = (pop, key, a) => pop.reduce((s, A) => s + A.genome.exprVec(key)[a], 0) / pop.length;
 
 const conditions = [
   { food: 'scarce', nFood: 15, instincts: true },

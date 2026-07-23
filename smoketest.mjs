@@ -199,8 +199,8 @@ const nActE = World.buildActions().length;
 let genesOk = true;
 for (let i = 0; i < 200; i++) {
   const gm = Genome.random(nActE).crossover(Genome.random(nActE)).mutate(1);
-  for (const k in Genome.GENES) { const g = Genome.GENES[k]; if (!(gm[k] >= g.min && gm[k] <= g.max)) genesOk = false; }
-  for (const k in Genome.VGENES) { const g = Genome.VGENES[k]; if (gm[k].length !== nActE || gm[k].some((x) => !(x >= g.min && x <= g.max))) genesOk = false; }
+  for (const k in Genome.GENES) { const g = Genome.GENES[k], e = gm.expr(k); if (!(gm[k] >= 0 && gm[k] <= 1) || !(e >= g.min - 1e-9 && e <= g.max + 1e-9)) genesOk = false; } // stored normalized [0,1]; expressed in [min,max]
+  for (const k in Genome.VGENES) { if (gm[k].length !== nActE || gm[k].some((x) => !(x >= 0 && x <= 1))) genesOk = false; }
 }
 // a batch of persistent individuals forages a shared map, moves, and accrues fitness (multi-forager
 // step + renewable food + shared-map load all work)

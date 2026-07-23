@@ -34,13 +34,10 @@ var Genome = class Genome {
   }
 
   static random(nActions) {
-    const v = {};
-    for (const k in Genome.GENES) { const g = Genome.GENES[k]; v[k] = g.init[0] + Math.random() * (g.init[1] - g.init[0]); }
+    const rnd = (g) => { const lo = g.init ? g.init[0] : 0, hi = g.init ? g.init[1] : 1; return lo + Math.random() * (hi - lo); };
+    const v = {}; for (const k in Genome.GENES) v[k] = rnd(Genome.GENES[k]);
     const vec = {};
-    for (const k in Genome.VGENES) {
-      const g = Genome.VGENES[k]; vec[k] = [];
-      for (let a = 0; a < nActions; a++) vec[k].push(g.init[0] + Math.random() * (g.init[1] - g.init[0]));
-    }
+    for (const k in Genome.VGENES) { const g = Genome.VGENES[k]; vec[k] = []; for (let a = 0; a < nActions; a++) vec[k].push(rnd(g)); }
     return new Genome(v, vec);
   }
 
@@ -59,58 +56,55 @@ var Genome = class Genome {
     return new Genome(v, vec);
   }
 
-  // Gaussian mutation per gene / per vector element (scaled by the gene's sd), clamped to bounds.
-  // `rate` = per-gene probability of being perturbed. Returns a NEW genome (parents untouched).
+  // Gaussian mutation in NORMALIZED [0,1] space with a SINGLE global sd (Genome.MUT_SD) — one magic
+  // number for all genes, since every gene lives on the same [0,1] scale. `rate` = per-gene perturb prob.
   mutate(rate) {
+    const mut = (x) => (Math.random() < rate ? evoClamp(x + gaussian() * Genome.MUT_SD, 0, 1) : x);
     const v = {}, vec = {};
-    for (const k in Genome.GENES) {
-      const g = Genome.GENES[k]; let x = this[k];
-      if (Math.random() < rate) x += gaussian() * g.sd;
-      v[k] = evoClamp(x, g.min, g.max);
-    }
-    for (const k in Genome.VGENES) {
-      const g = Genome.VGENES[k];
-      vec[k] = this[k].map((x) => evoClamp(Math.random() < rate ? x + gaussian() * g.sd : x, g.min, g.max));
-    }
+    for (const k in Genome.GENES) v[k] = mut(this[k]);
+    for (const k in Genome.VGENES) vec[k] = this[k].map(mut);
     return new Genome(v, vec);
   }
 
+  // express a stored NORMALIZED [0,1] gene to its actual [min,max] value
+  expr(k) { const g = Genome.GENES[k]; return g.min + this[k] * (g.max - g.min); }
+  exprVec(k) { const g = Genome.VGENES[k]; return this[k].map((x) => g.min + x * (g.max - g.min)); }
+
   // precompute the flat NUMERIC cfg an agent runs off of — learning params + felt-reward weights + the
   // per-action instinct vector. Installed once per run (setCfg), so the hot loop reads plain numbers.
-  // (Stage-1: genes are already expressed values; Stage-2 normalisation will convert here.)
   express() {
     return {
-      alpha: this.alpha, gamma: this.gamma, epsilon: this.epsilon, confidenceK: this.confidenceK, defaultQ: 0,
-      rewardGather: this.rewardGather, rewardStep: this.rewardStep, rewardPerUnit: this.rewardPerUnit, pitPenalty: this.pitPenalty,
-      initialQ: PARAMETERS.evoUseInstincts ? this.initialQ.slice() : null,   // instinct off → null (getQ falls back to defaultQ)
+      alpha: this.expr('alpha'), gamma: this.expr('gamma'), epsilon: this.expr('epsilon'),
+      confidenceK: this.expr('confidenceK'), defaultQ: 0,
+      rewardGather: this.expr('rewardGather'), rewardStep: this.expr('rewardStep'),
+      rewardRest: this.expr('rewardRest'), rewardPit: this.expr('rewardPit'), restExponent: this.expr('restExponent'),
+      initialQ: PARAMETERS.evoUseInstincts ? this.exprVec('initialQ') : null,   // instinct off → null (getQ falls back to defaultQ)
     };
   }
 };
-// gene → { bounds, mutation sd, [init lo, init hi] }. Init ranges span the good regime AND a lot of
-// bad, so a working loop VISIBLY concentrates the population toward what we already know works.
-// The reward-weight genes are the FELT reward — the reward the agent LEARNS on. Fitness is the TRUE
-// objective (food foraged / stock banked), NEVER the felt reward — so evolution can't cheat by
-// inflating rewardGather; it can only pick felt weights whose learned policy forages best. This is
-// the payoff of the whole reward-shaping struggle: stop hand-tuning the reward, SELECT it.
+// Genes are stored NORMALIZED in [0,1] and expressed to `[min,max]` on read; a single global mutation sd
+// (Genome.MUT_SD) covers them all. `init` (optional, in [0,1]) narrows the initial draw; default = full
+// range → evolution starts with maximal freedom. Reward genes share [-1,1] with NO forced sign (locking
+// rewardStep negative / rewardGather positive would pre-constrain evolution). The reward genes are the
+// FELT reward the agent LEARNS on; fitness is the TRUE objective, never the felt reward — so evolution
+// can't cheat by inflating a weight, only pick weights whose learned policy forages/banks best.
+Genome.MUT_SD = 0.1;
 Genome.GENES = {
-  epsilon:      { min: 0,    max: 1,     sd: 0.04, init: [0.0,  0.5]  },
-  alpha:        { min: 0.01, max: 1,     sd: 0.05, init: [0.02, 0.6]  },
-  gamma:        { min: 0.5,  max: 0.999, sd: 0.03, init: [0.6,  0.99] },
-  rewardGather: { min: 0.1,  max: 3,     sd: 0.15, init: [0.5,  1.5]  }, // felt: value of an eat/drink
-  rewardStep:   { min: -3,   max: 0,     sd: 0.15, init: [-1.5, -0.2] }, // felt: cost of a move / failed act
-  confidenceK:  { min: 1,    max: 100,   sd: 6,    init: [10,   50]   }, // layered coupling: count→confidence saturation
-  rewardPerUnit:{ min: 1,    max: 100,   sd: 6,    init: [20,   80]   }, // felt: rest banks rewardPerUnit·stock² (central-place only)
-  pitPenalty:   { min: 0,    max: 100,   sd: 6,    init: [10,   60]   }, // felt: death penalty entering a pit — the avoidance-learning signal
+  epsilon:      { min: 0,  max: 1     }, // ε-greedy rate
+  alpha:        { min: 0,  max: 1     }, // learning rate
+  gamma:        { min: 0,  max: 0.999 }, // discount (not 1)
+  rewardGather: { min: -1, max: 1     }, // felt: value of an eat/drink
+  rewardStep:   { min: -1, max: 1     }, // felt: cost/reward of a move / failed act
+  rewardRest:   { min: -1, max: 1     }, // felt: rest banks rewardRest · stock^restExponent
+  rewardPit:    { min: -1, max: 1     }, // felt: reward on entering a pit (a reward like any other — can be negative)
+  restExponent: { min: 0,  max: 2     }, // exponent on stock in the rest reward (was hardcoded 2)
+  confidenceK:  { min: 1,  max: 100   }, // layered coupling: count→confidence saturation
 };
-// per-ACTION vector genes — evolved INSTINCTS (one value per action). These are the direct attack on the
-// 5a "attack never bootstraps" wall: an innate prior/drive on `attack` makes an agent SAMPLE it enough to
-// discover the hunt's value, without a hand-set curriculum.
-//   initialQ[a]        — the prior VALUE of an unseen (state, a): a positive prior makes action a worth
-//                        trying before any experience (and seeds the bootstrap target through it).
-//   unexploredBonus[a] — selection-time optimism for an UNTRIED (state, a): an innate urge to sample a,
-//                        weighted by layer reliance so it fades as the action gets tried.
+// per-ACTION vector gene — the single evolved INSTINCT: initialQ[a] = the prior VALUE of an unseen
+// (state, a). A positive prior makes action a worth trying before any experience (and propagates via the
+// bootstrap). On the same [-1,1] reward scale. (unexploredBonus dropped — initialQ subsumes it.)
 Genome.VGENES = {
-  initialQ: { min: -2, max: 2, sd: 0.2, init: [-0.3, 0.3] },   // the single per-action instinct (drive folded in)
+  initialQ: { min: -1, max: 1 },
 };
 
 // standard-normal sample (Box–Muller). Uses Math.random, so a seeded harness makes it deterministic.
@@ -295,8 +289,8 @@ var genStats = function (pop) {
   for (const k in Genome.VGENES) vg[k] = new Array(nA).fill(0);
   let age = 0;
   for (const A of pop) {
-    for (const k in g) g[k] += A.genome[k];
-    for (const k in vg) for (let a = 0; a < nA; a++) vg[k][a] += A.genome[k][a];
+    for (const k in g) g[k] += A.genome.expr(k);                        // report EXPRESSED (actual) values
+    for (const k in vg) { const ev = A.genome.exprVec(k); for (let a = 0; a < nA; a++) vg[k][a] += ev[a]; }
     age += A.age;
   }
   for (const k in g) g[k] /= P;

@@ -29,7 +29,7 @@ P.evoPopSize = 16; P.evoGenerations = 25; P.evoRuns = 4; P.evoBatchSize = 8; P.e
 P.evoLifetime = 400; P.evoShelterFrac = 0.25; P.evoShelterGrid = 3; P.evoCull = 0.5; P.evoMutRate = 0.5; P.evoUseInstincts = true;
 
 const ATT = World.buildActions().indexOf('attack');
-const meanVec = (pop, key, a) => pop.reduce((s, A) => s + A.genome[key][a], 0) / pop.length;
+const meanVec = (pop, key, a) => pop.reduce((s, A) => s + A.genome.exprVec(key)[a], 0) / pop.length;
 
 const { history: hist, pop } = evolve(P.evoGenerations, P.evoPopSize);
 const ev = greedyEval(pop, 6);
@@ -39,17 +39,17 @@ const avg = (a) => a.reduce((x, y) => x + y, 0) / a.length;
 const first = avg(hist.slice(0, q).map((h) => h.mean)), last = avg(hist.slice(G - q).map((h) => h.mean));
 
 console.log('actions: ' + World.buildActions().join(',') + '   (attack idx ' + ATT + ')\n');
-console.log('gen  bankedFit  meanAge    ε      α      γ    | perUnit pitPen  attack iQ');
+console.log('gen  bankedFit  meanAge    ε      α      γ    | rRest   rPit   attack iQ');
 for (const i of [0, Math.floor(G / 2), G - 1]) {
   const h = hist[i], g = h.genes;
   console.log(String(i).padStart(3) + '  ' + h.mean.toFixed(1).padStart(8) + '  ' + h.meanAge.toFixed(1).padStart(5) +
     '   ' + g.epsilon.toFixed(3) + '  ' + g.alpha.toFixed(3) + '  ' + g.gamma.toFixed(3) +
-    '  | ' + g.rewardPerUnit.toFixed(0).padStart(5) + ' ' + g.pitPenalty.toFixed(0).padStart(5) +
+    '  | ' + g.rewardRest.toFixed(2).padStart(6) + ' ' + g.rewardPit.toFixed(2).padStart(6) +
     '     ' + h.vgenes.initialQ[ATT].toFixed(2));
 }
 const pass = last > first && ev.foodPerRun > 0 && ev.killsPerRun >= 0;
 console.log('\nevo-full: shelter+goats+food+PITS (no-INT) | bankedFit ' + first.toFixed(1) + '→' + last.toFixed(1) +
   ' | greedy banked/run ' + ev.foodPerRun.toFixed(1) + ' kills/run ' + ev.killsPerRun.toFixed(1) + ' deaths/run ' + ev.deathsPerRun.toFixed(1) +
-  ' | evolved attack iQ ' + meanVec(pop, 'initialQ', ATT).toFixed(2) + ' felt pitPenalty ' + hist[G - 1].genes.pitPenalty.toFixed(0) +
+  ' | evolved attack iQ ' + meanVec(pop, 'initialQ', ATT).toFixed(2) + ' felt rewardPit ' + hist[G - 1].genes.rewardPit.toFixed(2) +
   ' -> ' + (pass ? 'PASS' : 'FAIL'));
 process.exit(pass ? 0 : 1);

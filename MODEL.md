@@ -56,29 +56,42 @@ the reward and the meta-params — select them.**
 
 ## 4. The genes deployed
 
+**Storage:** every gene is stored NORMALIZED in **[0,1]** and expressed to its `[min,max]` on read; a
+SINGLE global mutation sd (`Genome.MUT_SD`) covers them all (one magic number, not one per gene). Initial
+draw is uniform over the full range unless a gene narrows it — evolution starts with maximal freedom.
+
 ### Scalar genes (`Genome.GENES`) — one value each
 
-| gene | bounds | what it is |
+| gene | range | what it is |
 |---|---|---|
 | `epsilon` | [0, 1] | ε-greedy exploration rate |
-| `alpha` | [0.01, 1] | learning rate |
-| `gamma` | [0.5, 0.999] | discount factor |
-| `rewardGather` | [0.1, 3] | **felt** reward for an eat/drink |
-| `rewardStep` | [−3, 0] | **felt** cost of a move / failed action |
+| `alpha` | [0, 1] | learning rate |
+| `gamma` | [0, 0.999] | discount factor (not 1) |
+| `rewardGather` | [−1, 1] | **felt** reward for an eat/drink |
+| `rewardStep` | [−1, 1] | **felt** reward/cost of a move / failed action |
+| `rewardRest` | [−1, 1] | **felt** rest-banking coefficient — rest banks `rewardRest · stock^restExponent` |
+| `rewardPit` | [−1, 1] | **felt** reward on entering a pit — a reward like any other, can be negative |
+| `restExponent` | [0, 2] | exponent on stock in the rest reward (was a hardcoded 2) |
 | `confidenceK` | [1, 100] | layered coupling: count→confidence saturation |
-| `rewardPerUnit` | [1, 100] | **felt** rest-banking coefficient — rest banks `rewardPerUnit·stock²` |
-| `pitPenalty` | [0, 100] | **felt** death penalty on entering a pit (the avoidance-learning signal) |
 
-### Vector genes (`Genome.VGENES`) — one value **per action** (length = nActions) — evolved INSTINCTS
+All four reward genes share **[−1, 1]** with NO forced sign — locking `rewardStep` negative or
+`rewardGather` positive would pre-constrain evolution. The reward genes are the FELT reward the agent
+LEARNS on; fitness is the TRUE objective, never the felt reward.
 
-| gene | bounds | what it is |
+### Vector gene (`Genome.VGENES`) — one value **per action** (length = nActions) — the evolved INSTINCT
+
+| gene | range | what it is |
 |---|---|---|
-| `initialQ[a]` | [−2, 2] | the prior **value** of an *unseen* `(state, a)`. A positive prior makes action `a` worth trying before any experience (and seeds the bootstrap target through it). Replaces `defaultQ` for unseen pairs when instincts are on. |
-| `unexploredBonus[a]` | [0, 3] | selection-time **optimism** for an *untried* `(state, a)`: an innate drive to sample action `a`, weighted by layer reliance so it fades as the action gets tried. |
+| `initialQ[a]` | [−1, 1] | the prior **value** of an *unseen* `(state, a)`. A positive prior makes action `a` worth trying before any experience, and propagates via the bootstrap. Replaces `defaultQ` for unseen pairs when instincts are on. |
 
-These two vectors are the evolved-**instinct** hypothesis: e.g. an innate prior/drive on `attack` that
-makes a forager sample the hunt enough to discover its value, without a hand-set curriculum — aimed at the
-Stage-5a "attack never bootstraps" wall.
+`initialQ` is the *single* instinct knob — `unexploredBonus` was dropped (it fired on the same unvisited
+pairs and only `initialQ` also enters the bootstrap, so `initialQ` subsumes it). The hypothesis: an innate
+prior on `attack` makes a forager sample the hunt enough to discover its value (the Stage-5a wall).
+
+### Architecture note
+Each agent holds a **precomputed numeric cfg** (its genome expressed, or `PARAMETERS` for non-evo runs).
+The learner reads α/γ/ε/confidenceK/initialQ off that cfg, and the agent computes its own **felt reward**
+from the world's outcome `event` (step/gather/rest/pit) — no per-tick global writes.
 
 ### Not genes (fixed / hand-set)
 `layers`, `gridN`, resource counts, `evoPopSize/Runs/BatchSize/Protect/Lifetime/Cull/MutRate`,

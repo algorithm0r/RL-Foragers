@@ -38,8 +38,8 @@ var FlatAgent = class FlatAgent {
 var feltReward = function (cfg, out) {
   switch (out.event) {
     case 'gather': return cfg.rewardGather;
-    case 'rest':   return cfg.rewardPerUnit * out.stock * out.stock;
-    case 'pit':    return -cfg.pitPenalty;
+    case 'rest':   return cfg.rewardRest * Math.pow(out.stock, cfg.restExponent);
+    case 'pit':    return cfg.rewardPit;
     default:       return cfg.rewardStep; // 'step' — moves, misses, the attack cost
   }
 };
