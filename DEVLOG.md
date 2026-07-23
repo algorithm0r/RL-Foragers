@@ -3,6 +3,35 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-22 — Retraction: "two-action hunt not learnable" is an overclaim; exposure is ample; one-action ≠ hunting
+
+**Chris corrected three things, all right:**
+1. **"Two-action hunting isn't learnable / one-action is necessary" is an UNPROVABLE universal
+   negative** and I kept asserting it. No finite experiment set can prove it, and the greedy-eval
+   didn't. **Retracted.** The honest ceiling: two-action hunting DID NOT EMERGE under the conditions
+   tested — nothing stronger. Prior entries' "not viable / one-action required" language is withdrawn.
+2. **One-action "hunting" is NOT hunting** — it's eating the goat whole / foraging a goat-shaped
+   food; it deletes the kill→eat structure that makes hunting hunting. So it was never a solution to
+   the hunting question. This is the BEACON pattern again (pits arc): making the metric behave by
+   replacing the phenomenon. Only the two-action form is hunting.
+3. **"How many times are agents exposed to goats?"** — measured (clean two-action, ε-greedy, 6k eps):
+   forager is GOAT-ADJACENT ~21% of ticks (nFood=0: 16.7 ticks/ep) — ≈ the random-placement baseline
+   (3 goats × 8 nbrs / 100 ≈ 0.22), so it meets goats at chance, neither seeking nor avoiding. It
+   attacks ~1.8×/ep and KILLS ~0.59 goats/ep during training (thousands of hunt-initiations). **So
+   the non-emergence is NOT an exposure-starvation problem** — ample opportunity, still not adopted
+   by the greedy policy. Where the chain fails (completing kill→navigate→eat, or its value) is an
+   OPEN question; I'm no longer offering an untested mechanism as the answer.
+**Net:** the robust, honest statement about the goats arc is narrow — *two-action hunting did not
+emerge in the conditions tried, despite ample exposure; one-action collecting is a different behavior
+that does get learned when food is scarce.* No claim about learnability in general.
+**Changed:** docs only (this entry + STATUS softened). No code change. Memory:
+[[disentangle-confounds-before-experiments]] extended in spirit — also don't state universal
+negatives, and don't "fix" a phenomenon by redefining it.
+**State:** smoke PASS @ v0.6.0+ (unchanged). Exposure run is scratch; numbers here.
+**Next (Chris's call):** open question of whether two-action hunting can be made to emerge (e.g.
+stationary/slower prey to ease chain-completion, prey-seeking incentive, more goats) — framed as an
+open question, not a settled negative.
+
 ## 2026-07-22 — CLEAN goats (Chris disentangled the confounds): two-action hunt never learns; one-action does
 
 **Context:** Chris flagged that the goats arc had too many tangled confounds and the prior conclusions

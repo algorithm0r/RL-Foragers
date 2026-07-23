@@ -27,14 +27,14 @@ prior bars).
   resources/ep (> forager's bank).
 - **Emergent shared clock:** collapse 39%→17% with goats (they clear the field → shelter fires
   sooner). The `clearedOrTime` gate is accelerable by other species.
-- **Two-action hunt NEVER learns; one-action does (CLEAN run, 2026-07-22 after Chris disentangled
-  the confounds — non-competing goats via `goatEatRespawn`, clearing needs goats via
-  `goatsCountToClear`, ε-greedy not UCB).** Greedy-policy eval: 2-action greedy kills 0.05 (nFood=0,
-  hunting MANDATORY, no other food) / 0.00 (nFood=6) — never adopted. 1-action greedy kills 0.66
-  (nFood=0, adopts 48%) / 0.005 (nFood=6, ignored — foraging worth 31 ≫ attack). Corrects the earlier
-  "opportunity cost" framing (at nFood=0 there's no better alternative, yet 2-action still won't
-  hunt → the multi-step attack→navigate→eat chain just doesn't bootstrap as a greedy behavior).
-  Spatial 9-food premium (`goatExplodeRadius`) also does NOT rescue 2-action.
+- **Two-action hunting DID NOT EMERGE in the conditions tested (NOT "unlearnable" — that's an
+  unprovable overclaim, retracted).** Clean run (non-competing goats, clearing-needs-goats, ε-greedy):
+  greedy-policy eval 2-action kills 0.05 (nFood=0) / 0.00 (nFood=6). Exposure is AMPLE (forager
+  goat-adjacent ~21% of ticks ≈ random baseline, ~0.59 kills/ep during training) — so non-emergence
+  is NOT exposure starvation; where the kill→navigate→eat chain fails is OPEN. **One-action "hunting"
+  is a DIFFERENT behavior (eating the goat whole, not kill-then-eat)** — it gets learned when food is
+  scarce (greedy kills 0.66, nFood=0) but it is NOT hunting, so it does not answer the hunting
+  question. Earlier "opportunity cost" / "one-action necessary" framings withdrawn.
 - **Prey learn no fear — correctly** (Q toward human −0.22 > away −0.34; predation is ε-noise).
 - **Scarcity doesn't rescue hunting** (nFood 6→1, kills still decay) → two-action+banked+discounted
   hunt loses to direct foraging even when hungry. Premium/one-action hunt REQUIRED.
@@ -46,10 +46,10 @@ prior bars).
 - `main` (pushed to origin)
 
 ## Open
-- **Hunt design (Chris's fork, now cleanly answered):** the two-action attack→navigate→eat hunt is
-  NOT a viable learned behavior (never adopted, even mandatory-to-clear with no other food). Use the
-  ONE-action hunt (`goatHuntOneAction`) for anything meant to be learned — and it only gets used when
-  food is scarce. Wolves should therefore use a one-action attack.
+- **Hunting (OPEN question, not settled):** two-action (real) hunting didn't emerge in the conditions
+  tried, but exposure is ample and "unlearnable" is unprovable — so whether it CAN be made to emerge
+  (slower/stationary prey to ease chain-completion, a prey-seeking incentive, denser goats) is open,
+  not closed. One-action collecting is a separate behavior, not a hunting solution.
 - **Wolves (5b):** HP, bite-back, ~3-bite death → forces the ⚠ conjunction-state decision (health×
   window; the pits gauntlet proved factored INT+window can't express conditional-risk policies).
 - Evolution (post-multi-agent): gene tiers sketched — valences first, then γ/ε, then architecture.
