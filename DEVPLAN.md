@@ -356,12 +356,18 @@ in DEVLOG 2026-07-21/22. Original scope as built:
   (Lamarckian), newborns fresh + evoProtect gens of cull-immunity; cull only mature within the worst-K
   slots (elites persist). **Proven:** `evosmoke.mjs` 30×30/pop16/K4×life500/25gens → mean fitness
   97→327, meanAge 0→9.3; genes chose ε≈0.04, α≈0.39, γ≈0.71 (persisting tables reward a longer horizon).
-- [ ] **v1b — full genome + real regime.** Add the rest of the meta-params (reward weights: gather/step/
-  pit/rest/collapse — the *felt* reward — plus confidenceK, shelter-online timing) AND the two evolved-
-  prior gene vectors tagged PER ACTION: (a) initial-Q per action, (b) unexplored-bonus per action —
-  evolved INSTINCTS (an innate `attack` drive directly attacks the 5a "attack never bootstraps" wall).
-  World regime: placed/spaced multiple shelters appearing in the LAST QUARTER; fitness = banked stock.
-  Plus browser viz of generations (fitness curve + evolved-gene readout).
+- **v1b — full genome + real regime** (in progress, sub-staged):
+  - [x] **v1b.1 — full scalar genome + felt-reward split.** Added rewardGather/rewardStep/confidenceK
+    genes; `stepForager` sets them per-forager so the agent LEARNS on its evolved FELT reward while
+    fitness stays the TRUE objective (food). Proven: evolution can't cheat (fitness ≠ felt reward) — it
+    SOFTENED the felt step-cost −0.77→−0.31 (hand-tuned −1 is too punishing for dense foraging), left
+    rGather ~0.8, meanFit 115→342. The reward-shaping payoff, made concrete.
+  - [ ] **v1b.2 — per-action instinct vectors.** initial-Q per action + unexplored-bonus per action
+    (evolved INSTINCTS; an innate `attack` drive directly attacks the 5a "attack never bootstraps" wall).
+    Needs QLearner/agent support (getQ + selection consult per-genome vectors) + goats in-world to test.
+  - [ ] **v1b.3 — placed-shelter regime, fitness = banked stock.** Spaced (non-random) shelters appearing
+    in the LAST QUARTER; return-and-rest to bank; +pit/rest/collapse reward genes + shelter-timing gene.
+  - [ ] **v1b.4 — browser viz of generations** (fitness curve + evolved-gene readout).
 - [ ] **v1c — culture.** Per-agent tables already exist; add `broadcastRange` so each transition updates
   agents in range (∞ ≡ shared, local ≡ CULTURE, 0 ≡ individual). Test the hunting-culture hypothesis.
 - [ ] **v1d — persistence.** Store genomes + Q-tables in the DB (lineages, resume, analysis).

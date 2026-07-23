@@ -3,6 +3,28 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-23 — v1b.1: full scalar genome + the felt-reward / fitness split
+
+**Done:** Started Stage 6 **v1b** (decomposed into v1b.1–.4). Landed **v1b.1**: the genome grows from
+{ε,α,γ} to also carry the **felt reward** — `rewardGather`, `rewardStep`, `confidenceK`. `stepForager`
+sets these per-forager, so each individual LEARNS on its own evolved felt reward, while **fitness stays
+the TRUE objective** (food foraged), never the felt reward. This is the reward-shaping payoff made
+concrete: stop hand-tuning the reward, SELECT it. `genStats` generalised to average every gene in
+`Genome.GENES` automatically as the genome grows.
+
+**Changed:** `evolution.js` (Genome.GENES +3 felt-reward genes, stepForager sets them, genStats
+generalised); `evosmoke.mjs` + smoke `E` bar report the felt-reward trajectory.
+
+**State:** smoke **PASS** @ v0.7.0-3-gee27818 (all bars incl. `E evo=true, meanFit 40.4→121.4`).
+`evosmoke.mjs` (30×30, pop16, K4×life500, 25 gens, seeded): meanFit **115→342**. The headline finding —
+evolution did NOT inflate the felt gather reward (it can't: fitness ≠ felt reward); instead it **softened
+the felt step-cost −0.77 → −0.31**, i.e. the hand-tuned rewardStep=−1 is too punishing for a dense
+renewable forage where you must wander to eat. rGather held ~0.8, confidenceK drifted ~27 (weak pressure
+in this easy regime). ε→0.01, α→0.44, γ→0.62. (One seeded run — held loosely.)
+
+**Next:** v1b.2 — per-action instinct vectors (initial-Q + unexplored-bonus): the evolved-INSTINCT
+machinery + the goats-in-world test of whether an innate `attack` drive produces hunting (the 5a wall).
+
 ## 2026-07-23 — v1a evaluation regime: persistent individuals, shared-map batched runs, protection
 
 **Done:** Chris redesigned v1a's evaluation to kill the single-run noise (each genome had been scored on

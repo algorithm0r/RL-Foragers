@@ -37,12 +37,13 @@ const rise = last - first;
 
 // per-generation trace (sampled) so the trajectory is legible in the log
 const show = [0, Math.floor(G / 4), Math.floor(G / 2), Math.floor((3 * G) / 4), G - 1];
-console.log('gen   meanFit  bestFit  meanAge    ε      α      γ');
+console.log('gen   meanFit  bestFit  meanAge    ε      α      γ    | rGather rStep  confK   (felt reward)');
 for (const i of show) {
-  const h = hist[i];
+  const h = hist[i], g = h.genes;
   console.log(
     String(i).padStart(3) + '  ' + h.mean.toFixed(1).padStart(7) + '  ' + h.best.toFixed(0).padStart(6) +
-    '   ' + h.meanAge.toFixed(1).padStart(5) + '   ' + h.genes.epsilon.toFixed(3) + '  ' + h.genes.alpha.toFixed(3) + '  ' + h.genes.gamma.toFixed(3));
+    '   ' + h.meanAge.toFixed(1).padStart(5) + '   ' + g.epsilon.toFixed(3) + '  ' + g.alpha.toFixed(3) + '  ' + g.gamma.toFixed(3) +
+    '  | ' + g.rewardGather.toFixed(2).padStart(6) + ' ' + g.rewardStep.toFixed(2).padStart(6) + ' ' + g.confidenceK.toFixed(0).padStart(5));
 }
 
 const g0 = hist[0].genes, gN = hist[G - 1].genes;
@@ -54,5 +55,7 @@ console.log(
   ' | ε ' + g0.epsilon.toFixed(3) + '→' + gN.epsilon.toFixed(3) +
   ' α ' + g0.alpha.toFixed(3) + '→' + gN.alpha.toFixed(3) +
   ' γ ' + g0.gamma.toFixed(3) + '→' + gN.gamma.toFixed(3) +
+  ' | felt rGather ' + g0.rewardGather.toFixed(2) + '→' + gN.rewardGather.toFixed(2) +
+  ' rStep ' + g0.rewardStep.toFixed(2) + '→' + gN.rewardStep.toFixed(2) +
   ' -> ' + (pass ? 'PASS' : 'FAIL'));
 process.exit(pass ? 0 : 1);

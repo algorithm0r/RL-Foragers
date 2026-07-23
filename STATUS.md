@@ -24,12 +24,15 @@ batches of evoBatchSize each run (learning persists across runs); `nextGeneratio
 protected. **UI:** `PARAM_SCHEMA` rows carry `group` (collapsible) + `showIf` (contextual). smoke PASS.
 
 ## Metrics (this session)
-- **Evolution v1a works** (`evosmoke.mjs`, 30×30 / pop 16 / K4×life500 / 25 gens, seeded): mean fitness
-  **97→327**, meanAge **0→9.3** (trained elites persist across generations, as designed). Genes evolution
-  CHOSE on a dense renewable world: **ε≈0.04** (near-greedy), **α≈0.39** (moderate), **γ≈0.71** — γ stays
-  HIGHER than the earlier cold-restart cut (~0.5): with tables persisting across many lives a longer
-  horizon pays off. (One seeded run — held loosely.) ⇒ Stage-6 Done-when partly met (loop + readable
-  choices + low-noise shared-map eval); culture/hunting hypothesis still ahead.
+- **Evolution v1b.1 — felt-reward genome** (`evosmoke.mjs`, 30×30 / pop16 / K4×life500 / 25 gens, seeded):
+  meanFit **115→342**, meanAge **0→7.9**. Genome now carries the FELT reward (rewardGather/rewardStep/
+  confidenceK) the agent learns on; fitness = TRUE food, so evolution can't inflate it — instead it
+  **softened the felt step-cost −0.77→−0.31** (hand-tuned −1 is too punishing for dense foraging), held
+  rGather ~0.8, drifted confidenceK ~27. ε→0.01, α→0.44, γ→0.62. (One seeded run — held loosely.)
+- **v1a eval regime:** persistent individuals, K shared-map batched runs, Lamarckian survivors + juvenile
+  protection — meanAge climbs (elites persist), single-run noise removed.
+- ⇒ Stage-6 Done-when progressing: loop + low-noise eval + readable felt-reward choices. Ahead: instinct
+  vectors (attack/5a wall), shelter regime, culture/hunting hypothesis.
 - **Prior (unchanged):** hunting resolved by replay (greedy kills 0.05→~3.0, 3 seeds); goats as
   competitors ~40% harvest cost; no-INT shelter wins EV; pits layered+ε-greedy survives+clears.
 - All universal "unlearnable" claims retracted — findings = "did not emerge under conditions tested".
@@ -47,7 +50,8 @@ protected. **UI:** `PARAM_SCHEMA` rows carry `group` (collapsible) + `showIf` (c
 - Curriculum "eat then hunt" — Chris has another idea (TBD).
 
 ## Next action
-Build **v1b**: full genome + per-action instinct vectors + placed-shelter regime + generation viz.
+Build **v1b.2**: per-action instinct vectors (initial-Q + unexplored-bonus) — evolved-instinct machinery
+(QLearner/agent support) + the goats-in-world test of whether an innate `attack` drive produces hunting.
 
 ## Blockers
 - none

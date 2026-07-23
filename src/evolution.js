@@ -58,10 +58,17 @@ var Genome = class Genome {
 };
 // gene → { bounds, mutation sd, [init lo, init hi] }. Init ranges span the good regime AND a lot of
 // bad, so a working loop VISIBLY concentrates the population toward what we already know works.
+// The reward-weight genes are the FELT reward — the reward the agent LEARNS on. Fitness is the TRUE
+// objective (food foraged / stock banked), NEVER the felt reward — so evolution can't cheat by
+// inflating rewardGather; it can only pick felt weights whose learned policy forages best. This is
+// the payoff of the whole reward-shaping struggle: stop hand-tuning the reward, SELECT it.
 Genome.GENES = {
-  epsilon: { min: 0,    max: 1,     sd: 0.04, init: [0.0,  0.5]  },
-  alpha:   { min: 0.01, max: 1,     sd: 0.05, init: [0.02, 0.6]  },
-  gamma:   { min: 0.5,  max: 0.999, sd: 0.03, init: [0.6,  0.99] },
+  epsilon:      { min: 0,    max: 1,     sd: 0.04, init: [0.0,  0.5]  },
+  alpha:        { min: 0.01, max: 1,     sd: 0.05, init: [0.02, 0.6]  },
+  gamma:        { min: 0.5,  max: 0.999, sd: 0.03, init: [0.6,  0.99] },
+  rewardGather: { min: 0.1,  max: 3,     sd: 0.15, init: [0.5,  1.5]  }, // felt: value of an eat/drink
+  rewardStep:   { min: -3,   max: 0,     sd: 0.15, init: [-1.5, -0.2] }, // felt: cost of a move / failed act
+  confidenceK:  { min: 1,    max: 100,   sd: 6,    init: [10,   50]   }, // layered coupling: count→confidence saturation
 };
 
 // standard-normal sample (Box–Muller). Uses Math.random, so a seeded harness makes it deterministic.
@@ -112,7 +119,10 @@ var EvoWorld = class EvoWorld extends World {
   // own persistent policy act, then read back its new position and food gained.
   stepForager(f) {
     const g = f.ind.genome;
+    // aim the global learning params AND the felt-reward weights at THIS individual's genome. The agent
+    // learns on its felt reward (rewardGather/rewardStep); fitness below counts TRUE food, not felt.
     PARAMETERS.epsilon = g.epsilon; PARAMETERS.alpha = g.alpha; PARAMETERS.gamma = g.gamma;
+    PARAMETERS.rewardGather = g.rewardGather; PARAMETERS.rewardStep = g.rewardStep; PARAMETERS.confidenceK = g.confidenceK;
     this.ax = f.x; this.ay = f.y;
     const before = this.food;
     f.ind.policy.act(this);
@@ -173,7 +183,8 @@ var nextGeneration = function (pop, nActions) {
 var genStats = function (pop) {
   const P = pop.length, fits = pop.map((A) => A.fitness).sort((a, b) => b - a);
   const mean = fits.reduce((a, b) => a + b, 0) / P;
-  const g = { epsilon: 0, alpha: 0, gamma: 0 }; let age = 0;
+  const g = {}; for (const k in Genome.GENES) g[k] = 0;
+  let age = 0;
   for (const A of pop) { for (const k in g) g[k] += A.genome[k]; age += A.age; }
   for (const k in g) g[k] /= P;
   return { mean, best: fits[0], worst: fits[P - 1], meanAge: age / P, genes: g };
