@@ -19,7 +19,7 @@ for (const f of ['util.js', 'params.js', 'engine.js', 'qlearner.js', 'utree.js',
   indirectEval(src);
 }
 const P = globalThis.PARAMETERS;
-const { World, evolve, greedyEval } = globalThis;
+const { World, evolve, greedyEval, Genome } = globalThis;
 
 const condition = process.argv[2] || 'food';
 const seed = parseInt(process.argv[3] || '20260722', 10);
@@ -34,7 +34,13 @@ function base() {
   P.nTypes = 1; P.gridN = 20; P.nFood = 40;
   P.evoPopSize = 16; P.evoGenerations = 25; P.evoRuns = 4; P.evoBatchSize = 8; P.evoProtect = 2; P.evoLifetime = 400;
   P.evoShelterFrac = 0.25; P.evoShelterGrid = 3; P.evoCull = 0.5; P.evoMutRate = 0.5; P.evoUseInstincts = true;
+  P.defaultQ = 0; Genome.VGENES.initialQ.init = [-0.3, 0.3];   // neutral baseline (reset; pessimist conditions override)
 }
+// pessimistic baseline: untried actions start clearly BAD (initialQ init −2..−1, defaultQ −2), so a forager
+// won't try attacking unless evolution actively RAISES initialQ[attack] above the (pessimistic) baseline of
+// the other actions. Breaks the degeneracy where 0 was both the gene's init and the reward-neutral optimum
+// (Chris, 2026-07-23): the discriminating test of whether the instinct gene is SELECTABLE vs merely undriven.
+function pessimist() { P.defaultQ = -2; Genome.VGENES.initialQ.init = [-2, -1]; }
 const CONDITIONS = {
   'food':            () => { base(); P.gridN = 30; P.nFood = 60; },                                                        // food-only: loop + felt-step softening
   'hunt-scarce-on':  () => { base(); P.gridN = 30; P.enableGoats = true; P.nFood = 15; P.evoUseInstincts = true; },        // hunt sweep
@@ -44,6 +50,9 @@ const CONDITIONS = {
   'shelter':         () => { base(); P.enableShelter = true; P.gridN = 20; P.nFood = 40; },                                // no-INT multi-shelter banking
   'full':            () => { base(); P.enableShelter = true; P.enableGoats = true; P.gridN = 20; P.nFood = 20; },          // combined world
   'full-pits':       () => { base(); P.enableShelter = true; P.enableGoats = true; P.enablePits = true; P.nPits = 3; P.gridN = 20; P.nFood = 20; }, // + pits (knife-edge)
+  // pessimistic-baseline hunt: is the attack instinct SELECTABLE when a positive prior is the ONLY route to hunting?
+  'hunt-pess-on':    () => { base(); P.gridN = 30; P.enableGoats = true; P.nFood = 15; P.evoUseInstincts = true;  pessimist(); },
+  'hunt-pess-off':   () => { base(); P.gridN = 30; P.enableGoats = true; P.nFood = 15; P.evoUseInstincts = false; pessimist(); },
 };
 if (!CONDITIONS[condition]) { console.error('unknown condition "' + condition + '"; known: ' + Object.keys(CONDITIONS).join(', ')); process.exit(2); }
 CONDITIONS[condition]();
@@ -57,13 +66,16 @@ const gN = history[G - 1].genes;
 const ATT = World.buildActions().indexOf('attack');
 const attackInitialQ = ATT >= 0 ? pop.reduce((s, A) => s + A.genome.initialQ[ATT], 0) / pop.length : null;
 const attackBonus = ATT >= 0 ? pop.reduce((s, A) => s + A.genome.unexploredBonus[ATT], 0) / pop.length : null;
+// baseline = population-mean initialQ over ALL actions → attackInitialQ − meanInitialQ isolates attack-SPECIFIC
+// selection (did evolution lift attack ABOVE the general baseline, not just shift every action together)
+const meanInitialQ = pop.reduce((s, A) => s + A.genome.initialQ.reduce((x, y) => x + y, 0) / A.genome.initialQ.length, 0) / pop.length;
 
 const db = createDB(Object.assign({}, P.db, { transport: 'direct', db: P.db.db }));
 db.config.run = 'evoreps';
 const pkt = db.packet(P, {
   condition, seed,
   meanFitFirst, meanFitLast, meanFitRise: meanFitLast - meanFitFirst, meanAgeLast: gN ? history[G - 1].meanAge : 0,
-  genes: gN, attackInitialQ, attackBonus,
+  genes: gN, attackInitialQ, attackBonus, meanInitialQ, defaultQ: P.defaultQ,
   greedyBanked: ev.foodPerRun, greedyKills: ev.killsPerRun, greedyDeaths: ev.deathsPerRun,
 });
 const res = await db.insert('evoreps', pkt);

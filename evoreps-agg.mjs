@@ -28,7 +28,7 @@ const stat = (arr) => { const n = arr.length, m = arr.reduce((a, b) => a + b, 0)
 const fmt = (s) => (s.m >= 0 ? ' ' : '') + s.m.toFixed(2) + '±' + s.sd.toFixed(2);
 const col = (v, w) => String(v).padEnd(w);
 
-const order = ['food', 'hunt-scarce-on', 'hunt-scarce-off', 'hunt-dense-on', 'hunt-dense-off', 'shelter', 'full', 'full-pits'];
+const order = ['food', 'hunt-scarce-on', 'hunt-scarce-off', 'hunt-dense-on', 'hunt-dense-off', 'shelter', 'full', 'full-pits', 'hunt-pess-on', 'hunt-pess-off'];
 console.log('\nEVOREPS — ' + docs.length + ' replicates (deduped by condition+seed)\n');
 console.log(col('condition', 17) + col('n', 3) + col('fitRise', 14) + col('greedyBanked', 16) + col('kills', 13) + col('deaths', 12) + col('attackIQ', 13) + 'rStep');
 for (const c of order) {
@@ -66,4 +66,18 @@ if (byCond['full'] && byCond['full-pits']) {
   console.log('pit knife-edge: full fitRise ' + fmt(stat(byCond['full'].map((r) => r.meanFitRise))) +
     ' vs full-pits ' + fmt(stat(byCond['full-pits'].map((r) => r.meanFitRise))) +
     ' (full-pits deaths ' + fmt(stat(byCond['full-pits'].map((r) => r.greedyDeaths))) + ')');
+}
+// 5) PESSIMISTIC-BASELINE test — is the attack instinct SELECTABLE when a positive prior is the only route
+// to hunting? Read attack initialQ ABOVE the baseline (mean over actions) — the attack-SPECIFIC signal.
+if (byCond['hunt-pess-on']) {
+  const on = byCond['hunt-pess-on'];
+  const diffs = on.map((r) => r.attackInitialQ - r.meanInitialQ);
+  const above = diffs.filter((d) => d > 0).length;
+  console.log('\n--- pessimistic-baseline test (untried actions start at ~-1.5, defaultQ -2) ---');
+  console.log('attack instinct SELECTABLE? attack initialQ ' + fmt(stat(on.map((r) => r.attackInitialQ))) +
+    ' vs baseline (mean over actions) ' + fmt(stat(on.map((r) => r.meanInitialQ))) +
+    '  →  attack ABOVE baseline ' + fmt(stat(diffs)) + ' in ' + above + '/' + on.length + ' seeds');
+  console.log('  greedy kills: pess-ON ' + fmt(stat(on.map((r) => r.greedyKills))) +
+    (byCond['hunt-pess-off'] ? '  vs pess-OFF ' + fmt(stat(byCond['hunt-pess-off'].map((r) => r.greedyKills))) : '') +
+    '   (vs neutral scarce-on ' + (byCond['hunt-scarce-on'] ? fmt(stat(byCond['hunt-scarce-on'].map((r) => r.greedyKills))) : '—') + ')');
 }

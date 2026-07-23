@@ -3,6 +3,36 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-23 — pessimistic-baseline test: the initialQ instinct is not selectable even under pressure
+
+**Why:** Chris's methodological catch — with `initialQ` init centred on 0 AND `defaultQ`=0 AND 0 = the
+reward-neutral exploration point, a drifting gene is indistinguishable from a selected-optimal one, so
+"instinct inert" was unproven. Fix: two new `evoreps` conditions `hunt-pess-{on,off}` that make untried
+actions **pessimistic** (`initialQ` init [−2,−1], `defaultQ` −2) — so a positive evolved `initialQ[attack]`
+would be the ONLY clean route to hunting. Recorded `meanInitialQ` (baseline over all actions) so the
+attack-SPECIFIC signal is `attackInitialQ − meanInitialQ`, not the absolute level. (No src change — the
+runner overrides `Genome.VGENES.initialQ.init` + `defaultQ`.)
+
+**Result (8 seeds):**
+- **The `initialQ[attack]` value-prior is NOT selectable.** attack initialQ −1.39±0.20 vs all-action
+  baseline −1.52±0.04 → only **0.13±0.19 above baseline, 5/8 seeds (= noise)**. Even when a positive attack
+  prior is the clean route to hunting, evolution doesn't produce one. The earlier ~0 was NOT a hidden
+  optimum — the value-prior gene is genuinely inert for attack. Degeneracy broken, null confirmed.
+- **Hunting rose, not collapsed:** greedy kills pess ~28–37 vs neutral 16. Driven by LEARNING + exploration,
+  not the prior; pessimism sharpens the learned hunt (bigger contrast vs the now-terrible alternatives).
+- **The real instinct effect is the OTHER gene:** pess-ON kills 37.3±9.3 vs pess-OFF 28.2±6.7 — and the sign
+  FLIPPED from neutral (where on≈off, 16 vs 19). The on/off difference is the **`unexploredBonus` drive**
+  (the value-prior stayed pessimistic in both): under a pessimistic baseline the drive gene helps hunting by
+  pushing attack-sampling that bad values would suppress. Borderline (overlapping σ), held loosely, but
+  mechanistically coherent.
+
+**Takeaway:** value-prior (`initialQ`) instinct = inert even under pressure; drive (`unexploredBonus`)
+instinct = modest, regime-dependent help. Reinforces v1c (culture) over an innate value gene as the route
+to a hunting population.
+
+**Changed:** `evoreps.mjs` (pessimist conditions + meanInitialQ/defaultQ in packet), `evoreps-agg.mjs`
+(pessimist directional block). 80 reps now in `evoreps`. `MODEL.md` §6 note stands (now answered).
+
 ## 2026-07-23 — v1b.7: REPLICATES (8 seeds × 8 conditions) — replication corrects the single-seed findings
 
 **Done:** Built the replicates harness — `evoreps.mjs <condition> <seed>` writes a self-describing packet
