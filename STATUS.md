@@ -50,11 +50,11 @@ protected. **UI:** `PARAM_SCHEMA` rows carry `group` (collapsible) + `showIf` (c
 - Curriculum "eat then hunt" — Chris has another idea (TBD).
 
 ## Next action
-**v1b.2 hunting sweep done** (`evohunt.mjs`): evolved `attack` instinct TRACKS scarcity (+0.14/0.45 when
-scarce, −0.17/0.18 when dense); instinct-ON beats OFF under scarcity. Caveat: hunting also appears in the
-OFF control (easier regime than 5a), so instinct AMPLIFIES not ENABLES here. **Chris's call:** more seeds
-(parallel) to firm the directional finding · OR harden regime (moving prey / cold individuals) for
-necessity · OR move to v1b.3 (placed-shelter regime) / v1b.4 (generation viz).
+**v1b.3a done** — central-place evo regime (`evoshelter.mjs`): one placed shelter opens the last quarter,
+fitness = banked stock; population learns forage-then-home (banked fitness 0.3→28.9, greedy banked/run 2.5),
+evolution raised felt rewardPerUnit 48→62. Next: **v1b.3b** — MULTIPLE spaced shelters + nearest bearing;
+then **v1b.4** browser viz of generations. (Also open: v1b.2 hunting follow-up — harder regime for instinct
+necessity — if we return to it.)
 
 ## Blockers
 - none

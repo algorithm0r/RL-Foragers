@@ -3,6 +3,32 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-23 — v1b.3a: central-place (placed-shelter) evo regime, fitness = banked stock
+
+**Done:** EvoWorld gains a central-place foraging mode (Chris's v1b regime, half of it): a placed shelter
+at the arena centre, HIDDEN until the last quarter of the lifetime (tick-based reveal), foragers must
+return + REST to BANK their carried stock. **Fitness = banked stock** (never resting banks 0), a clean
+split from food-eaten mode. Per-forager carry/done tracking; `stepForager` dual-mode (bank-on-rest vs
+food-as-eaten); tick-based `timeCode` override (the INT layer's "day left" signal); new felt gene
+`rewardPerUnit` (rest banks rewardPerUnit·stock²).
+
+**Traps handled:** `remaining` set FINITE (1e9) not Infinity, else rest's `restStickC·remaining` → NaN;
+`maxStepsPerEpisode` huge + `shelterActivate='cleared'` so World's steps-based collapse/activation never
+misfire in the tick-based multi-forager run (EvoWorld drives the reveal itself).
+
+**Result** (`evoshelter.mjs`, 20×20, pop16, K4×life400, shelter=last 25%, seeded): banked-stock fitness
+**0.3→28.9** (first-q 9.0 → last-q 30.6); greedy (frozen) banked/run **2.5** — foragers actually learn
+forage-then-home-and-rest. Homing emerged from the rest reward + selection alone (no felt collapse penalty
+needed). Evolution RAISED the felt rest coefficient rewardPerUnit 48→62 (banking is the fitness). ε→0.06,
+α~0.29, γ~0.69. (One seed, held loosely.)
+
+**Changed:** `evolution.js` (EvoWorld shelter mode, timeCode, dual-mode stepForager, rewardPerUnit gene),
+`params.js` (evoShelterFrac), new `evoshelter.mjs`. smoke **PASS** (food-mode evo unaffected — dual-mode
+branches on enableShelter). @ v0.7.0-6-g1d03f31.
+
+**Next:** v1b.3b — MULTIPLE spaced (gridded) shelters + nearest-shelter bearing (spec says multiple); then
+v1b.4 browser viz of generations.
+
 ## 2026-07-23 — v1b.2 goats-in-evo: the attack-instinct hunting sweep (does evolution tune hunting?)
 
 **Done:** Wired goats into `EvoWorld` (stationary renewable prey — 5a ruled prey MOTION out as the

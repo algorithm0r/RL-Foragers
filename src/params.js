@@ -176,6 +176,8 @@ var PARAMETERS = {
   evoMutRate: 0.5,        // per-gene probability an offspring's gene takes a Gaussian mutation step
   evoUseInstincts: true,  // apply the per-action instinct vectors (initialQ/unexploredBonus). OFF = the
                           //   CONTROL arm of the hunting sweep: same everything, instincts phenotypically silent.
+  evoShelterFrac: 0.25,   // central-place mode: the shelter opens for the LAST this-fraction of the lifetime
+                          //   (0.25 = last quarter) — forage first, then race home to BANK before it closes.
 
   // --- engine ---
   updatesPerDraw: 20,     // fast-forward: sim updates per rendered frame (learning is fast, drawing slow)

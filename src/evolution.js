@@ -88,6 +88,7 @@ Genome.GENES = {
   rewardGather: { min: 0.1,  max: 3,     sd: 0.15, init: [0.5,  1.5]  }, // felt: value of an eat/drink
   rewardStep:   { min: -3,   max: 0,     sd: 0.15, init: [-1.5, -0.2] }, // felt: cost of a move / failed act
   confidenceK:  { min: 1,    max: 100,   sd: 6,    init: [10,   50]   }, // layered coupling: count→confidence saturation
+  rewardPerUnit:{ min: 1,    max: 100,   sd: 6,    init: [20,   80]   }, // felt: rest banks rewardPerUnit·stock² (central-place only)
 };
 // per-ACTION vector genes — evolved INSTINCTS (one value per action). These are the direct attack on the
 // 5a "attack never bootstraps" wall: an innate prior/drive on `attack` makes an agent SAMPLE it enough to
@@ -135,12 +136,19 @@ var EvoWorld = class EvoWorld extends World {
     this.N = map.N;
     this.grid = map.grid.map((r) => r.slice());      // fresh copy so batches never mutate the shared map
     this.goats = []; this.goatAt = new Array(this.N * this.N).fill(-1);
-    this.remaining = Infinity;                        // renewable world — never "cleared"
+    this.remaining = 1e9;                             // renewable — never "cleared" (FINITE so rest's restStickC·remaining ≠ NaN)
     this.food = 0; this.water = 0; this.tick = 0;
     this.foragers = batch.map((ind, i) => {
       const c = map.spawns[i % map.spawns.length];
-      return { x: c % this.N, y: (c / this.N) | 0, ind };
+      return { x: c % this.N, y: (c / this.N) | 0, ind, carry: 0, done: false };
     });
+    // CENTRAL-PLACE mode: one placed shelter at the arena centre, HIDDEN until the last quarter of the
+    // lifetime. Foragers must return + rest to BANK their carried stock (= fitness); never resting banks 0.
+    if (PARAMETERS.enableShelter) {
+      this.sx = this.N >> 1; this.sy = this.N >> 1;
+      this.grid[this.sy][this.sx] = World.EMPTY;      // reserve the cell (revealed to SHELTER at the last quarter)
+      this.shelterActive = false;
+    }
     // renewable STATIONARY prey: goats as fixed hunt targets placed after the foragers. Stationary
     // because 5a already ruled prey MOTION out as the barrier (credit assignment was) — keep it clean.
     this.nGoatTarget = PARAMETERS.enableGoats ? PARAMETERS.nGoats : 0;
@@ -156,24 +164,42 @@ var EvoWorld = class EvoWorld extends World {
 
   // one forager's turn: aim the world's single-agent view + global RL rates at THIS individual, let its
   // own persistent policy act, then read back its new position and food gained.
+  // tick-based time-of-day (overrides World's steps-based one): the INT layer's "how much of the
+  // lifetime is left" signal — what makes "forage now, head home before the shelter closes" learnable.
+  timeCode() {
+    const B = PARAMETERS.timeBuckets, rem = PARAMETERS.evoLifetime - this.tick;
+    let b = Math.floor((rem / PARAMETERS.evoLifetime) * B);
+    if (b >= B) b = B - 1; if (b < 0) b = 0;
+    return b.toString(36);
+  }
+
   stepForager(f) {
     const g = f.ind.genome;
     // aim the global learning params AND the felt-reward weights at THIS individual's genome. The agent
-    // learns on its felt reward (rewardGather/rewardStep); fitness below counts TRUE food, not felt.
-    PARAMETERS.gamma = g.gamma; PARAMETERS.rewardGather = g.rewardGather; PARAMETERS.rewardStep = g.rewardStep; PARAMETERS.confidenceK = g.confidenceK;
+    // learns on its felt reward (rewardGather/rewardStep/rewardPerUnit); fitness = TRUE stock, not felt.
+    PARAMETERS.gamma = g.gamma; PARAMETERS.rewardGather = g.rewardGather; PARAMETERS.rewardStep = g.rewardStep;
+    PARAMETERS.confidenceK = g.confidenceK; PARAMETERS.rewardPerUnit = g.rewardPerUnit;
     PARAMETERS.initialQ = PARAMETERS.evoUseInstincts ? g.initialQ : null;          // instinct value-prior (control: off → null)
     if (this.evalMode) { PARAMETERS.epsilon = 0; PARAMETERS.alpha = 0; PARAMETERS.unexploredBonus = null; } // greedy, frozen, no drive
     else { PARAMETERS.epsilon = g.epsilon; PARAMETERS.alpha = g.alpha; PARAMETERS.unexploredBonus = PARAMETERS.evoUseInstincts ? g.unexploredBonus : null; }
     this.ax = f.x; this.ay = f.y;
+    this.food = f.carry;                              // present THIS forager's carried stock (rest banks food², satiety senses it)
     const before = this.food;
-    f.ind.policy.act(this);
-    f.x = this.ax; f.y = this.ay;
-    f.ind.fitness += this.food - before;
+    const out = f.ind.policy.act(this);
+    f.x = this.ax; f.y = this.ay; f.carry = this.food;
+    if (PARAMETERS.enableShelter) {
+      // central-place: fitness accrues only when BANKED at rest; a collapse / never-resting banks nothing
+      if (out.done) { f.done = true; if (out.rested) f.ind.fitness += f.carry; f.carry = 0; }
+    } else {
+      f.ind.fitness += this.food - before;           // renewable food mode: fitness = food eaten as it's eaten
+    }
   }
 
   runLifetime() {
+    const reveal = PARAMETERS.enableShelter ? Math.floor((1 - PARAMETERS.evoShelterFrac) * PARAMETERS.evoLifetime) : -1;
     for (this.tick = 0; this.tick < PARAMETERS.evoLifetime; this.tick++) {
-      for (let i = 0; i < this.foragers.length; i++) this.stepForager(this.foragers[i]);
+      if (this.tick === reveal) { this.grid[this.sy][this.sx] = World.SHELTER; this.shelterActive = true; } // shelter opens (last quarter)
+      for (let i = 0; i < this.foragers.length; i++) if (!this.foragers[i].done) this.stepForager(this.foragers[i]);
       if (this.nGoatTarget) this.respawnGoats();     // keep prey density up so hunting stays available
     }
     return this.foragers;
