@@ -171,6 +171,8 @@ var PARAMETERS = {
   evoRuns: 4,             // K: shared-map runs per generation each individual forages (learning persists across them)
   evoBatchSize: 8,        // foragers per run — the population is reshuffled into batches of this each run
   evoProtect: 2,          // generations a newborn is exempt from culling (grace to learn on its fresh table)
+  evoMaxAge: 10,          // OLD AGE: an individual dies at this age regardless of fitness — no immortal /
+                          //   dominant elites holding the population (and its neutral genes) frozen forever
   evoLifetime: 800,       // ticks per RUN each forager acts (a life = evoRuns × this ticks of experience)
   evoCull: 0.5,           // fraction culled each generation (bottom 50% of MATURE individuals by fitness)
   evoMutRate: 0.5,        // per-gene probability an offspring's gene takes a Gaussian mutation step

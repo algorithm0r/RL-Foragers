@@ -263,11 +263,14 @@ var nextGeneration = function (pop, nActions) {
   const P = pop.length;
   const byFitAsc = pop.slice().sort((a, b) => a.fitness - b.fitness);
   const cullTarget = Math.round(P * PARAMETERS.evoCull), cull = new Set();
-  // among the worst cullTarget SLOTS, cull only the MATURE (age ≥ evoProtect) — protected newborns in
-  // the bottom are spared (we cull fewer), and top-fitness elites are never in the worst set, so they
-  // always survive and keep accumulating learning across generations (the Lamarckian elite).
+  // OLD AGE first: anyone who has reached evoMaxAge dies regardless of fitness — so no immortal/dominant
+  // elite can hold the population (and its neutral genes) frozen forever.
+  for (const A of pop) if (A.age >= PARAMETERS.evoMaxAge) cull.add(A);
+  // then the fitness cull: among the worst cullTarget SLOTS, cull only the MATURE (age ≥ evoProtect) —
+  // protected newborns in the bottom are spared, and top-fitness elites are never in the worst set.
   for (let i = 0; i < cullTarget && i < byFitAsc.length; i++) if (byFitAsc[i].age >= PARAMETERS.evoProtect) cull.add(byFitAsc[i]);
-  const survivors = pop.filter((A) => !cull.has(A));
+  let survivors = pop.filter((A) => !cull.has(A));
+  if (survivors.length < 2) survivors = byFitAsc.slice(-2);   // never let the breeding pool collapse (e.g. if a whole cohort ages out at once)
   const parents = survivors.slice().sort((a, b) => b.fitness - a.fitness);
   const nParents = Math.max(2, Math.ceil(parents.length / 2));   // breed from the fitter half of survivors
   for (const A of survivors) A.age++;                            // survivors age; their learned tables persist
