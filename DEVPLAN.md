@@ -383,7 +383,10 @@ in DEVLOG 2026-07-21/22. Original scope as built:
   - [x] **v1b.5 — combined full world** (`evofull.mjs`): shelter + goats + food in one regime, full genome,
     fitness = banked stock (carcasses count). Ran with ZERO src changes. bankedFit 30→111; evolved a POSITIVE
     attack instinct (+0.54) under scarcity — foraging + hunting + homing co-evolve.
-  - [ ] **v1b.6 — add PITS to the combined world** (terminal death + felt pitPenalty gene). [Chris]
+  - [x] **v1b.6 — PITS in the combined world** (terminal death + felt pitPenalty gene + death tracking).
+    Finding: a knife-edge — 8 pits STALL the loop (training exploration-deaths drown the fitness signal,
+    fitness ~0, no elite persists), 3 pits survive weakly (bankedFit 4.3→6.9) though the LEARNED greedy
+    policy is competent (banked 5.0, kills 5.3, deaths 1.8). Learnable-but-signal-suppressed in lethal worlds.
   - [ ] **v1b.4 — browser viz of generations** (fitness curve + evolved-gene readout).
 - [ ] **v1c — culture.** Per-agent tables already exist; add `broadcastRange` so each transition updates
   agents in range (∞ ≡ shared, local ≡ CULTURE, 0 ≡ individual). Test the hunting-culture hypothesis.

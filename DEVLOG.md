@@ -3,6 +3,31 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-23 — v1b.6: pits in the combined world — a lethal-world × evolution knife-edge
+
+**Done:** Added pits (terminal death) to the combined full world + a felt `pitPenalty` gene (evolve how
+much a forager fears pits), death tracking (`EvoWorld.deaths`, `greedyEval` returns deathsPerRun), and
+per-forager done-on-death in both modes.
+
+**Finding (the interesting part):** pits are a KNIFE-EDGE for the evolutionary signal.
+- **8 pits → the loop STALLS.** bankedFit collapses to ~0.5 (from 111 without pits), near-zero even at
+  gen 0. Not a death-rate story (greedy deaths only ~20%): in TRAINING, high random ε on fresh tables
+  walks foragers into pits before they ever bank, so nearly everyone scores ~0 → selection has no signal
+  → no elite persists (meanAge ~1) → evolution can't get traction. Exploration deaths drown selection.
+- **3 pits → survives, weakly.** bankedFit 4.3→6.9 (weak rise), BUT the LEARNED greedy policy is
+  competent: banked/run 5.0, kills/run 5.3, deaths/run 1.8. So the policy is learnable — it's the
+  training-time exploration deaths that suppress the fitness signal, not the task being unlearnable.
+
+The learnable-but-signal-suppressed split is the real result: a competent greedy policy hides behind a
+noisy training fitness in lethal worlds. Echoes the pits-arc "lethal worlds are hard," now × evolution.
+Kept `evofull.mjs` at nPits=3 (working density). One seed, held loosely.
+
+**Changed:** `evolution.js` (pitPenalty gene, deaths tracking, done-on-death both modes, greedyEval
+deaths), `evofull.mjs` (pits on, report deaths + felt pitPenalty). smoke **PASS** (E evo 33→117).
+
+**Next:** v1b.4 browser viz of generations; and a possible fix for the pit signal-collapse (lower init ε,
+or don't count exploration-death runs against fitness) if we want denser hazards to evolve cleanly.
+
 ## 2026-07-23 — v1b.5: the COMBINED full world (shelter + goats + food) co-evolves
 
 **Done:** Integrated every proven piece into one evo regime (`evofull.mjs`): renewable scarce food +

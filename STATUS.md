@@ -50,11 +50,13 @@ protected. **UI:** `PARAM_SCHEMA` rows carry `group` (collapsible) + `showIf` (c
 - Curriculum "eat then hunt" — Chris has another idea (TBD).
 
 ## Next action
-**v1b.3 done** — central-place evo regime, NO-INT / NO-bearing (correct design; v1b.3a's bearing-crutch run
-retracted): `evoShelterGrid`² spaced shelters open the last quarter, a forager banks by SEEING+resting on a
-shelter (spatial reflex), multi-shelter raises find-chance. `evoshelter.mjs` (no-INT, 9 shelters): banked
-fitness 37→46 (noisy), greedy banked/run 2.0. **Open (Chris's Q):** shelters + goats are separate harnesses —
-the full combined world (shelter+goats+food) pends a confound-clean design. **Next:** v1b.4 generation viz.
+**Combined full world built** (`evofull.mjs`): shelter (no-INT, multi) + goats + food (+ pits), full genome,
+fitness = banked stock. v1b.5 (no pits): bankedFit 30→111, evolved a POSITIVE attack instinct (+0.54) under
+scarcity — foraging + hunting + homing co-evolve. v1b.6 (pits): a KNIFE-EDGE — 8 pits stall the loop
+(training exploration-deaths drown the signal), 3 pits survive weakly though the learned greedy policy is
+competent (banked 5.0, kills 5.3, deaths 1.8). **Next:** v1b.4 browser viz of generations. Possible follow-up:
+fix the pit signal-collapse (lower init ε / don't score exploration-death runs) for denser hazards; multi-seed
+firming of the (loosely-held, one-seed) evo findings.
 
 ## Blockers
 - none

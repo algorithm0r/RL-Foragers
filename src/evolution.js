@@ -89,6 +89,7 @@ Genome.GENES = {
   rewardStep:   { min: -3,   max: 0,     sd: 0.15, init: [-1.5, -0.2] }, // felt: cost of a move / failed act
   confidenceK:  { min: 1,    max: 100,   sd: 6,    init: [10,   50]   }, // layered coupling: count→confidence saturation
   rewardPerUnit:{ min: 1,    max: 100,   sd: 6,    init: [20,   80]   }, // felt: rest banks rewardPerUnit·stock² (central-place only)
+  pitPenalty:   { min: 0,    max: 100,   sd: 6,    init: [10,   60]   }, // felt: death penalty entering a pit — the avoidance-learning signal
 };
 // per-ACTION vector genes — evolved INSTINCTS (one value per action). These are the direct attack on the
 // 5a "attack never bootstraps" wall: an innate prior/drive on `attack` makes an agent SAMPLE it enough to
@@ -137,7 +138,7 @@ var EvoWorld = class EvoWorld extends World {
     this.grid = map.grid.map((r) => r.slice());      // fresh copy so batches never mutate the shared map
     this.goats = []; this.goatAt = new Array(this.N * this.N).fill(-1);
     this.remaining = 1e9;                             // renewable — never "cleared" (FINITE so rest's restStickC·remaining ≠ NaN)
-    this.food = 0; this.water = 0; this.tick = 0;
+    this.food = 0; this.water = 0; this.tick = 0; this.deaths = 0;
     this.foragers = batch.map((ind, i) => {
       const c = map.spawns[i % map.spawns.length];
       return { x: c % this.N, y: (c / this.N) | 0, ind, carry: 0, done: false };
@@ -186,7 +187,7 @@ var EvoWorld = class EvoWorld extends World {
     // aim the global learning params AND the felt-reward weights at THIS individual's genome. The agent
     // learns on its felt reward (rewardGather/rewardStep/rewardPerUnit); fitness = TRUE stock, not felt.
     PARAMETERS.gamma = g.gamma; PARAMETERS.rewardGather = g.rewardGather; PARAMETERS.rewardStep = g.rewardStep;
-    PARAMETERS.confidenceK = g.confidenceK; PARAMETERS.rewardPerUnit = g.rewardPerUnit;
+    PARAMETERS.confidenceK = g.confidenceK; PARAMETERS.rewardPerUnit = g.rewardPerUnit; PARAMETERS.pitPenalty = g.pitPenalty;
     PARAMETERS.initialQ = PARAMETERS.evoUseInstincts ? g.initialQ : null;          // instinct value-prior (control: off → null)
     if (this.evalMode) { PARAMETERS.epsilon = 0; PARAMETERS.alpha = 0; PARAMETERS.unexploredBonus = null; } // greedy, frozen, no drive
     else { PARAMETERS.epsilon = g.epsilon; PARAMETERS.alpha = g.alpha; PARAMETERS.unexploredBonus = PARAMETERS.evoUseInstincts ? g.unexploredBonus : null; }
@@ -195,11 +196,13 @@ var EvoWorld = class EvoWorld extends World {
     const before = this.food;
     const out = f.ind.policy.act(this);
     f.x = this.ax; f.y = this.ay; f.carry = this.food;
+    if (out.died) this.deaths++;                      // entered a pit (terminal) — a death this run
     if (PARAMETERS.enableShelter) {
-      // central-place: fitness accrues only when BANKED at rest; a collapse / never-resting banks nothing
+      // central-place: fitness accrues only when BANKED at rest; a collapse / pit-death / never-resting banks nothing
       if (out.done) { f.done = true; if (out.rested) f.ind.fitness += f.carry; f.carry = 0; }
     } else {
-      f.ind.fitness += this.food - before;           // renewable food mode: fitness = food eaten as it's eaten
+      if (out.done) { f.done = true; f.carry = 0; }  // e.g. pit death in food mode — stop stepping this forager
+      else f.ind.fitness += this.food - before;      // renewable food mode: fitness = food eaten as it's eaten
     }
   }
 
@@ -309,13 +312,13 @@ var evolve = function (nGenerations, popSize) {
 // runs and count hunts (goatsKilled) + food. Learning is frozen so tables/fitness aren't disturbed.
 var greedyEval = function (pop, nRuns) {
   const B = PARAMETERS.evoBatchSize;
-  let kills = 0, foodSum = 0;
+  let kills = 0, foodSum = 0, deaths = 0;
   for (const A of pop) A.fitness = 0;
   for (let r = 0; r < nRuns; r++) {
     const map = makeMap();
     const order = evoShuffle(pop.slice());
-    for (let i = 0; i < order.length; i += B) { const w = new EvoWorld(order.slice(i, i + B), map, true); w.runLifetime(); kills += w.goatsKilled; }
+    for (let i = 0; i < order.length; i += B) { const w = new EvoWorld(order.slice(i, i + B), map, true); w.runLifetime(); kills += w.goatsKilled; deaths += w.deaths; }
   }
   for (const A of pop) foodSum += A.fitness;
-  return { killsPerRun: kills / nRuns, foodPerRun: foodSum / nRuns };
+  return { killsPerRun: kills / nRuns, foodPerRun: foodSum / nRuns, deathsPerRun: deaths / nRuns };
 };
