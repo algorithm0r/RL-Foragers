@@ -3,6 +3,40 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-23 — Refactor 3 + the definitive instinct answer: initialQ[attack] is NOT selectable
+
+**Chris's degeneracy fix, executed on the clean instrument.** With the normalized single-gene genome,
+started the WHOLE population's `initialQ` from opposite EXTREMES (pessimist init ~−0.9, neutral, optimist
+init ~+0.9) in the same scarce-hunt world, and asked: does attack's prior CONVERGE across inits (→
+selectable, evolution finds an optimum) or TRACK its init (→ undriven drift)? 8 seeds each.
+
+**Result — it tracks its init (drift), definitively:**
+| init | final attack initialQ | attack−baseline | greedy kills |
+|---|---|---|---|
+| pess (~−0.9) | **−0.89±0.03** | −0.05±0.03 | 10.5±7.6 |
+| neutral (~0) | 0.40±0.44 | 0.48±0.33 | 7.9±4.1 |
+| opt (~+0.9) | **+0.79±0.13** | −0.03±0.13 | 8.9±6.3 |
+
+Pess stays low, opt stays high — **no convergence**. And hunting happens in ALL conditions (~8–11 kills)
+REGARDLESS of the attack prior — even the pessimistic (attack "looks bad") one hunts fine. So: the
+`initialQ` instinct is a **NEUTRAL gene hitchhiking on the elite** — it only affects the transient early
+exploration (once an (s,a) is visited, learned Q dominates the prior), so evolution has ~no gradient on it
+and it sits wherever it initialized (tight std = the Lamarckian elite's genome dominating). Hunting is
+LEARNED, not instinct-driven. Chris predicted this exactly ("selected only in initial conditions → little
+to work with"). The degeneracy is broken; the null is now definitive, not ambiguous.
+
+**Implication:** an evolved *initial-value* prior is a fundamentally weak lever for a persistent behaviour.
+A hunting POPULATION needs a mechanism with lasting effect — reinforcing v1c (CULTURE / update-broadcast:
+social credit-propagation, the cross-agent analogue of the replay that solved 5a) over an innate value gene.
+
+**Changed:** `evoreps.mjs` (pess/opt normalized-init conditions), `evoreps-agg.mjs` (selectability
+convergence block). (Note: the `evoreps` collection now mixes old- and new-genome docs for the non-instinct
+conditions; the selectability block reads only the freshly-run new-genome pess/neutral/opt.)
+
+**Refactors 1–3 complete.** Genome + architecture are now: per-agent precomputed cfg (no global-swap),
+agent-computed felt reward, normalized [0,1] genes + single sd, symmetric sign-free reward ranges,
+exponent gene, pit-as-reward, single `initialQ` instinct.
+
 ## 2026-07-23 — Refactor 2: normalized genome ([0,1], single sd, symmetric reward ranges, exponent gene)
 
 **Done (Chris's gene redesign):**

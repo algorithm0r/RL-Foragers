@@ -34,13 +34,13 @@ function base() {
   P.nTypes = 1; P.gridN = 20; P.nFood = 40;
   P.evoPopSize = 16; P.evoGenerations = 25; P.evoRuns = 4; P.evoBatchSize = 8; P.evoProtect = 2; P.evoLifetime = 400;
   P.evoShelterFrac = 0.25; P.evoShelterGrid = 3; P.evoCull = 0.5; P.evoMutRate = 0.5; P.evoUseInstincts = true;
-  P.defaultQ = 0; Genome.VGENES.initialQ.init = [-0.3, 0.3];   // neutral baseline (reset; pessimist conditions override)
+  P.defaultQ = 0; Genome.VGENES.initialQ.init = [0, 1];   // full-range (normalized) init; pess/opt override
 }
-// pessimistic baseline: untried actions start clearly BAD (initialQ init −2..−1, defaultQ −2), so a forager
-// won't try attacking unless evolution actively RAISES initialQ[attack] above the (pessimistic) baseline of
-// the other actions. Breaks the degeneracy where 0 was both the gene's init and the reward-neutral optimum
-// (Chris, 2026-07-23): the discriminating test of whether the instinct gene is SELECTABLE vs merely undriven.
-function pessimist() { P.defaultQ = -2; Genome.VGENES.initialQ.init = [-2, -1]; }
+// initialQ is stored NORMALIZED [0,1] and expressed to [-1,1]. To test whether the instinct is SELECTABLE
+// (vs undriven drift), start the WHOLE population's initialQ from an EXTREME and see whether attack's prior
+// CONVERGES to a common value across init points (= selection to an optimum) or stays near its init (= drift).
+function pessimist() { Genome.VGENES.initialQ.init = [0.0, 0.1]; }   // untried actions start ~-0.9 (severe)
+function optimist()  { Genome.VGENES.initialQ.init = [0.9, 1.0]; }   // untried actions start ~+0.9
 const CONDITIONS = {
   'food':            () => { base(); P.gridN = 30; P.nFood = 60; },                                                        // food-only: loop + felt-step softening
   'hunt-scarce-on':  () => { base(); P.gridN = 30; P.enableGoats = true; P.nFood = 15; P.evoUseInstincts = true; },        // hunt sweep
@@ -50,9 +50,10 @@ const CONDITIONS = {
   'shelter':         () => { base(); P.enableShelter = true; P.gridN = 20; P.nFood = 40; },                                // no-INT multi-shelter banking
   'full':            () => { base(); P.enableShelter = true; P.enableGoats = true; P.gridN = 20; P.nFood = 20; },          // combined world
   'full-pits':       () => { base(); P.enableShelter = true; P.enableGoats = true; P.enablePits = true; P.nPits = 3; P.gridN = 20; P.nFood = 20; }, // + pits (knife-edge)
-  // pessimistic-baseline hunt: is the attack instinct SELECTABLE when a positive prior is the ONLY route to hunting?
-  'hunt-pess-on':    () => { base(); P.gridN = 30; P.enableGoats = true; P.nFood = 15; P.evoUseInstincts = true;  pessimist(); },
-  'hunt-pess-off':   () => { base(); P.gridN = 30; P.enableGoats = true; P.nFood = 15; P.evoUseInstincts = false; pessimist(); },
+  // instinct SELECTABILITY: same scarce-hunt world, initialQ started from opposite extremes — does attack's
+  // prior converge (selection) or stay near init (drift)? (neutral = hunt-scarce-on, full-range init.)
+  'hunt-pess-on':    () => { base(); P.gridN = 30; P.enableGoats = true; P.nFood = 15; P.evoUseInstincts = true; pessimist(); },
+  'hunt-opt-on':     () => { base(); P.gridN = 30; P.enableGoats = true; P.nFood = 15; P.evoUseInstincts = true; optimist(); },
 };
 if (!CONDITIONS[condition]) { console.error('unknown condition "' + condition + '"; known: ' + Object.keys(CONDITIONS).join(', ')); process.exit(2); }
 CONDITIONS[condition]();

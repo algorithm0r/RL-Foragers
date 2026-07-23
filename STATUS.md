@@ -50,15 +50,15 @@ protected. **UI:** `PARAM_SCHEMA` rows carry `group` (collapsible) + `showIf` (c
 - Curriculum "eat then hunt" — Chris has another idea (TBD).
 
 ## Next action
-**Combined full world built** (`evofull.mjs`): shelter (no-INT, multi) + goats + food (+ pits), full genome,
-fitness = banked stock. v1b.5 (no pits): bankedFit 30→111, evolved a POSITIVE attack instinct (+0.54) under
-scarcity — foraging + hunting + homing co-evolve. v1b.6 (pits): a KNIFE-EDGE — 8 pits stall the loop
-(training exploration-deaths drown the signal), 3 pits survive weakly though the learned greedy policy is
-competent (banked 5.0, kills 5.3, deaths 1.8). **v1b DONE incl. replicates.** 8-seed `evoreps` replication CONFIRMED the loop + pit knife-edge + hunting-
-behavior-tracks-scarcity, and REFUTED the one-seed attack-instinct-tracks-scarcity + felt-step-softening
-claims (the instinct gene is inert; hunting is learned). **Next: v1c — culture** (per-agent tables +
-`broadcastRange`: ∞≡shared, local≡culture, 0≡individual) — now the promising route to a hunting population,
-since the innate instinct gene doesn't get selected. Deferred: pit signal-collapse fix (many knobs available).
+**Genome/architecture REFACTORED (Chris, Refactors 1–3):** per-agent precomputed cfg (NO per-tick
+global-swap), agent-computed felt reward from world `event`s, genes normalized [0,1] + single mutation sd,
+symmetric sign-free reward ranges, `restExponent` gene, pit-as-reward, single `initialQ` instinct
+(`unexploredBonus` dropped). smoke PASS (non-evo byte-identical); MODEL.md updated. **Definitive instinct
+result** (clean instrument, pess/neutral/opt init × 8 seeds): `initialQ[attack]` TRACKS its init
+(pess −0.89, opt +0.79 — no convergence) → a NEUTRAL gene hitchhiking on the elite; hunting is LEARNED, not
+instinct-driven. Chris's degeneracy fix turned the ambiguous ~0 into a definitive null. **Next: v1c —
+culture** (per-agent tables + `broadcastRange`) — a persistent-effect mechanism, which an evolved
+initial-VALUE prior cannot be. Deferred: pit signal-collapse fix; a clean all-new-genome `evoreps` sweep.
 
 ## Blockers
 - none
