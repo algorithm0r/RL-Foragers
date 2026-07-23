@@ -50,11 +50,11 @@ protected. **UI:** `PARAM_SCHEMA` rows carry `group` (collapsible) + `showIf` (c
 - Curriculum "eat then hunt" — Chris has another idea (TBD).
 
 ## Next action
-**v1b.3a done** — central-place evo regime (`evoshelter.mjs`): one placed shelter opens the last quarter,
-fitness = banked stock; population learns forage-then-home (banked fitness 0.3→28.9, greedy banked/run 2.5),
-evolution raised felt rewardPerUnit 48→62. Next: **v1b.3b** — MULTIPLE spaced shelters + nearest bearing;
-then **v1b.4** browser viz of generations. (Also open: v1b.2 hunting follow-up — harder regime for instinct
-necessity — if we return to it.)
+**v1b.3 done** — central-place evo regime, NO-INT / NO-bearing (correct design; v1b.3a's bearing-crutch run
+retracted): `evoShelterGrid`² spaced shelters open the last quarter, a forager banks by SEEING+resting on a
+shelter (spatial reflex), multi-shelter raises find-chance. `evoshelter.mjs` (no-INT, 9 shelters): banked
+fitness 37→46 (noisy), greedy banked/run 2.0. **Open (Chris's Q):** shelters + goats are separate harnesses —
+the full combined world (shelter+goats+food) pends a confound-clean design. **Next:** v1b.4 generation viz.
 
 ## Blockers
 - none

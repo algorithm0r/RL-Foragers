@@ -3,6 +3,32 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-23 — v1b.3b: no-INT MULTI-shelter central-place (correcting v1b.3a's bearing crutch)
+
+**Correction (Chris caught it):** v1b.3a ran the shelter regime with `strategicLayer=true` — which re-added
+the INT layer AND its bearing-to-shelter signal, contradicting the project's established **no-INT** finding
+and handing the agent a homing crutch. So v1b.3a's clean "homing works" (9→30.6) was propped up by that
+bearing and is RETRACTED. Correct design: **no INT, no bearing** — a forager finds a shelter only by SEEING
+a SHELTER cell in its receptive window (a spatial reflex; the "percept-gated shelter substitutes for
+internal state" result). That is exactly why MULTIPLE shelters matter: with no bearing, more spaced shelters
+raise the chance a seeking forager stumbles one into its window.
+
+**Done:** EvoWorld now places a `evoShelterGrid`×`evoShelterGrid` grid of evenly-spaced shelters (default
+3×3=9), all revealed at the last quarter. `evoshelter.mjs` set to `strategicLayer=false` (no INT/bearing).
+
+**Result** (`evoshelter.mjs`, 20×20, pop16, 9 shelters, no-INT, seeded): banked-stock fitness **37→46**
+(noisy — dipped to 33 mid-run); greedy (frozen) banked/run **2.0**. Honestly weaker + noisier than the
+retracted bearing-assisted run — as expected: without a bearing, *directed* homing is hard to learn, and the
+9 shelters give a decent baseline via random encounters (starts at 37, not 0), leaving little headroom.
+Evolution softened rewardStep to ~−0.4 (more wandering → more encounters), rewardPerUnit ~51. One seed.
+
+**Changed:** `evolution.js` (multi-shelter grid placement + reveal), `params.js` (evoShelterGrid),
+`evoshelter.mjs` (no-INT). smoke **PASS** @ v0.7.0-7-gd2de0af.
+
+**Open (Chris's Q):** shelters + goats are still SEPARATE harnesses (evohunt = goats+food; evoshelter =
+shelter+food). The full world would combine them — pending a confound-clean design + go-ahead.
+**Next:** v1b.4 browser viz of generations.
+
 ## 2026-07-23 — v1b.3a: central-place (placed-shelter) evo regime, fitness = banked stock
 
 **Done:** EvoWorld gains a central-place foraging mode (Chris's v1b regime, half of it): a placed shelter

@@ -142,11 +142,19 @@ var EvoWorld = class EvoWorld extends World {
       const c = map.spawns[i % map.spawns.length];
       return { x: c % this.N, y: (c / this.N) | 0, ind, carry: 0, done: false };
     });
-    // CENTRAL-PLACE mode: one placed shelter at the arena centre, HIDDEN until the last quarter of the
-    // lifetime. Foragers must return + rest to BANK their carried stock (= fitness); never resting banks 0.
+    // CENTRAL-PLACE mode: MULTIPLE placed shelters on an evenly-spaced grid, HIDDEN until the last
+    // quarter of the lifetime. NO INT layer / NO bearing (the no-INT finding) — a forager finds a shelter
+    // only by SEEING a SHELTER cell in its receptive window (a spatial reflex). Multiple spaced shelters
+    // raise the chance a seeking forager stumbles one into view. Rest banks carried stock (= fitness).
+    this.shelterCells = [];
     if (PARAMETERS.enableShelter) {
-      this.sx = this.N >> 1; this.sy = this.N >> 1;
-      this.grid[this.sy][this.sx] = World.EMPTY;      // reserve the cell (revealed to SHELTER at the last quarter)
+      const g = PARAMETERS.evoShelterGrid, N = this.N;
+      for (let i = 0; i < g; i++) for (let j = 0; j < g; j++) {
+        const x = Math.floor(N * (i + 0.5) / g), y = Math.floor(N * (j + 0.5) / g);
+        if (this.grid[y][x] === World.SHELTER) continue;
+        this.grid[y][x] = World.EMPTY;                // reserve the cell (revealed to SHELTER at the last quarter)
+        this.shelterCells.push([x, y]);
+      }
       this.shelterActive = false;
     }
     // renewable STATIONARY prey: goats as fixed hunt targets placed after the foragers. Stationary
@@ -198,7 +206,7 @@ var EvoWorld = class EvoWorld extends World {
   runLifetime() {
     const reveal = PARAMETERS.enableShelter ? Math.floor((1 - PARAMETERS.evoShelterFrac) * PARAMETERS.evoLifetime) : -1;
     for (this.tick = 0; this.tick < PARAMETERS.evoLifetime; this.tick++) {
-      if (this.tick === reveal) { this.grid[this.sy][this.sx] = World.SHELTER; this.shelterActive = true; } // shelter opens (last quarter)
+      if (this.tick === reveal) { for (let s = 0; s < this.shelterCells.length; s++) this.grid[this.shelterCells[s][1]][this.shelterCells[s][0]] = World.SHELTER; this.shelterActive = true; } // shelters open (last quarter)
       for (let i = 0; i < this.foragers.length; i++) if (!this.foragers[i].done) this.stepForager(this.foragers[i]);
       if (this.nGoatTarget) this.respawnGoats();     // keep prey density up so hunting stays available
     }

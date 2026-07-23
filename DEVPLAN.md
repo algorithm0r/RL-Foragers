@@ -373,11 +373,13 @@ in DEVLOG 2026-07-21/22. Original scope as built:
       persistent learning + stationary prey), so the instinct AMPLIFIES/TUNES hunting here, not ENABLES it.
     - [ ] (optional follow-up) harder regime (moving prey / cold individuals) to test instinct NECESSITY.
   - **v1b.3 — placed-shelter regime, fitness = banked stock:**
-    - [x] **v1b.3a core.** EvoWorld central-place mode: one centre shelter, hidden until the last quarter
-      (tick-based reveal); return-and-rest banks carried stock = fitness (never resting = 0). +rewardPerUnit
-      felt gene; tick-based timeCode; dual-mode stepForager. `evoshelter.mjs`: banked fitness 0.3→28.9,
-      greedy homing works (banked/run 2.5); evolution raised rewardPerUnit 48→62.
-    - [ ] **v1b.3b.** MULTIPLE spaced (gridded) shelters + nearest-shelter bearing; optional felt collapse gene.
+    - [x] **v1b.3a core.** EvoWorld central-place mode: shelters hidden until the last quarter (tick-based
+      reveal); return-and-rest banks carried stock = fitness (never resting = 0). +rewardPerUnit felt gene;
+      dual-mode stepForager. [Its single-shelter run used strategicLayer=true — a BEARING crutch — retracted.]
+    - [x] **v1b.3b — no-INT MULTI-shelter (correct design).** NO INT / NO bearing (established no-INT finding):
+      a forager finds a shelter only by SEEING it in its window; a `evoShelterGrid`² grid of spaced shelters
+      raises the find-chance. `evoshelter.mjs` (no-INT, 9 shelters): banked fitness 37→46 (noisy), greedy
+      banked/run 2.0 — weaker/noisier than the bearing-crutched run, as expected (no-bearing homing is hard).
   - [ ] **v1b.4 — browser viz of generations** (fitness curve + evolved-gene readout).
 - [ ] **v1c — culture.** Per-agent tables already exist; add `broadcastRange` so each transition updates
   agents in range (∞ ≡ shared, local ≡ CULTURE, 0 ≡ individual). Test the hunting-culture hypothesis.

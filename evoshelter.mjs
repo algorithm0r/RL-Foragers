@@ -18,14 +18,16 @@ for (const f of ['util.js', 'params.js', 'engine.js', 'qlearner.js', 'utree.js',
 const { PARAMETERS: P, evolve, greedyEval } = globalThis;
 Math.random = (function (a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })(20260722);
 
-// central-place regime: shelter on, INT layer on, renewable food, no goats/pits. maxStepsPerEpisode huge
-// so World's steps-based collapse/activation never fire (EvoWorld drives shelter reveal off the tick).
-P.agent = 'layered'; P.layers = [1, 3, 5]; P.explore = 'egreedy'; P.strategicLayer = true; P.relevanceFilter = false; P.qReplay = false;
-P.enableShelter = true; P.shelterActivate = 'cleared'; P.maxStepsPerEpisode = 1e9; P.timeBuckets = 4; P.restStickC = 0;
+// central-place regime: NO INT layer / NO bearing (the no-INT finding) — a forager finds a shelter only
+// by SEEING a SHELTER cell in its window; multiple spaced shelters raise the find-chance. Renewable food,
+// no goats/pits. maxStepsPerEpisode huge + shelterActivate='cleared' so World's steps-based
+// collapse/activation never fire (EvoWorld drives the tick-based reveal itself).
+P.agent = 'layered'; P.layers = [1, 3, 5]; P.explore = 'egreedy'; P.strategicLayer = false; P.relevanceFilter = false; P.qReplay = false;
+P.enableShelter = true; P.shelterActivate = 'cleared'; P.maxStepsPerEpisode = 1e9; P.restStickC = 0;
 P.enableWater = false; P.enablePits = false; P.enableRocks = false; P.enableGoats = false;
 P.nTypes = 1; P.gridN = 20; P.nFood = 40;
 P.evoPopSize = 16; P.evoGenerations = 25; P.evoRuns = 4; P.evoBatchSize = 8; P.evoProtect = 2;
-P.evoLifetime = 400; P.evoShelterFrac = 0.25; P.evoCull = 0.5; P.evoMutRate = 0.5;
+P.evoLifetime = 400; P.evoShelterFrac = 0.25; P.evoShelterGrid = 3; P.evoCull = 0.5; P.evoMutRate = 0.5;
 
 const { history: hist, pop } = evolve(P.evoGenerations, P.evoPopSize);
 const ev = greedyEval(pop, 6);
