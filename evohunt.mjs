@@ -39,15 +39,14 @@ const conditions = [
 ];
 
 console.log('attack action index = ' + ATT + '  (replay OFF, stationary renewable prey, greedy-eval frozen)\n');
-console.log('food     instinct | greedy kills/run  food/run | evolved attack: initialQ  unexploredBonus');
+console.log('food     instinct | greedy kills/run  food/run | evolved attack initialQ');
 for (const c of conditions) {
   P.nFood = c.nFood; P.evoUseInstincts = c.instincts;
   const { pop } = evolve(P.evoGenerations, P.evoPopSize);
   const ev = greedyEval(pop, 6);
   const iq = c.instincts ? meanVec(pop, 'initialQ', ATT).toFixed(2) : '  — ';
-  const ub = c.instincts ? meanVec(pop, 'unexploredBonus', ATT).toFixed(2) : '  — ';
   console.log(
     c.food.padEnd(7) + '  ' + (c.instincts ? 'ON ' : 'OFF') + '     | ' +
     ev.killsPerRun.toFixed(2).padStart(10) + '  ' + ev.foodPerRun.toFixed(0).padStart(8) + '   |' +
-    '           ' + iq + '        ' + ub);
+    '           ' + iq);
 }

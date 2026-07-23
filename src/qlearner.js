@@ -9,6 +9,10 @@ var QLearner = class QLearner {
     this.Q = new Map();           // "state|action" -> value
     this.counts = new Map();      // "state|action" -> times updated
     this.stateCounts = new Map(); // "state" -> times updated in that state (the coupling's confidence signal)
+    // per-learner config (α/γ/ε/defaultQ/initialQ). Defaults to the global PARAMETERS (non-evo path,
+    // unchanged); evolution installs each individual's PRECOMPUTED numeric cfg via LayeredAgent.setCfg,
+    // so the hot loop reads plain numbers off `cfg` — no per-tick global writes/lookups.
+    this.cfg = PARAMETERS;
   }
 
   key(state, action) { return state + '|' + action; }
@@ -21,11 +25,10 @@ var QLearner = class QLearner {
   getQ(state, action) {
     const v = this.Q.get(this.key(state, action));
     if (v !== undefined) return v;
-    // an unseen (state, action): use the evolved per-action prior (initialQ instinct) if one is active
-    // (evolution mode sets PARAMETERS.initialQ per individual), else the default. Null everywhere else,
-    // so non-evo runs are unchanged.
-    const iq = PARAMETERS.initialQ;
-    return iq ? iq[action] : PARAMETERS.defaultQ;
+    // an unseen (state, action): use this learner's evolved per-action prior (initialQ instinct) if set,
+    // else its defaultQ. cfg = PARAMETERS everywhere except evolution, so non-evo runs are unchanged.
+    const iq = this.cfg.initialQ;
+    return iq ? iq[action] : this.cfg.defaultQ;
   }
 
   getCount(state, action) {
@@ -57,7 +60,7 @@ var QLearner = class QLearner {
   // ε-greedy. `lastRandom` records whether THIS pick was the ε random draw — the death-attribution
   // signal (was a fatal move exploration noise or the learned policy?).
   select(state) {
-    this.lastRandom = Math.random() < PARAMETERS.epsilon;
+    this.lastRandom = Math.random() < this.cfg.epsilon;
     if (this.lastRandom) return randomInt(this.nActions);
     return this.bestAction(state);
   }
@@ -88,8 +91,8 @@ var QLearner = class QLearner {
   learnQ(state, action, reward, nextState) {
     const k = this.key(state, action);
     const cur = this.getQ(state, action);
-    const target = nextState === null ? reward : reward + PARAMETERS.gamma * this.maxQ(nextState);
-    this.Q.set(k, cur + PARAMETERS.alpha * (target - cur));
+    const target = nextState === null ? reward : reward + this.cfg.gamma * this.maxQ(nextState);
+    this.Q.set(k, cur + this.cfg.alpha * (target - cur));
   }
 
   // a REAL experienced transition: fit Q and bump the visit counts (state-count = the coupling's confidence)

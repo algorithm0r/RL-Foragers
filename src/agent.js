@@ -31,10 +31,26 @@ var FlatAgent = class FlatAgent {
   }
 };
 
+// Map a world OUTCOME (its `event`) to an agent's FELT reward, computed from the agent's own numeric
+// cfg — its genome's precomputed values in evolution, or PARAMETERS otherwise. Evolution only produces
+// step/gather/rest/pit events (no clear/collapse). The felt reward is what the agent LEARNS on; it is
+// deliberately separate from fitness (the true objective).
+var feltReward = function (cfg, out) {
+  switch (out.event) {
+    case 'gather': return cfg.rewardGather;
+    case 'rest':   return cfg.rewardPerUnit * out.stock * out.stock;
+    case 'pit':    return -cfg.pitPenalty;
+    default:       return cfg.rewardStep; // 'step' — moves, misses, the attack cost
+  }
+};
+
 var LayeredAgent = class LayeredAgent {
   constructor(nActions, channel) {
     this.nActions = nActions;
     this.channel = channel || null; // if set, window layers see only this resource type (binarized)
+    // per-agent config (α/γ/ε/confidenceK/initialQ + felt-reward weights). Defaults to PARAMETERS
+    // (non-evo, unchanged); evolution installs each individual's PRECOMPUTED numeric cfg via setCfg.
+    this.cfg = PARAMETERS;
     // Layers are different FEATURE FILTERS, not just spatial scales. Spatial 'window' layers sense a
     // pure local window (reflexes/navigation that GENERALIZE across bearing/satiety); an optional
     // 'internal' layer senses ONLY shelter-bearing + satiety (the homing/rest decision) in its own
@@ -60,9 +76,13 @@ var LayeredAgent = class LayeredAgent {
     return m;
   }
 
+  // install a precomputed cfg on this agent and every layer's learner (once per run in evolution — NOT
+  // per tick). The hot loop then reads plain numbers off cfg with no global writes/lookups.
+  setCfg(cfg) { this.cfg = cfg; for (const L of this.layers) L.learner.cfg = cfg; }
+
   // saturating count → confidence in [0,1): a layer that has seen its abstract state many times
   // is trusted; a layer facing a novel (low-count) state contributes little.
-  confidence(count) { return count / (count + PARAMETERS.confidenceK); }
+  confidence(count) { return count / (count + this.cfg.confidenceK); }
 
   // each layer's abstract state: a pure local window ('window' layers) or the internal bearing+satiety
   // code ('internal' layer). No cross-augmentation → the spatial reflexes stay reusable.
@@ -151,39 +171,22 @@ var LayeredAgent = class LayeredAgent {
     return best[randomInt(best.length)];
   }
 
-  // greedy pick over the combined Q, plus the evolved UNEXPLORED-BONUS instinct: an untried (state,a) in
-  // a relied-on layer gets +unexploredBonus[a] (weighted by that layer's reliance, so it fades as the
-  // action is sampled). This is the innate DRIVE that makes an agent try e.g. attack enough to learn it.
-  selectInstinct(states, combined) {
-    const ub = PARAMETERS.unexploredBonus, w = combined.weights, q = combined.q;
-    let m = -Infinity; const best = [];
-    for (let a = 0; a < this.nActions; a++) {
-      let bonus = 0;
-      for (let i = 0; i < this.layers.length; i++) {
-        if (w[i] === 0) continue;
-        if (this.layers[i].learner.getCount(states[i], a) === 0) bonus += w[i] * ub[a];
-      }
-      const v = q[a] + bonus;
-      if (v > m) { m = v; best.length = 0; best.push(a); }
-      else if (v === m) best.push(a);
-    }
-    return best[randomInt(best.length)];
-  }
-
   act(world) {
     const states = this.statesFor(world);
     const combined = this.combine(states);
     this.lastWeights = combined.weights;
-    this.lastRandom = PARAMETERS.explore === 'egreedy' && Math.random() < PARAMETERS.epsilon;
+    this.lastRandom = PARAMETERS.explore === 'egreedy' && Math.random() < this.cfg.epsilon;
     const action = PARAMETERS.explore === 'ucb' ? this.selectUCB(states, combined)
       : this.lastRandom ? randomInt(this.nActions)
-        : PARAMETERS.unexploredBonus ? this.selectInstinct(states, combined)
-          : this.argmax(combined.q); // 'greedy' — exploration comes from the strategic init (defaultQ)
+        : this.argmax(combined.q); // 'greedy' — exploration from ε + the per-action initialQ prior (getQ)
 
     const outcome = world.applyAction(action);
+    // the agent's FELT reward, from its own cfg (evo genome) — for non-evo (cfg===PARAMETERS) this is
+    // exactly the world's computed reward, so behaviour is unchanged.
+    const reward = this.cfg === PARAMETERS ? outcome.reward : feltReward(this.cfg, outcome);
     const nextStates = outcome.done ? null : this.statesFor(world);
-    this.learnTransition(states, action, outcome.reward, nextStates);
-    if (this.replay) this.doReplay(states, action, outcome.reward, nextStates);
+    this.learnTransition(states, action, reward, nextStates);
+    if (this.replay) this.doReplay(states, action, reward, nextStates);
     this.lastAction = action;
     return outcome;
   }

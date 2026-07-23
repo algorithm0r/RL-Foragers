@@ -39,13 +39,13 @@ const avg = (a) => a.reduce((x, y) => x + y, 0) / a.length;
 const first = avg(hist.slice(0, q).map((h) => h.mean)), last = avg(hist.slice(G - q).map((h) => h.mean));
 
 console.log('actions: ' + World.buildActions().join(',') + '   (attack idx ' + ATT + ')\n');
-console.log('gen  bankedFit  meanAge    ε      α      γ    | perUnit pitPen  attack(iQ/uB)');
+console.log('gen  bankedFit  meanAge    ε      α      γ    | perUnit pitPen  attack iQ');
 for (const i of [0, Math.floor(G / 2), G - 1]) {
   const h = hist[i], g = h.genes;
   console.log(String(i).padStart(3) + '  ' + h.mean.toFixed(1).padStart(8) + '  ' + h.meanAge.toFixed(1).padStart(5) +
     '   ' + g.epsilon.toFixed(3) + '  ' + g.alpha.toFixed(3) + '  ' + g.gamma.toFixed(3) +
     '  | ' + g.rewardPerUnit.toFixed(0).padStart(5) + ' ' + g.pitPenalty.toFixed(0).padStart(5) +
-    '     ' + h.vgenes.initialQ[ATT].toFixed(2) + ' / ' + h.vgenes.unexploredBonus[ATT].toFixed(2));
+    '     ' + h.vgenes.initialQ[ATT].toFixed(2));
 }
 const pass = last > first && ev.foodPerRun > 0 && ev.killsPerRun >= 0;
 console.log('\nevo-full: shelter+goats+food+PITS (no-INT) | bankedFit ' + first.toFixed(1) + '→' + last.toFixed(1) +

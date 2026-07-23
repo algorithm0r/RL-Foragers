@@ -179,13 +179,13 @@ var World = class World {
       const blocked = (PARAMETERS.enableRocks && this.grid[ny][nx] === World.ROCK) ||
         (PARAMETERS.enableGoats && this.goatIndexAt(nx, ny) >= 0);
       if (!blocked) { this.ax = nx; this.ay = ny; }
-      if (PARAMETERS.enablePits && this.grid[this.ay][this.ax] === World.PIT) return { reward: -PARAMETERS.pitPenalty, done: true, died: true };
-      out = { reward: PARAMETERS.rewardStep, done: false };
+      if (PARAMETERS.enablePits && this.grid[this.ay][this.ax] === World.PIT) return { reward: -PARAMETERS.pitPenalty, done: true, died: true, event: 'pit' };
+      out = { reward: PARAMETERS.rewardStep, done: false, event: 'step' };
     } else if (act === 'attack') {
       // the hunt, first half: fell an ADJACENT goat → its cell becomes FOOD (carcass, +1 to
       // remaining) — the payoff comes from the second half (walk on, eat). Attack itself costs a
       // step, succeed or fail; the value gap (defaultQ=0 > wander −1) gets it tried strategically.
-      out = { reward: PARAMETERS.rewardStep, done: false };
+      out = { reward: PARAMETERS.rewardStep, done: false, event: 'step' };
       for (let a = 0; a < 8; a++) {
         const d = World.DIRS[a], N = this.N;
         const gx = ((this.ax + d[0]) % N + N) % N, gy = ((this.ay + d[1]) % N + N) % N;
@@ -210,8 +210,8 @@ var World = class World {
       // rest at the shelter banks a SUPERLINEAR reward in the day's haul: rewardPerUnit·stock² (stock =
       // food+water), MINUS restStickC per resource still uncollected — the "stick" that makes resting with
       // food left on the table go negative (breaks rest-on-contact), while a cleared field rests penalty-free.
-      if (this.cell(0, 0) === World.SHELTER) { const s = this.bankedStock(); return { reward: PARAMETERS.rewardPerUnit * s * s - PARAMETERS.restStickC * this.remaining, done: true, rested: true }; }
-      out = { reward: PARAMETERS.rewardStep, done: false };
+      if (this.cell(0, 0) === World.SHELTER) { const s = this.bankedStock(); return { reward: PARAMETERS.rewardPerUnit * s * s - PARAMETERS.restStickC * this.remaining, done: true, rested: true, event: 'rest', stock: s }; }
+      out = { reward: PARAMETERS.rewardStep, done: false, event: 'step' };
     } else {
       // collect actions: 'eat'=type 1, 'drink'=type 2, 'c'+t=type t. Succeeds iff that type is underfoot.
       const type = act === 'eat' ? World.FOOD : act === 'drink' ? World.WATER : parseInt(act.slice(1), 10);
@@ -221,7 +221,7 @@ var World = class World {
         this.remaining--;
         out = this.gatherResult(); out.collected = type; // which type → per-resource reward routing
       } else {
-        out = { reward: PARAMETERS.rewardStep, done: false };
+        out = { reward: PARAMETERS.rewardStep, done: false, event: 'step' };
       }
     }
     // SHELTER ACTIVATION: the rest option can be gated to appear only after the field is CLEARED, or after
@@ -235,7 +235,7 @@ var World = class World {
     // END OF DAY (shelter mode): maxStepsPerEpisode is the day length. If it just expired and the day
     // hasn't already ended (rest / clear / death), the agent COLLAPSES in the field — terminal, −M.
     if (PARAMETERS.enableShelter && !out.done && this.steps >= PARAMETERS.maxStepsPerEpisode) {
-      return { reward: -PARAMETERS.collapsePenalty, done: true, collapsed: true };
+      return { reward: -PARAMETERS.collapsePenalty, done: true, collapsed: true, event: 'collapse' };
     }
     return out;
   }
@@ -243,8 +243,8 @@ var World = class World {
   // a successful eat/drink. In sweep mode (no shelter), clearing the last item ends the day with a
   // bonus; otherwise gathering pays 0 (value is realized at rest).
   gatherResult() {
-    if (!PARAMETERS.enableShelter && this.remaining === 0) return { reward: this.totalItems(), done: true, cleared: true };
-    return { reward: PARAMETERS.rewardGather, done: false };
+    if (!PARAMETERS.enableShelter && this.remaining === 0) return { reward: this.totalItems(), done: true, cleared: true, event: 'clear' };
+    return { reward: PARAMETERS.rewardGather, done: false, event: 'gather' };
   }
 
   totalItems() { return PARAMETERS.enableShelter ? PARAMETERS.nFood + (PARAMETERS.enableWater ? PARAMETERS.nWater : 0) : (PARAMETERS.nTypes || 1) * PARAMETERS.nFood; }
@@ -280,7 +280,7 @@ var World = class World {
         }
         this.goatAt[ny * N + nx] = i;
       }
-      return { reward: PARAMETERS.rewardStep, done: false };
+      return { reward: PARAMETERS.rewardStep, done: false, event: 'step' };
     }
     const want = act === 'eat' ? World.FOOD : World.WATER;
     if (this.grid[g.y][g.x] === want) {
@@ -290,7 +290,7 @@ var World = class World {
       if (!(PARAMETERS.goatEatRespawn && this.respawnResource(want))) this.remaining--;
       return { reward: PARAMETERS.rewardGather, done: false };
     }
-    return { reward: PARAMETERS.rewardStep, done: false };
+    return { reward: PARAMETERS.rewardStep, done: false, event: 'step' };
   }
 
   update(engine) {

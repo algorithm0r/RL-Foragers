@@ -3,6 +3,36 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-23 — Refactor 1: agents run off precomputed local cfg (no global-swap); agent computes felt reward
+
+**Why (Chris):** the evo loop was overwriting ~10 `PARAMETERS.*` globals PER forager PER tick (a hack that
+only worked because stepping is sequential); and the two instinct genes (`initialQ`, `unexploredBonus`) were
+redundant — both bias the same never-visited `(s,a)`, differing only in whether the value enters the
+bootstrap. Consolidate to one, and have agents run off their own precomputed numbers.
+
+**Done:**
+- **Per-agent cfg.** `QLearner` and `LayeredAgent` gained a `cfg` (defaults to `PARAMETERS` → non-evo
+  byte-identical). `LayeredAgent.setCfg(cfg)` installs a precomputed numeric cfg on the agent + every
+  layer's learner. α/γ/ε/confidenceK/defaultQ/initialQ now read off `cfg`, not globals.
+- **Agent computes its own FELT reward.** `applyAction` now tags each outcome with an `event`
+  (step/gather/rest/pit/clear/collapse); a `feltReward(cfg, out)` maps event → reward via the agent's cfg.
+  Non-evo (`cfg===PARAMETERS`) uses the world's computed reward exactly → unchanged.
+- **Evolution installs cfg once per run, not per tick.** `Genome.express()` precomputes the flat cfg;
+  `makeIndividual` stores `ind.cfg`; `EvoWorld` calls `setCfg` per forager in its constructor (frozen ε=0/α=0
+  for greedy eval). `stepForager` no longer touches globals at all.
+- **Dropped `unexploredBonus`; kept `initialQ`** (the value prior — it subsumes the bonus and also
+  propagates). `LayeredAgent.selectInstinct` removed; act() is plain argmax + the initialQ prior via getQ.
+
+**Bug caught by the fitness signal:** `EvoWorld.gatherResult` (an override) lacked the `event:'gather'` tag,
+so eating in evo hit the default → agents were PUNISHED for eating (E-bar meanFit 100→9). Fixed; E back to
+23→112. This is why smoke + watching the numbers matters.
+
+**State:** smoke **PASS**, non-evo bars byte-identical (L=33.1, S/G/P/D unchanged). evosmoke 220→307,
+evofull 7→10 (pits). Runners de-referenced the dropped gene. @ v0.7.0-13.
+
+**Next:** Refactor 2 — normalize the genome to [0,1] + single mutation sd; uniform/symmetric reward ranges
+(no forced signs); `rewardRest·stock^restExponent` (exponent gene); pit as a signed reward gene.
+
 ## 2026-07-23 — pessimistic-baseline test: the initialQ instinct is not selectable even under pressure
 
 **Why:** Chris's methodological catch — with `initialQ` init centred on 0 AND `defaultQ`=0 AND 0 = the

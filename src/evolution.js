@@ -74,6 +74,17 @@ var Genome = class Genome {
     }
     return new Genome(v, vec);
   }
+
+  // precompute the flat NUMERIC cfg an agent runs off of — learning params + felt-reward weights + the
+  // per-action instinct vector. Installed once per run (setCfg), so the hot loop reads plain numbers.
+  // (Stage-1: genes are already expressed values; Stage-2 normalisation will convert here.)
+  express() {
+    return {
+      alpha: this.alpha, gamma: this.gamma, epsilon: this.epsilon, confidenceK: this.confidenceK, defaultQ: 0,
+      rewardGather: this.rewardGather, rewardStep: this.rewardStep, rewardPerUnit: this.rewardPerUnit, pitPenalty: this.pitPenalty,
+      initialQ: PARAMETERS.evoUseInstincts ? this.initialQ.slice() : null,   // instinct off → null (getQ falls back to defaultQ)
+    };
+  }
 };
 // gene → { bounds, mutation sd, [init lo, init hi] }. Init ranges span the good regime AND a lot of
 // bad, so a working loop VISIBLY concentrates the population toward what we already know works.
@@ -99,8 +110,7 @@ Genome.GENES = {
 //   unexploredBonus[a] — selection-time optimism for an UNTRIED (state, a): an innate urge to sample a,
 //                        weighted by layer reliance so it fades as the action gets tried.
 Genome.VGENES = {
-  initialQ:        { min: -2, max: 2, sd: 0.2, init: [-0.3, 0.3] },
-  unexploredBonus: { min: 0,  max: 3, sd: 0.2, init: [0.0,  0.4] },
+  initialQ: { min: -2, max: 2, sd: 0.2, init: [-0.3, 0.3] },   // the single per-action instinct (drive folded in)
 };
 
 // standard-normal sample (Box–Muller). Uses Math.random, so a seeded harness makes it deterministic.
@@ -115,7 +125,10 @@ var gaussian = function () {
 // generation's runs and, if it survives selection, across generations (Lamarckian). `age` = generations
 // lived (drives juvenile protection); `fitness` accumulates over a generation's runs and resets each gen.
 var makeIndividual = function (genome, nActions) {
-  return { genome, policy: makeAgent(nActions), age: 0, fitness: 0 };
+  const policy = makeAgent(nActions);
+  const ind = { genome, policy, age: 0, fitness: 0, cfg: genome.express() };  // precompute the numeric cfg ONCE
+  if (policy.setCfg) policy.setCfg(ind.cfg);
+  return ind;
 };
 
 // --- a shared MAP: a fixed food layout + spawn cells, generated once per run and REPLAYED (cloned) for
@@ -140,6 +153,9 @@ var EvoWorld = class EvoWorld extends World {
     this.remaining = 1e9;                             // renewable — never "cleared" (FINITE so rest's restStickC·remaining ≠ NaN)
     this.food = 0; this.water = 0; this.tick = 0; this.deaths = 0;
     this.foragers = batch.map((ind, i) => {
+      // install this individual's precomputed cfg on its agent ONCE per run — frozen (ε=0, α=0) for the
+      // greedy eval, so we read the LEARNED policy without exploration or further learning.
+      if (ind.policy.setCfg) ind.policy.setCfg(this.evalMode ? Object.assign({}, ind.cfg, { epsilon: 0, alpha: 0 }) : ind.cfg);
       const c = map.spawns[i % map.spawns.length];
       return { x: c % this.N, y: (c / this.N) | 0, ind, carry: 0, done: false };
     });
@@ -169,7 +185,7 @@ var EvoWorld = class EvoWorld extends World {
   }
 
   // eating is renewable + never ends the day: drop the item back on a random empty cell and continue.
-  gatherResult() { this.respawnResource(World.FOOD); return { reward: PARAMETERS.rewardGather, done: false }; }
+  gatherResult() { this.respawnResource(World.FOOD); return { reward: PARAMETERS.rewardGather, done: false, event: 'gather' }; }
 
   // one forager's turn: aim the world's single-agent view + global RL rates at THIS individual, let its
   // own persistent policy act, then read back its new position and food gained.
@@ -183,16 +199,10 @@ var EvoWorld = class EvoWorld extends World {
   }
 
   stepForager(f) {
-    const g = f.ind.genome;
-    // aim the global learning params AND the felt-reward weights at THIS individual's genome. The agent
-    // learns on its felt reward (rewardGather/rewardStep/rewardPerUnit); fitness = TRUE stock, not felt.
-    PARAMETERS.gamma = g.gamma; PARAMETERS.rewardGather = g.rewardGather; PARAMETERS.rewardStep = g.rewardStep;
-    PARAMETERS.confidenceK = g.confidenceK; PARAMETERS.rewardPerUnit = g.rewardPerUnit; PARAMETERS.pitPenalty = g.pitPenalty;
-    PARAMETERS.initialQ = PARAMETERS.evoUseInstincts ? g.initialQ : null;          // instinct value-prior (control: off → null)
-    if (this.evalMode) { PARAMETERS.epsilon = 0; PARAMETERS.alpha = 0; PARAMETERS.unexploredBonus = null; } // greedy, frozen, no drive
-    else { PARAMETERS.epsilon = g.epsilon; PARAMETERS.alpha = g.alpha; PARAMETERS.unexploredBonus = PARAMETERS.evoUseInstincts ? g.unexploredBonus : null; }
+    // the agent already holds its precomputed cfg (installed once per run in the constructor) — NO
+    // per-tick global writes. It computes its own felt reward and reads α/γ/ε/initialQ off that cfg.
     this.ax = f.x; this.ay = f.y;
-    this.food = f.carry;                              // present THIS forager's carried stock (rest banks food², satiety senses it)
+    this.food = f.carry;                              // present THIS forager's carried stock (rest banks stock², satiety senses it)
     const before = this.food;
     const out = f.ind.policy.act(this);
     f.x = this.ax; f.y = this.ay; f.carry = this.food;

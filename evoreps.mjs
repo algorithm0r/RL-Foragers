@@ -65,7 +65,6 @@ const meanFitFirst = avg(history.slice(0, q).map((h) => h.mean)), meanFitLast = 
 const gN = history[G - 1].genes;
 const ATT = World.buildActions().indexOf('attack');
 const attackInitialQ = ATT >= 0 ? pop.reduce((s, A) => s + A.genome.initialQ[ATT], 0) / pop.length : null;
-const attackBonus = ATT >= 0 ? pop.reduce((s, A) => s + A.genome.unexploredBonus[ATT], 0) / pop.length : null;
 // baseline = population-mean initialQ over ALL actions → attackInitialQ − meanInitialQ isolates attack-SPECIFIC
 // selection (did evolution lift attack ABOVE the general baseline, not just shift every action together)
 const meanInitialQ = pop.reduce((s, A) => s + A.genome.initialQ.reduce((x, y) => x + y, 0) / A.genome.initialQ.length, 0) / pop.length;
@@ -75,7 +74,7 @@ db.config.run = 'evoreps';
 const pkt = db.packet(P, {
   condition, seed,
   meanFitFirst, meanFitLast, meanFitRise: meanFitLast - meanFitFirst, meanAgeLast: gN ? history[G - 1].meanAge : 0,
-  genes: gN, attackInitialQ, attackBonus, meanInitialQ, defaultQ: P.defaultQ,
+  genes: gN, attackInitialQ, meanInitialQ, defaultQ: P.defaultQ,
   greedyBanked: ev.foodPerRun, greedyKills: ev.killsPerRun, greedyDeaths: ev.deathsPerRun,
 });
 const res = await db.insert('evoreps', pkt);

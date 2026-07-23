@@ -62,6 +62,5 @@ console.log(
 // evolved INSTINCTS for the eat action (the only "special" action in this food world) — the mechanism
 // that will target `attack` once goats are in the evo world (v1b.2 goats test / v1b.3).
 const eatIdx = World.buildActions().indexOf('eat');
-console.log('instinct[eat]: initialQ ' + hist[0].vgenes.initialQ[eatIdx].toFixed(2) + '→' + hist[G - 1].vgenes.initialQ[eatIdx].toFixed(2) +
-  '  unexploredBonus ' + hist[0].vgenes.unexploredBonus[eatIdx].toFixed(2) + '→' + hist[G - 1].vgenes.unexploredBonus[eatIdx].toFixed(2));
+console.log('instinct[eat]: initialQ ' + hist[0].vgenes.initialQ[eatIdx].toFixed(2) + '→' + hist[G - 1].vgenes.initialQ[eatIdx].toFixed(2));
 process.exit(pass ? 0 : 1);
