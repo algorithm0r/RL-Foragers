@@ -3,6 +3,27 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-23 — v1b.4: browser evolution viz (watch generations run live)
+
+**Done:** An "Evolve ⇄ Sim" button toggles the browser into evolution mode. `EvoRunner` (a GameEngine
+entity, main.js) animates the current population foraging one lifetime — `update()` steps one tick, the
+engine calls it `updatesPerDraw`× per frame so the existing **Speed** slider drives playback — then
+advances one generation (score → cull/breed) and starts the next run. You watch the foragers move, eat,
+hunt, and home; a fitness-over-generations curve (mean green / best gold) grows on the graph canvas and a
+gene readout (ε/α/γ, felt rewards, attack instinct, meanAge) updates each generation. Reads the current
+PARAMETERS, so the panel toggles (shelter/goats/pits/grid/food) configure the evolving world.
+
+`EvoWorld.tickOnce()` exposes a single lifetime step (runLifetime now loops it). `drawEvoWorld` (observer.js,
+DOM-free — draws the whole population + goats + shelters in house colours). `renderEvoReadout` + `drawEvoCurve`
+(ui.js).
+
+**Honest scope:** the BROWSER evo is a SIMPLIFIED single-run-per-generation loop for smooth watching — it
+diverges from the faithful K-run shared-map science in `evofull/evohunt/evoshelter.mjs`. Labeled as such in
+the readout. Verified: all view files syntax-clean; smoke PASS (tickOnce exercised via runLifetime). The
+visual itself needs a browser open (can't render one headless).
+
+**Next:** spec a REPLICATES (multi-seed) version of the evo tests to firm the one-seed findings.
+
 ## 2026-07-23 — v1b.6: pits in the combined world — a lethal-world × evolution knife-edge
 
 **Done:** Added pits (terminal death) to the combined full world + a felt `pitPenalty` gene (evolve how

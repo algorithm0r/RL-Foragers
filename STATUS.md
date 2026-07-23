@@ -54,9 +54,10 @@ protected. **UI:** `PARAM_SCHEMA` rows carry `group` (collapsible) + `showIf` (c
 fitness = banked stock. v1b.5 (no pits): bankedFit 30→111, evolved a POSITIVE attack instinct (+0.54) under
 scarcity — foraging + hunting + homing co-evolve. v1b.6 (pits): a KNIFE-EDGE — 8 pits stall the loop
 (training exploration-deaths drown the signal), 3 pits survive weakly though the learned greedy policy is
-competent (banked 5.0, kills 5.3, deaths 1.8). **Next:** v1b.4 browser viz of generations. Possible follow-up:
-fix the pit signal-collapse (lower init ε / don't score exploration-death runs) for denser hazards; multi-seed
-firming of the (loosely-held, one-seed) evo findings.
+competent (banked 5.0, kills 5.3, deaths 1.8). **v1b.4 browser viz done** — "Evolve ⇄ Sim" button animates the population foraging + a live fitness
+curve/gene readout (simplified single-run-per-gen; headless runners are the faithful science; needs a browser
+open to see). **Next:** spec + build a REPLICATES (multi-seed) version of the evo tests to firm the one-seed
+findings (attack-instinct-tracks-scarcity, felt-step-softening, pit knife-edge). Deferred: pit signal-collapse fix.
 
 ## Blockers
 - none

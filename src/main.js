@@ -21,6 +21,46 @@ function reset() {
   if (typeof setStatus === 'function') setStatus('foraging — ' + world.N + '×' + world.N + ' grid');
 }
 
+// --- Browser evolution viz. A GameEngine entity that animates the current population foraging one
+// lifetime (update() steps one tick; the engine calls it updatesPerDraw× per frame → the Speed knob
+// drives it), then advances one generation (score → cull/breed) and starts the next run. This is a
+// SIMPLIFIED single-run-per-generation loop for smooth watching; evofull/evohunt/evoshelter.mjs are
+// the faithful K-run science. Reads the current PARAMETERS, so the panel toggles configure the world.
+var EvoRunner = class EvoRunner {
+  constructor(graphCtx) {
+    this.graphCtx = graphCtx;
+    this.nActions = World.buildActions().length;
+    this.pop = [];
+    for (let i = 0; i < PARAMETERS.evoPopSize; i++) this.pop.push(makeIndividual(Genome.random(this.nActions), this.nActions));
+    this.gen = 0; this.history = [];
+    this.newRun();
+  }
+
+  newRun() { for (const A of this.pop) A.fitness = 0; this.show = new EvoWorld(this.pop, makeMap()); }
+
+  update() {
+    if (this.show.tick < PARAMETERS.evoLifetime) { this.show.tickOnce(); return; }
+    this.history.push(genStats(this.pop));            // this run WAS the generation's evaluation
+    this.pop = nextGeneration(this.pop, this.nActions);
+    this.gen++;
+    this.newRun();
+  }
+
+  draw(ctx) {
+    drawEvoWorld(ctx, this.show);
+    if (this.history.length) { drawEvoCurve(this.graphCtx, this.history); renderEvoReadout(this.history[this.history.length - 1], this.gen); }
+  }
+};
+
+var evoRunner = null;
+function toggleEvolution() {
+  if (evoRunner) { evoRunner = null; reset(); return; }   // back to the normal single-agent sim
+  gameEngine.clear();
+  evoRunner = new EvoRunner(document.getElementById('graphCanvas').getContext('2d'));
+  gameEngine.add(evoRunner);
+  if (typeof setStatus === 'function') setStatus('evolving — ' + PARAMETERS.gridN + '×' + PARAMETERS.gridN + ' · pop ' + PARAMETERS.evoPopSize);
+}
+
 window.onload = function () {
   const canvas = document.getElementById('gameWorld');
   gameEngine = new GameEngine();

@@ -48,3 +48,30 @@ var Observer = class Observer {
     // (metrics/graph render off-canvas as crisp HTML — see DataView + renderStats in ui.js)
   }
 };
+
+// Render an EvoWorld (a whole POPULATION of foragers + goats + shelters) for the browser evolution viz.
+// Same house colours as the Observer; takes a ctx so it stays DOM-free. Foragers dim once done (rested/dead).
+var drawEvoWorld = function (ctx, w) {
+  const N = w.N, board = Math.min(ctx.canvas.width, ctx.canvas.height), cell = board / N;
+  const COLORS = ['#141a22', '#3fbf6f', '#4aa3ff', '#e8b23a', '#7a1f1f', '#6e7681']; // empty food water shelter pit rock
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const t = w.grid[y][x];
+    ctx.fillStyle = COLORS[t] || '#141a22';
+    ctx.fillRect(x * cell + 1, y * cell + 1, cell - 2, cell - 2);
+    if (t === World.PIT) {
+      ctx.strokeStyle = '#e05a5a'; ctx.lineWidth = 2; ctx.beginPath();
+      ctx.moveTo(x * cell + 4, y * cell + 4); ctx.lineTo((x + 1) * cell - 4, (y + 1) * cell - 4);
+      ctx.moveTo((x + 1) * cell - 4, y * cell + 4); ctx.lineTo(x * cell + 4, (y + 1) * cell - 4); ctx.stroke();
+    }
+  }
+  if (w.goats) for (const g of w.goats) {
+    if (!g.alive) continue;
+    ctx.fillStyle = '#d9a066'; ctx.beginPath();
+    ctx.arc((g.x + 0.5) * cell, (g.y + 0.5) * cell, Math.max(2, cell * 0.3), 0, TAU); ctx.fill();
+  }
+  if (w.foragers) for (const f of w.foragers) {
+    ctx.fillStyle = f.done ? '#7a2a26' : '#f32e26';   // dim once banked/collapsed/dead
+    ctx.beginPath(); ctx.arc((f.x + 0.5) * cell, (f.y + 0.5) * cell, Math.max(2, cell * 0.3), 0, TAU); ctx.fill();
+  }
+};

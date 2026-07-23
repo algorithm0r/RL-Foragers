@@ -206,15 +206,17 @@ var EvoWorld = class EvoWorld extends World {
     }
   }
 
-  runLifetime() {
+  // one lifetime tick: open the shelters at the last quarter, step every live forager, top up prey.
+  // Exposed as a single step so the browser can animate a run frame-by-frame (see EvoRunner in main.js).
+  tickOnce() {
     const reveal = PARAMETERS.enableShelter ? Math.floor((1 - PARAMETERS.evoShelterFrac) * PARAMETERS.evoLifetime) : -1;
-    for (this.tick = 0; this.tick < PARAMETERS.evoLifetime; this.tick++) {
-      if (this.tick === reveal) { for (let s = 0; s < this.shelterCells.length; s++) this.grid[this.shelterCells[s][1]][this.shelterCells[s][0]] = World.SHELTER; this.shelterActive = true; } // shelters open (last quarter)
-      for (let i = 0; i < this.foragers.length; i++) if (!this.foragers[i].done) this.stepForager(this.foragers[i]);
-      if (this.nGoatTarget) this.respawnGoats();     // keep prey density up so hunting stays available
-    }
-    return this.foragers;
+    if (this.tick === reveal) { for (let s = 0; s < this.shelterCells.length; s++) this.grid[this.shelterCells[s][1]][this.shelterCells[s][0]] = World.SHELTER; this.shelterActive = true; } // shelters open
+    for (let i = 0; i < this.foragers.length; i++) if (!this.foragers[i].done) this.stepForager(this.foragers[i]);
+    if (this.nGoatTarget) this.respawnGoats();       // keep prey density up so hunting stays available
+    this.tick++;
   }
+
+  runLifetime() { while (this.tick < PARAMETERS.evoLifetime) this.tickOnce(); return this.foragers; }
 
   foragerAt(x, y) { for (let i = 0; i < this.foragers.length; i++) if (this.foragers[i].x === x && this.foragers[i].y === y) return true; return false; }
 

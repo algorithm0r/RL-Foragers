@@ -387,7 +387,9 @@ in DEVLOG 2026-07-21/22. Original scope as built:
     Finding: a knife-edge — 8 pits STALL the loop (training exploration-deaths drown the fitness signal,
     fitness ~0, no elite persists), 3 pits survive weakly (bankedFit 4.3→6.9) though the LEARNED greedy
     policy is competent (banked 5.0, kills 5.3, deaths 1.8). Learnable-but-signal-suppressed in lethal worlds.
-  - [ ] **v1b.4 — browser viz of generations** (fitness curve + evolved-gene readout).
+  - [x] **v1b.4 — browser viz of generations.** "Evolve ⇄ Sim" button → `EvoRunner` animates the population
+    foraging (Speed-driven), a mean/best fitness curve grows, a gene readout updates per gen. Browser evo is a
+    SIMPLIFIED single-run-per-gen loop (smooth watching); headless runners stay the faithful science.
 - [ ] **v1c — culture.** Per-agent tables already exist; add `broadcastRange` so each transition updates
   agents in range (∞ ≡ shared, local ≡ CULTURE, 0 ≡ individual). Test the hunting-culture hypothesis.
 - [ ] **v1d — persistence.** Store genomes + Q-tables in the DB (lineages, resume, analysis).

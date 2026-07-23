@@ -150,6 +150,48 @@ function renderStats(w) {
   el.textContent = L.join('\n');
 }
 
+// --- Evolution viz (browser): a gene readout (text) + a fitness-over-generations curve. Both are
+// driven by EvoRunner (main.js). The browser evo is a SIMPLIFIED single-run-per-generation loop for
+// smooth watching; the headless runners (evofull/evohunt/evoshelter.mjs) are the faithful science.
+function renderEvoReadout(st, gen) {
+  const el = document.getElementById('stats');
+  if (!el || !st) return;
+  const g = st.genes, L = [];
+  L.push('EVOLUTION — browser viz (1 run/gen; headless runners are the faithful science)');
+  L.push('generation ' + gen);
+  L.push('fitness    mean ' + st.mean.toFixed(1) + '   best ' + st.best.toFixed(0));
+  L.push('meanAge    ' + st.meanAge.toFixed(1) + '  (generations the elites have persisted)');
+  L.push('');
+  L.push('genes  ε ' + g.epsilon.toFixed(3) + '   α ' + g.alpha.toFixed(2) + '   γ ' + g.gamma.toFixed(2));
+  L.push('felt   gather ' + g.rewardGather.toFixed(2) + '  step ' + g.rewardStep.toFixed(2) +
+    (PARAMETERS.enableShelter ? '  restPerUnit ' + g.rewardPerUnit.toFixed(0) : '') +
+    (PARAMETERS.enablePits ? '  pitPen ' + g.pitPenalty.toFixed(0) : ''));
+  const ai = World.buildActions().indexOf('attack');
+  if (ai >= 0 && st.vgenes) L.push('instinct  attack initialQ ' + st.vgenes.initialQ[ai].toFixed(2) + '  bonus ' + st.vgenes.unexploredBonus[ai].toFixed(2));
+  el.textContent = L.join('\n');
+}
+
+// mean (green) + best (gold) banked-fitness per generation, plotted to fill the canvas
+function drawEvoCurve(ctx, history) {
+  const W = ctx.canvas.width, H = ctx.canvas.height, n = history.length;
+  ctx.clearRect(0, 0, W, H);
+  ctx.strokeStyle = '#222'; ctx.lineWidth = 1; ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
+  if (!n) return;
+  let mx = 1; for (const h of history) if (h.best > mx) mx = h.best;
+  const plot = (key, color) => {
+    ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const x = n > 1 ? 4 + (i / (n - 1)) * (W - 8) : 4;
+      const y = H - 4 - (history[i][key] / mx) * (H - 8);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  };
+  plot('best', '#e8b23a'); plot('mean', '#3fbf6f');
+  ctx.fillStyle = '#5a5f68'; ctx.font = '10px monospace';
+  ctx.fillText('fitness/gen  (best gold, mean green)  peak ' + mx.toFixed(0), 6, 12);
+}
+
 // A browser-only engine entity that renders the off-canvas data view each frame: it ignores the
 // game ctx passed to draw(), updates the stats DOM, paints the line graph, and draws the Q-view.
 var DataView = class DataView {
