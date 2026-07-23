@@ -50,9 +50,11 @@ protected. **UI:** `PARAM_SCHEMA` rows carry `group` (collapsible) + `showIf` (c
 - Curriculum "eat then hunt" — Chris has another idea (TBD).
 
 ## Next action
-**Decision pending (Chris):** the goats-in-evo hunting test design (confounds out) — then wire goats into
-EvoWorld and test whether an evolved `attack` instinct produces hunting (the 5a wall). Instinct MACHINERY
-(v1b.2) is built + proven inert-safe; it needs a hard-to-bootstrap action (attack) to show its purpose.
+**v1b.2 hunting sweep done** (`evohunt.mjs`): evolved `attack` instinct TRACKS scarcity (+0.14/0.45 when
+scarce, −0.17/0.18 when dense); instinct-ON beats OFF under scarcity. Caveat: hunting also appears in the
+OFF control (easier regime than 5a), so instinct AMPLIFIES not ENABLES here. **Chris's call:** more seeds
+(parallel) to firm the directional finding · OR harden regime (moving prey / cold individuals) for
+necessity · OR move to v1b.3 (placed-shelter regime) / v1b.4 (generation viz).
 
 ## Blockers
 - none

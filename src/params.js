@@ -174,6 +174,8 @@ var PARAMETERS = {
   evoLifetime: 800,       // ticks per RUN each forager acts (a life = evoRuns × this ticks of experience)
   evoCull: 0.5,           // fraction culled each generation (bottom 50% of MATURE individuals by fitness)
   evoMutRate: 0.5,        // per-gene probability an offspring's gene takes a Gaussian mutation step
+  evoUseInstincts: true,  // apply the per-action instinct vectors (initialQ/unexploredBonus). OFF = the
+                          //   CONTROL arm of the hunting sweep: same everything, instincts phenotypically silent.
 
   // --- engine ---
   updatesPerDraw: 20,     // fast-forward: sim updates per rendered frame (learning is fast, drawing slow)

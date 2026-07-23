@@ -208,7 +208,7 @@ const indsE = [0, 1, 2, 3].map(() => makeIndividual(Genome.random(nActE), nActE)
 new EvoWorld(indsE, makeMap()).runLifetime();
 const evoRan = indsE.reduce((s, A) => s + A.fitness, 0) > 0;
 // the loop raises fitness over generations: last-generation mean above the first
-const eHist = evolve(P.evoGenerations, P.evoPopSize);
+const eHist = evolve(P.evoGenerations, P.evoPopSize).history;
 const evoRises = eHist[eHist.length - 1].mean > eHist[0].mean;
 const evoOk = genesOk && evoRan && evoRises;
 

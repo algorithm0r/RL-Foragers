@@ -26,7 +26,7 @@ P.nTypes = 1; P.gridN = 30; P.nFood = 60;            // ~7% food density → for
 P.evoPopSize = 16; P.evoGenerations = 25; P.evoRuns = 4; P.evoBatchSize = 8; P.evoProtect = 2;
 P.evoLifetime = 500; P.evoCull = 0.5; P.evoMutRate = 0.5;
 
-const hist = evolve(P.evoGenerations, P.evoPopSize);
+const hist = evolve(P.evoGenerations, P.evoPopSize).history;
 
 const G = hist.length;
 const q = Math.max(1, Math.floor(G / 4));

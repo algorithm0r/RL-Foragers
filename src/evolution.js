@@ -129,8 +129,9 @@ var makeMap = function () {
 // Leans entirely on World's mechanics; the only overrides are gatherResult (renewable, non-terminal
 // food) and the multi-forager stepping.
 var EvoWorld = class EvoWorld extends World {
-  constructor(batch, map) {
+  constructor(batch, map, evalMode) {
     super(800, 600);                                 // World ctor builds a throwaway grid + agent
+    this.evalMode = !!evalMode;                       // eval: freeze ε/α + drop the exploration bonus (read the LEARNED policy)
     this.N = map.N;
     this.grid = map.grid.map((r) => r.slice());      // fresh copy so batches never mutate the shared map
     this.goats = []; this.goatAt = new Array(this.N * this.N).fill(-1);
@@ -140,6 +141,14 @@ var EvoWorld = class EvoWorld extends World {
       const c = map.spawns[i % map.spawns.length];
       return { x: c % this.N, y: (c / this.N) | 0, ind };
     });
+    // renewable STATIONARY prey: goats as fixed hunt targets placed after the foragers. Stationary
+    // because 5a already ruled prey MOTION out as the barrier (credit assignment was) — keep it clean.
+    this.nGoatTarget = PARAMETERS.enableGoats ? PARAMETERS.nGoats : 0;
+    for (let i = 0; i < this.nGoatTarget; i++) {
+      const c = map.spawns[(this.foragers.length + i) % map.spawns.length];
+      const x = c % this.N, y = (c / this.N) | 0;
+      if (this.goatIndexAt(x, y) < 0) { this.goats.push({ x, y, alive: true, lastStates: null, lastAction: -1 }); this.goatAt[y * this.N + x] = this.goats.length - 1; }
+    }
   }
 
   // eating is renewable + never ends the day: drop the item back on a random empty cell and continue.
@@ -151,9 +160,10 @@ var EvoWorld = class EvoWorld extends World {
     const g = f.ind.genome;
     // aim the global learning params AND the felt-reward weights at THIS individual's genome. The agent
     // learns on its felt reward (rewardGather/rewardStep); fitness below counts TRUE food, not felt.
-    PARAMETERS.epsilon = g.epsilon; PARAMETERS.alpha = g.alpha; PARAMETERS.gamma = g.gamma;
-    PARAMETERS.rewardGather = g.rewardGather; PARAMETERS.rewardStep = g.rewardStep; PARAMETERS.confidenceK = g.confidenceK;
-    PARAMETERS.initialQ = g.initialQ; PARAMETERS.unexploredBonus = g.unexploredBonus; // evolved instincts (per action)
+    PARAMETERS.gamma = g.gamma; PARAMETERS.rewardGather = g.rewardGather; PARAMETERS.rewardStep = g.rewardStep; PARAMETERS.confidenceK = g.confidenceK;
+    PARAMETERS.initialQ = PARAMETERS.evoUseInstincts ? g.initialQ : null;          // instinct value-prior (control: off → null)
+    if (this.evalMode) { PARAMETERS.epsilon = 0; PARAMETERS.alpha = 0; PARAMETERS.unexploredBonus = null; } // greedy, frozen, no drive
+    else { PARAMETERS.epsilon = g.epsilon; PARAMETERS.alpha = g.alpha; PARAMETERS.unexploredBonus = PARAMETERS.evoUseInstincts ? g.unexploredBonus : null; }
     this.ax = f.x; this.ay = f.y;
     const before = this.food;
     f.ind.policy.act(this);
@@ -162,9 +172,26 @@ var EvoWorld = class EvoWorld extends World {
   }
 
   runLifetime() {
-    for (this.tick = 0; this.tick < PARAMETERS.evoLifetime; this.tick++)
+    for (this.tick = 0; this.tick < PARAMETERS.evoLifetime; this.tick++) {
       for (let i = 0; i < this.foragers.length; i++) this.stepForager(this.foragers[i]);
+      if (this.nGoatTarget) this.respawnGoats();     // keep prey density up so hunting stays available
+    }
     return this.foragers;
+  }
+
+  foragerAt(x, y) { for (let i = 0; i < this.foragers.length; i++) if (this.foragers[i].x === x && this.foragers[i].y === y) return true; return false; }
+
+  // top the prey back up to nGoatTarget on empty, unoccupied cells (renewable hunt targets)
+  respawnGoats() {
+    let alive = 0; for (let i = 0; i < this.goats.length; i++) if (this.goats[i].alive) alive++;
+    while (alive < this.nGoatTarget) {
+      let c = -1, tries = 0;
+      while (tries++ < 30) { const k = randomInt(this.N * this.N), x = k % this.N, y = (k / this.N) | 0;
+        if (this.grid[y][x] === World.EMPTY && this.goatIndexAt(x, y) < 0 && !this.foragerAt(x, y)) { c = k; break; } }
+      if (c < 0) break;
+      const x = c % this.N, y = (c / this.N) | 0;
+      this.goats.push({ x, y, alive: true, lastStates: null, lastAction: -1 }); this.goatAt[y * this.N + x] = this.goats.length - 1; alive++;
+    }
   }
 };
 
@@ -240,5 +267,21 @@ var evolve = function (nGenerations, popSize) {
     history.push(genStats(pop));
     pop = nextGeneration(pop, nActions);
   }
-  return history;
+  return { history, pop };
+};
+
+// read the LEARNED policy (5a lesson: freeze exploration + learning, don't infer from training-blended
+// metrics). Run the evolved population greedy (ε=0, α=0, no exploration bonus) over nRuns shared-map
+// runs and count hunts (goatsKilled) + food. Learning is frozen so tables/fitness aren't disturbed.
+var greedyEval = function (pop, nRuns) {
+  const B = PARAMETERS.evoBatchSize;
+  let kills = 0, foodSum = 0;
+  for (const A of pop) A.fitness = 0;
+  for (let r = 0; r < nRuns; r++) {
+    const map = makeMap();
+    const order = evoShuffle(pop.slice());
+    for (let i = 0; i < order.length; i += B) { const w = new EvoWorld(order.slice(i, i + B), map, true); w.runLifetime(); kills += w.goatsKilled; }
+  }
+  for (const A of pop) foodSum += A.fitness;
+  return { killsPerRun: kills / nRuns, foodPerRun: foodSum / nRuns };
 };

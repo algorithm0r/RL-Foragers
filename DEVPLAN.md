@@ -366,8 +366,12 @@ in DEVLOG 2026-07-21/22. Original scope as built:
     - [x] **machinery.** initialQ[a] (getQ prior for unseen pairs) + unexploredBonus[a] (LayeredAgent.
       selectInstinct optimism, reliance-weighted). Genome vector genes; guarded NULL → inert outside evo
       (smoke L=33.1 identical). Food-world eat-instinct ~flat (eat needs no bootstrapping — expected).
-    - [ ] **goats-in-evo hunting test.** Wire goats into EvoWorld (confounds designed out) → does an
-      evolved `attack` instinct produce hunting? The 5a wall. Needs confound-clean design + Chris's nod.
+    - [x] **goats-in-evo hunting sweep** (`evohunt.mjs`): stationary renewable prey, replay OFF, frozen
+      greedy-eval, {scarce,dense}×{instinct on/off}. Finding (1 seed): the evolved `attack` instinct TRACKS
+      scarcity (+0.14/0.45 prior+drive when scarce; −0.17/0.18 when dense); instinct-ON beats OFF under
+      scarcity on kills+fitness. Caveat: hunting appears in the OFF control too (easier regime than 5a:
+      persistent learning + stationary prey), so the instinct AMPLIFIES/TUNES hunting here, not ENABLES it.
+    - [ ] (optional follow-up) harder regime (moving prey / cold individuals) to test instinct NECESSITY.
   - [ ] **v1b.3 — placed-shelter regime, fitness = banked stock.** Spaced (non-random) shelters appearing
     in the LAST QUARTER; return-and-rest to bank; +pit/rest/collapse reward genes + shelter-timing gene.
   - [ ] **v1b.4 — browser viz of generations** (fitness curve + evolved-gene readout).

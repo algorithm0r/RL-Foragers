@@ -3,6 +3,40 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-23 — v1b.2 goats-in-evo: the attack-instinct hunting sweep (does evolution tune hunting?)
+
+**Done:** Wired goats into `EvoWorld` (stationary renewable prey — 5a ruled prey MOTION out as the
+barrier) + a frozen greedy-eval (`greedyEval`: ε=0, α=0, no bonus — read the LEARNED policy, 5a's lesson)
++ an instinct-on/off control (`evoUseInstincts`). New `evohunt.mjs` sweeps {scarce, dense} food ×
+{instinct ON, OFF}, replay OFF (so only the instinct can crack the hunt). `evolve` now returns
+`{history, pop}` so the final population can be greedy-eval'd.
+
+**Result (1 seed, held loosely):**
+| food | instinct | greedy kills/run | food/run | evolved attack initialQ / bonus |
+|---|---|---|---|---|
+| scarce | ON  | 34.5 | 409 | **+0.14 / 0.45** |
+| scarce | OFF | 24.0 | 284 | — |
+| dense  | ON  |  7.3 | 827 | **−0.17 / 0.18** |
+| dense  | OFF | 10.2 | 610 | — |
+
+- **Clean finding:** the evolved `attack` instinct **tracks scarcity** — POSITIVE prior + high drive when
+  hunting pays (scarce), NEGATIVE prior + low drive when food is plentiful (dense). The sweep's hypothesis
+  holds directionally. Under scarcity, instinct-ON beats OFF on both hunting and fitness.
+- **Honest caveat — NOT a 5a-wall break.** Hunting appears in the OFF control too (24 kills/run scarce):
+  this regime (persistent Lamarckian learning over many gens + STATIONARY renewable prey) is far easier
+  than 5a's (single cold life, moving prey, no replay → ~0 greedy kills). So here the instinct AMPLIFIES /
+  TUNES hunting to scarcity; it is not the sole ENABLER. Necessity needs a harder regime (moving prey /
+  cold short-lived individuals). Dense ON-vs-OFF is within noise.
+
+**Changed:** `evolution.js` (EvoWorld goats + respawn + evalMode; greedyEval; evolve returns pop),
+`params.js` (evoUseInstincts), `evosmoke.mjs`/`smoketest.mjs` (evolve().history), new `evohunt.mjs`.
+
+**State:** smoke **PASS** @ v0.7.0-5-g3b0c6d1 (`E evo` unchanged — goat path guarded off there).
+
+**Next (Chris's call):** confirm the directional finding with more seeds (parallel); OR harden the regime
+(moving prey / cold individuals) to test whether the instinct is NECESSARY, not just amplifying; OR move
+on to v1b.3 (placed-shelter regime) / v1b.4 (viz).
+
 ## 2026-07-23 — v1b.2: per-action instinct-vector machinery (initialQ + unexplored-bonus)
 
 **Done:** Built the evolved-INSTINCT machinery — the direct attack on the 5a "attack never bootstraps"
