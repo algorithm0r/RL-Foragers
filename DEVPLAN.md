@@ -349,10 +349,13 @@ in DEVLOG 2026-07-21/22. Original scope as built:
 
 ### Stage 6 — EVOLUTION + culture: evolve the meta-params we've been hand-tuning  [ ACTIVE — v1a done 2026-07-23 ]
 **Build order (incremental, each proven headless before the next):**
-- [x] **v1a — the loop.** `src/evolution.js`: `Genome` {ε,α,γ}, `EvoWorld extends World` (multi-forager,
-  renewable food, time-boxed lifetime, per-agent Q-tables), discrete generations (cull bottom 50%,
-  elitism + crossover/mutation). **Proven:** `evosmoke.mjs` 30×30/pop16/25gens → mean fitness 20.6→55.5;
-  evolution chose ε→0.002, α→0.65, γ→0.62 on a dense renewable world (near-greedy fast-adapting forager).
+- [x] **v1a — the loop.** `src/evolution.js`: `Genome` {ε,α,γ}; PERSISTENT individuals (genome + own
+  learned Q-tables); `EvoWorld extends World` (multi-forager, renewable food, time-boxed). Evaluation
+  (Chris regime): evoRuns SHARED-map runs/gen, population reshuffled into batches of evoBatchSize each
+  run, policies persist across runs (learning accumulates); survivors keep tables across gens
+  (Lamarckian), newborns fresh + evoProtect gens of cull-immunity; cull only mature within the worst-K
+  slots (elites persist). **Proven:** `evosmoke.mjs` 30×30/pop16/K4×life500/25gens → mean fitness
+  97→327, meanAge 0→9.3; genes chose ε≈0.04, α≈0.39, γ≈0.71 (persisting tables reward a longer horizon).
 - [ ] **v1b — full genome + real regime.** Add the rest of the meta-params (reward weights: gather/step/
   pit/rest/collapse — the *felt* reward — plus confidenceK, shelter-online timing) AND the two evolved-
   prior gene vectors tagged PER ACTION: (a) initial-Q per action, (b) unexplored-bonus per action —

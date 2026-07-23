@@ -23,9 +23,9 @@ Math.random = (function (a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 
 P.agent = 'layered'; P.layers = [1, 3, 5]; P.explore = 'egreedy'; P.relevanceFilter = false;
 P.enableWater = false; P.enableShelter = false; P.enablePits = false; P.enableRocks = false; P.enableGoats = false;
 P.nTypes = 1; P.gridN = 30; P.nFood = 60;            // ~7% food density → foraging is viable on its own
-P.evoPopSize = 16; P.evoGenerations = 25; P.evoLifetime = 800; P.evoCull = 0.5; P.evoMutRate = 0.5;
+P.evoPopSize = 16; P.evoGenerations = 25; P.evoRuns = 4; P.evoBatchSize = 8; P.evoProtect = 2;
+P.evoLifetime = 500; P.evoCull = 0.5; P.evoMutRate = 0.5;
 
-const t0 = Date.now ? 0 : 0; // (Date.now unused; kept deterministic)
 const hist = evolve(P.evoGenerations, P.evoPopSize);
 
 const G = hist.length;
@@ -37,12 +37,12 @@ const rise = last - first;
 
 // per-generation trace (sampled) so the trajectory is legible in the log
 const show = [0, Math.floor(G / 4), Math.floor(G / 2), Math.floor((3 * G) / 4), G - 1];
-console.log('gen   meanFit  bestFit    ε      α      γ');
+console.log('gen   meanFit  bestFit  meanAge    ε      α      γ');
 for (const i of show) {
   const h = hist[i];
   console.log(
     String(i).padStart(3) + '  ' + h.mean.toFixed(1).padStart(7) + '  ' + h.best.toFixed(0).padStart(6) +
-    '   ' + h.genes.epsilon.toFixed(3) + '  ' + h.genes.alpha.toFixed(3) + '  ' + h.genes.gamma.toFixed(3));
+    '   ' + h.meanAge.toFixed(1).padStart(5) + '   ' + h.genes.epsilon.toFixed(3) + '  ' + h.genes.alpha.toFixed(3) + '  ' + h.genes.gamma.toFixed(3));
 }
 
 const g0 = hist[0].genes, gN = hist[G - 1].genes;

@@ -154,14 +154,20 @@ var PARAMETERS = {
   ucbC: 1.0,              // UCB exploration constant (higher = explore longer); only when explore='ucb'
   epsilon: 0.01,          // ε-random rate; only when explore='egreedy'
 
-  // --- evolution (Stage 6) — a fixed population of foragers evolves its RL meta-params over DISCRETE
-  //   generations: forage one time-boxed lifetime on a shared renewable world, rank by food foraged,
-  //   cull the bottom, breed the top (crossover + mutation). The genome (Genome.GENES in evolution.js)
-  //   starts as {ε, α, γ}; the evo runner sets a larger gridN + food density for viable foraging. ---
-  evoPopSize: 16,         // population size (all forage the same world simultaneously) — sweepable
+  // --- evolution (Stage 6) — a population of PERSISTENT forager individuals (each a genome + its own
+  //   learned Q-tables) evolves its RL meta-params over DISCRETE generations. Each generation every
+  //   individual forages evoRuns SHARED-map runs (fair, low-noise), reshuffled into batches of
+  //   evoBatchSize each run (varied co-inhabitants); policies keep learning across the runs. Rank by
+  //   food foraged, cull the bottom (mature only), breed the top (crossover + mutation). Survivors keep
+  //   their tables across generations (Lamarckian); newborns get a fresh table and evoProtect gens of
+  //   grace before they're cull-eligible. Genome (Genome.GENES in evolution.js) starts {ε, α, γ}. ---
+  evoPopSize: 16,         // population size — sweepable
   evoGenerations: 40,     // generations to run
-  evoLifetime: 1500,      // ticks per generation each forager acts before being scored (a "lifetime")
-  evoCull: 0.5,           // fraction culled each generation (bottom 50% by fitness); top breed back to full
+  evoRuns: 4,             // K: shared-map runs per generation each individual forages (learning persists across them)
+  evoBatchSize: 8,        // foragers per run — the population is reshuffled into batches of this each run
+  evoProtect: 2,          // generations a newborn is exempt from culling (grace to learn on its fresh table)
+  evoLifetime: 800,       // ticks per RUN each forager acts (a life = evoRuns × this ticks of experience)
+  evoCull: 0.5,           // fraction culled each generation (bottom 50% of MATURE individuals by fitness)
   evoMutRate: 0.5,        // per-gene probability an offspring's gene takes a Gaussian mutation step
 
   // --- engine ---

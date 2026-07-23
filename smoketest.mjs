@@ -19,7 +19,7 @@ for (const f of ['util.js', 'params.js', 'engine.js', 'qlearner.js', 'utree.js',
   src = src.replace(/^\s*(['"])use strict\1;?/, '');
   indirectEval(src);
 }
-const { PARAMETERS: P, World, GameEngine, Genome, EvoWorld, evolve } = globalThis;
+const { PARAMETERS: P, World, GameEngine, Genome, EvoWorld, makeIndividual, makeMap, evolve } = globalThis;
 // seed the whole smoke deterministically → the competence bars are reproducible run-to-run (no more
 // unseeded flakiness, e.g. the DQN clear-count and the hunt-emergence kill rate).
 Math.random = (function (a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })(20260722);
@@ -192,18 +192,21 @@ const dqnOk = finiteW && qProbe.every(Number.isFinite) && wD.cleared > 3; // ran
 // a few generations (the loop selects). Small + short so it barely adds to the smoke's runtime.
 base(); P.agent = 'layered'; P.layers = [1, 3, 5]; P.explore = 'egreedy';
 P.nTypes = 1; P.gridN = 16; P.nFood = 24; P.maxStepsPerEpisode = 500;
-P.evoPopSize = 8; P.evoGenerations = 6; P.evoLifetime = 300; P.evoCull = 0.5; P.evoMutRate = 0.5;
+P.evoPopSize = 8; P.evoGenerations = 6; P.evoRuns = 3; P.evoBatchSize = 4; P.evoProtect = 2;
+P.evoLifetime = 250; P.evoCull = 0.5; P.evoMutRate = 0.5;
 // genome ops respect bounds (random → crossover → heavy mutation all clamp)
 let genesOk = true;
 for (let i = 0; i < 200; i++) {
   const gm = Genome.random().crossover(Genome.random()).mutate(1);
   for (const k in Genome.GENES) { const g = Genome.GENES[k]; if (!(gm[k] >= g.min && gm[k] <= g.max)) genesOk = false; }
 }
-// a short lifetime moves foragers and accrues fitness (the multi-forager step + renewable food work)
-const wE = new EvoWorld([Genome.random(), Genome.random(), Genome.random(), Genome.random()]);
-wE.runLifetime();
-const evoRan = wE.foragers.length === 4 && wE.foragers.reduce((s, f) => s + f.fitness, 0) > 0;
-// the loop raises fitness: last-generation mean above the first
+// a batch of persistent individuals forages a shared map, moves, and accrues fitness (multi-forager
+// step + renewable food + shared-map load all work)
+const nActE = World.buildActions().length;
+const indsE = [0, 1, 2, 3].map(() => makeIndividual(Genome.random(), nActE));
+new EvoWorld(indsE, makeMap()).runLifetime();
+const evoRan = indsE.reduce((s, A) => s + A.fitness, 0) > 0;
+// the loop raises fitness over generations: last-generation mean above the first
 const eHist = evolve(P.evoGenerations, P.evoPopSize);
 const evoRises = eHist[eHist.length - 1].mean > eHist[0].mean;
 const evoOk = genesOk && evoRan && evoRises;

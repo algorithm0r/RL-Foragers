@@ -14,20 +14,22 @@ done: goats + hunting-by-replay (5a), pits (3F), no-INT shelter, DQN/budget, lay
 
 ## State
 `GridForager` toggles: food · +water · +shelter · +pits · +rocks · +goats (prey agents). Agents:
-flat / layered / subsumption / multis / DQN. **Evolution (`src/evolution.js`):** `Genome` {ε,α,γ}
-(random/crossover/Gaussian-mutate/clone); `EvoWorld extends World` — multi-forager, renewable food,
-time-boxed lifetime, per-agent Q-tables, reusing World's grid/sensing/applyAction unchanged (per tick it
-aims `ax/ay` + global ε/α/γ at each forager, calls its own `agent.act`, reads back move + food delta as
-fitness). Discrete generations: `runGeneration`/`reproduce`/`evolve`. **UI:** `PARAM_SCHEMA` rows carry
-`group` (collapsible sections) + `showIf` (contextual visibility) — panel shows only what applies to the
-current model. smoke PASS @ v0.7.0-1-g9cde8f2 (all bars incl. new `E evo`).
+flat / layered / subsumption / multis / DQN. **Evolution (`src/evolution.js`):** `Genome` {ε,α,γ};
+PERSISTENT individuals (genome + own learned Q-tables + age + fitness); `EvoWorld extends World` —
+multi-forager, renewable food, time-boxed, reusing World's grid/sensing/applyAction unchanged (per tick
+it aims `ax/ay` + global ε/α/γ at each forager, calls its own persistent `policy.act`, reads back move +
+food delta as fitness). Eval: `evaluatePopulation` runs evoRuns SHARED maps/gen, reshuffling the pop into
+batches of evoBatchSize each run (learning persists across runs); `nextGeneration` culls only MATURE
+(age ≥ evoProtect) within the worst evoCull·P slots, survivors keep tables (Lamarckian), newborns fresh +
+protected. **UI:** `PARAM_SCHEMA` rows carry `group` (collapsible) + `showIf` (contextual). smoke PASS.
 
 ## Metrics (this session)
-- **Evolution v1a works** (`evosmoke.mjs`, 30×30 / pop 16 / 25 gens, seeded): mean fitness **20.6→55.5**
-  (first-quarter 35.0 → last-quarter 50.7, Δ15.7). Genes evolution CHOSE on a dense renewable world:
-  **ε 0.222→0.002** (near-greedy: coverage is free when food is everywhere + respawns), **α 0.305→0.653**
-  (fast adaptation in a short life), **γ 0.807→0.623** (short horizon: reward is immediate). Legible ⇒
-  Stage-6 Done-when partly met (loop + readable choices); culture/hunting hypothesis still ahead.
+- **Evolution v1a works** (`evosmoke.mjs`, 30×30 / pop 16 / K4×life500 / 25 gens, seeded): mean fitness
+  **97→327**, meanAge **0→9.3** (trained elites persist across generations, as designed). Genes evolution
+  CHOSE on a dense renewable world: **ε≈0.04** (near-greedy), **α≈0.39** (moderate), **γ≈0.71** — γ stays
+  HIGHER than the earlier cold-restart cut (~0.5): with tables persisting across many lives a longer
+  horizon pays off. (One seeded run — held loosely.) ⇒ Stage-6 Done-when partly met (loop + readable
+  choices + low-noise shared-map eval); culture/hunting hypothesis still ahead.
 - **Prior (unchanged):** hunting resolved by replay (greedy kills 0.05→~3.0, 3 seeds); goats as
   competitors ~40% harvest cost; no-INT shelter wins EV; pits layered+ε-greedy survives+clears.
 - All universal "unlearnable" claims retracted — findings = "did not emerge under conditions tested".

@@ -3,6 +3,36 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-23 — v1a evaluation regime: persistent individuals, shared-map batched runs, protection
+
+**Done:** Chris redesigned v1a's evaluation to kill the single-run noise (each genome had been scored on
+ONE cold life on ONE random map). New regime in `evolution.js`:
+- **Persistent individuals.** A population entry is now {genome, own policy(Q-tables), age, fitness}.
+  SURVIVORS keep their trained tables across generations (Lamarckian); NEWBORNS get a fresh table.
+- **K shared-map runs/gen.** `evaluatePopulation`: evoRuns(=4) runs, each on a SHARED map (everyone
+  faces the same K worlds → fair). Each run the population is RESHUFFLED and split into batches of
+  evoBatchSize(=8) — varied co-inhabitants. Policies persist across the K runs → learning accumulates
+  through the whole generation (a life = K × evoLifetime ticks).
+- **Juvenile protection.** `nextGeneration`: only MATURE individuals (age ≥ evoProtect=2) are cull-
+  eligible; cull only the mature among the worst evoCull·P SLOTS (so top-fitness elites are never in the
+  worst set → they persist and keep learning; protected newborns in the bottom are spared).
+
+**Changed:** `params.js` (+evoRuns/evoBatchSize/evoProtect; evoLifetime now per-RUN). `evosmoke.mjs` +
+smoke `E` bar updated to the new `EvoWorld(batch, map)` + `makeIndividual`/`makeMap` API; evosmoke now
+reports meanAge.
+
+**Fix:** first cut of the cull rule wiped the whole mature cohort once the population matured (protected
+newborns at the bottom pushed the cull up into high-fitness elites) — meanAge stuck ~1. Rebounded to
+"cull only mature within the worst-K slots"; meanAge now climbs 0→9.3 (elites persist as designed).
+
+**State:** smoke **PASS** @ v0.7.0-2-g9404aee (all bars incl. `E evo=true, meanFit 31.3→99.9`).
+`evosmoke.mjs` (30×30, pop16, K4×life500, 25 gens, seeded): mean fitness **97→327**, meanAge **0→9.3**.
+Genes chose ε≈0.04, α≈0.39, **γ≈0.71** — note γ stays HIGHER than the old cold-restart regime's ~0.5:
+with tables now persisting across many lives a longer horizon pays off. (One seeded run — held loosely.)
+
+**Next:** v1b — full genome (reward weights + per-action initial-Q / unexplored-bonus INSTINCT vectors)
++ placed-shelter-last-quarter regime + browser viz of generations.
+
 ## 2026-07-23 — UI catch-up (declutter) + Stage 6 v1a: the evolutionary loop works
 
 **Done:**
