@@ -2,12 +2,54 @@
 // ALL DOM lives here (and in index.html). The sim classes never touch the document, which
 // is what lets the same files run headlessly. Builds the control panel from PARAM_SCHEMA
 // and writes changes straight back into PARAMETERS.
+// Section order + which sections start collapsed. Rows carry `group`; unknown groups append
+// after these in first-seen order. Collapsing the opt-in/rare sections keeps the panel short.
+var CONTROL_GROUP_ORDER = ['Model', 'Learning', 'Replay', 'Goats', 'Shelter', 'Advanced'];
+var CONTROL_GROUPS_COLLAPSED = ['Replay', 'Advanced'];
+var _ctlRows = [];      // { spec, el } for every built row — drives showIf visibility
+var _ctlSections = {};  // group name -> its <details> element (hidden when all its rows are)
+
 function buildControls() {
   const panel = document.getElementById('controlPanel');
+  _ctlRows = []; _ctlSections = {};
+  const groups = {}, order = CONTROL_GROUP_ORDER.slice();
   for (const spec of PARAM_SCHEMA) {
-    if (spec.type === 'checkbox') { panel.appendChild(buildCheckbox(spec)); continue; }
-    if (spec.type === 'select') { panel.appendChild(buildSelect(spec)); continue; }
-    panel.appendChild(buildSlider(spec));
+    const g = spec.group || 'Model';
+    if (!groups[g]) { groups[g] = []; if (!order.includes(g)) order.push(g); }
+    groups[g].push(spec);
+  }
+  for (const g of order) {
+    if (!groups[g]) continue;
+    const det = document.createElement('details');
+    det.className = 'ctl-group';
+    det.open = !CONTROL_GROUPS_COLLAPSED.includes(g);
+    const sum = document.createElement('summary');
+    sum.textContent = g;
+    det.appendChild(sum);
+    for (const spec of groups[g]) {
+      const el = spec.type === 'checkbox' ? buildCheckbox(spec)
+        : spec.type === 'select' ? buildSelect(spec) : buildSlider(spec);
+      det.appendChild(el);
+      _ctlRows.push({ spec, el });
+    }
+    _ctlSections[g] = det;
+    panel.appendChild(det);
+  }
+  refreshControlVisibility();
+}
+
+// Apply every row's showIf, then hide any section left with no visible rows. Called after any
+// control change so toggling a feature reveals/hides its dependent knobs (and its whole section).
+function refreshControlVisibility() {
+  const P = PARAMETERS;
+  for (const r of _ctlRows) {
+    const s = r.spec.showIf;
+    const show = !s || (typeof s === 'function' ? s(P) : !!P[s]);
+    r.el.style.display = show ? '' : 'none';
+  }
+  for (const g in _ctlSections) {
+    const anyVisible = _ctlRows.some((r) => (r.spec.group || 'Model') === g && r.el.style.display !== 'none');
+    _ctlSections[g].style.display = anyVisible ? '' : 'none';
   }
 }
 
@@ -25,6 +67,7 @@ function buildSelect(spec) {
   }
   sel.onchange = function () {
     PARAMETERS[spec.key] = sel.value;
+    refreshControlVisibility();
     if (typeof reset === 'function') reset();
   };
   wrap.appendChild(sel);
@@ -42,6 +85,7 @@ function buildCheckbox(spec) {
   input.checked = PARAMETERS[spec.key] === on;
   input.onchange = function () {
     PARAMETERS[spec.key] = input.checked ? on : off;
+    refreshControlVisibility(); // a feature toggle reveals/hides its dependent knobs
     if (typeof reset === 'function') reset(); // a model flip always rebuilds the sim
   };
   wrap.appendChild(input);
@@ -79,10 +123,15 @@ function renderStats(w) {
   const el = document.getElementById('stats');
   if (!el) return;
   const P = PARAMETERS, A = w.agent;
-  const feat = 'food' + (P.enableWater ? '+water' : '') + (P.enableShelter ? '+shelter' : '') + (P.enablePits ? '+pits' : '');
+  const feat = 'food' + (P.enableWater ? '+water' : '') + (P.enableShelter ? '+shelter' : '')
+    + (P.enablePits ? '+pits' : '') + (P.enableRocks ? '+rocks' : '') + (P.enableGoats ? '+goats' : '');
   const L = [];
   L.push('model    ' + feat);
-  L.push('agent    ' + (A.layers ? 'layered [' + A.layers.map((l) => l.label).join(' ') + ']' : 'flat ' + P.receptiveField + '×' + P.receptiveField));
+  const bands = A.layers ? ' [' + A.layers.map((l) => l.label).join(' ') + ']' : '';
+  const agentDesc = P.agent === 'flat' ? 'flat ' + P.receptiveField + '×' + P.receptiveField
+    : P.agent === 'dqn' ? 'dqn ' + P.dqnField + '×' + P.dqnField
+    : P.agent + bands; // layered / subsumption / multi-* — name + layer bands
+  L.push('agent    ' + agentDesc);
   L.push('explore  ' + (P.explore === 'ucb' ? 'UCB c=' + P.ucbC : 'ε-greedy ε=' + P.epsilon));
   L.push('arena    ' + w.N + '×' + w.N);
   L.push('');
@@ -90,6 +139,7 @@ function renderStats(w) {
   L.push(P.enableShelter ? 'rested   ' + w.rested : 'cleared  ' + w.cleared);
   if (P.enableShelter) L.push('collapsed ' + w.collapsed + '  (' + (w.collapseRate() * 100).toFixed(0) + '%)');
   if (P.enablePits) L.push('died     ' + w.died + '  (' + (w.deathRate() * 100).toFixed(0) + '%)');
+  if (P.enableGoats) L.push('hunted   ' + w.goatsKilled + '  goat-pit ' + w.goatPitDeaths + '  alive ' + w.goats.reduce((n, g) => n + (g.alive ? 1 : 0), 0));
   if (P.enableShelter || P.enableWater) L.push('carrying food ' + w.food + (P.enableWater ? '  water ' + w.water : ''));
   L.push('steps    ' + w.steps + ' / ' + P.maxStepsPerEpisode);
   const qs = A.layers ? A.layers.reduce((s, l) => s + l.learner.numStates(), 0) : (A.learner ? A.learner.numStates() : A.numStates());

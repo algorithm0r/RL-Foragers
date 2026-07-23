@@ -172,29 +172,55 @@ var PARAMETERS = {
 };
 
 // Schema drives the auto-generated control panel (ui.js). One entry per live-tunable.
+// `group` sorts a row into a collapsible section; `showIf` (a truthy param key OR a
+// predicate P => bool) hides the row until it's relevant — so the panel only ever shows
+// controls that apply to the current model (the base food-sweep shows a handful; goat /
+// shelter / replay knobs appear as you switch those features on). Keeps the panel uncluttered.
 var PARAM_SCHEMA = [
-  // model toggles (checkboxes) — build up from the base food-sweep model. Each flip rebuilds the sim.
-  { key: 'agent', label: 'Layered agent', type: 'checkbox', onVal: 'layered', offVal: 'flat' },
-  { key: 'enableWater', label: '+ Water (2nd resource)', type: 'checkbox' },
-  { key: 'enableShelter', label: '+ Shelter (rest ends day)', type: 'checkbox' },
-  { key: 'enablePits', label: '+ Pits (death)', type: 'checkbox' },
-  { key: 'enableRocks', label: '+ Rocks (block)', type: 'checkbox' },
-  { key: 'enableGoats', label: '+ Goats (prey agents)', type: 'checkbox' },
-  { key: 'relevanceFilter', label: 'Relevance filter (U-Tree)', type: 'checkbox' },
-  // sliders
-  { key: 'gridN', label: 'Arena N', min: 4, max: 20, step: 1, resets: true },
-  { key: 'nFood', label: 'Food', min: 0, max: 30, step: 1, resets: true },
-  { key: 'nWater', label: 'Water', min: 0, max: 30, step: 1, resets: true },
-  { key: 'nPits', label: 'Pits', min: 0, max: 12, step: 1, resets: true },
-  { key: 'nRocks', label: 'Rocks', min: 0, max: 24, step: 1, resets: true },
-  { key: 'nGoats', label: 'Goats', min: 0, max: 8, step: 1, resets: true },
-  { key: 'maxStepsPerEpisode', label: 'Day length', min: 20, max: 1000, step: 20 },
-  { key: 'collapsePenalty', label: 'Collapse −M', min: 0, max: 100, step: 5 },
-  { key: 'explore', label: 'Exploration', type: 'select', options: ['greedy', 'ucb', 'egreedy'] },
-  { key: 'ucbC', label: 'UCB explore c', min: 0, max: 4, step: 0.1 },
-  { key: 'epsilon', label: 'ε-greedy ε', min: 0, max: 1, step: 0.01 },
-  { key: 'alpha', label: 'Learn α', min: 0.01, max: 1, step: 0.01 },
-  { key: 'qReplay', label: 'Replay (Dyna-Q)', type: 'checkbox' },
-  { key: 'qReplayK', label: 'Replay K', min: 0, max: 128, step: 4 },
-  { key: 'updatesPerDraw', label: 'Speed', min: 1, max: 500, step: 1 },
+  // --- Model: architecture + which features are in play. Count sliders appear per enabled feature. ---
+  { key: 'agent', label: 'Architecture', type: 'select', group: 'Model',
+    options: ['flat', 'layered', 'subsumption', 'dqn'] },
+  { key: 'enableWater', label: '+ Water (2nd resource)', type: 'checkbox', group: 'Model' },
+  { key: 'enableShelter', label: '+ Shelter (rest ends day)', type: 'checkbox', group: 'Model' },
+  { key: 'enablePits', label: '+ Pits (death)', type: 'checkbox', group: 'Model' },
+  { key: 'enableRocks', label: '+ Rocks (block)', type: 'checkbox', group: 'Model' },
+  { key: 'enableGoats', label: '+ Goats (prey agents)', type: 'checkbox', group: 'Model' },
+  { key: 'gridN', label: 'Arena N', min: 4, max: 20, step: 1, resets: true, group: 'Model' },
+  { key: 'nFood', label: 'Food', min: 0, max: 30, step: 1, resets: true, group: 'Model' },
+  { key: 'nWater', label: 'Water', min: 0, max: 30, step: 1, resets: true, group: 'Model', showIf: 'enableWater' },
+  { key: 'nPits', label: 'Pits', min: 0, max: 12, step: 1, resets: true, group: 'Model', showIf: 'enablePits' },
+  { key: 'nRocks', label: 'Rocks', min: 0, max: 24, step: 1, resets: true, group: 'Model', showIf: 'enableRocks' },
+  { key: 'nGoats', label: 'Goats', min: 0, max: 8, step: 1, resets: true, group: 'Model', showIf: 'enableGoats' },
+  { key: 'maxStepsPerEpisode', label: 'Day length', min: 20, max: 1000, step: 20, group: 'Model' },
+  { key: 'updatesPerDraw', label: 'Speed', min: 1, max: 500, step: 1, group: 'Model' },
+
+  // --- Learning: exploration + core RL rates. ε / UCB-c each show only for their method. ---
+  { key: 'explore', label: 'Exploration', type: 'select', options: ['greedy', 'ucb', 'egreedy'], group: 'Learning' },
+  { key: 'epsilon', label: 'ε-greedy ε', min: 0, max: 1, step: 0.01, group: 'Learning', showIf: (P) => P.explore === 'egreedy' },
+  { key: 'ucbC', label: 'UCB explore c', min: 0, max: 4, step: 0.1, group: 'Learning', showIf: (P) => P.explore === 'ucb' },
+  { key: 'alpha', label: 'Learn α', min: 0.01, max: 1, step: 0.01, group: 'Learning' },
+  { key: 'gamma', label: 'Discount γ', min: 0.5, max: 0.999, step: 0.001, group: 'Learning' },
+
+  // --- Replay (Dyna-Q): opt-in; K and the backward variant appear once replay is on. ---
+  { key: 'qReplay', label: 'Replay (Dyna-Q)', type: 'checkbox', group: 'Replay' },
+  { key: 'qReplayK', label: 'Replay K', min: 0, max: 128, step: 4, group: 'Replay', showIf: 'qReplay' },
+  { key: 'qReplayRecent', label: 'Backward (last-K)', type: 'checkbox', group: 'Replay', showIf: 'qReplay' },
+
+  // --- Goats: whole section hidden until goats are enabled (showIf on every row). ---
+  { key: 'goatEatRespawn', label: 'Non-competing (respawn)', type: 'checkbox', group: 'Goats', showIf: 'enableGoats' },
+  { key: 'goatsCountToClear', label: 'Must hunt to clear', type: 'checkbox', group: 'Goats', showIf: 'enableGoats' },
+  { key: 'goatStationary', label: 'Stationary prey', type: 'checkbox', group: 'Goats', showIf: 'enableGoats' },
+  { key: 'goatHuntOneAction', label: 'One-action hunt (swallow)', type: 'checkbox', group: 'Goats', showIf: 'enableGoats' },
+  { key: 'goatExplodeRadius', label: 'Carcass burst r', min: 0, max: 3, step: 1, group: 'Goats', showIf: 'enableGoats' },
+  { key: 'goatEpsilon', label: 'Goat ε', min: 0, max: 1, step: 0.01, group: 'Goats', showIf: 'enableGoats' },
+
+  // --- Shelter: hidden until shelter is enabled. ---
+  { key: 'shelterActivate', label: 'Shelter opens', type: 'select',
+    options: ['always', 'cleared', 'time', 'clearedOrTime'], group: 'Shelter', showIf: 'enableShelter' },
+  { key: 'collapsePenalty', label: 'Collapse −M', min: 0, max: 100, step: 5, group: 'Shelter', showIf: 'enableShelter' },
+  { key: 'strategicLayer', label: 'INT layer (bearing+satiety)', type: 'checkbox', group: 'Shelter', showIf: 'enableShelter' },
+
+  // --- Advanced: research variants, collapsed by default. ---
+  { key: 'subsumptionHazardArb', label: 'Subsumption hazard-arb', type: 'checkbox', group: 'Advanced', showIf: (P) => P.agent === 'subsumption' },
+  { key: 'relevanceFilter', label: 'Relevance filter (U-Tree)', type: 'checkbox', group: 'Advanced' },
 ];

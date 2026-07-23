@@ -11,6 +11,13 @@
     .ctl input[type=range] { width: 100%; }
     .ctl-check { display: flex; align-items: center; gap: 7px; font-size: 13px; cursor: pointer; }
     .ctl-check input { width: auto; }
+    .ctl-group { margin: 0 0 4px; }
+    .ctl-group[open] { padding-bottom: 8px; border-bottom: 1px solid #21262d; margin-bottom: 8px; }
+    .ctl-group > summary { cursor: pointer; user-select: none; list-style: none; padding: 7px 0 3px;
+      font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #8a8f98; }
+    .ctl-group > summary::-webkit-details-marker { display: none; }
+    .ctl-group > summary::before { content: '▸'; color: #5a5f68; display: inline-block; width: 14px; }
+    .ctl-group[open] > summary::before { content: '▾'; }
     button { background: #2b6cf6; color: #fff; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
     #status { font-size: 12px; color: #8a8f98; margin-top: 12px; }
     canvas { background: #0b0e13; display: block; }
