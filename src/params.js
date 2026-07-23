@@ -140,6 +140,11 @@ var PARAMETERS = {
   alpha: 0.1,             // learning rate
   gamma: 0.95,            // discount (raised for v2: reward is banked at rest, ~20-40 steps away)
   defaultQ: 0,            // Q for unseen (state, action) pairs
+  // evolved INSTINCT vectors (per action), set by evolution mode per individual (evolution.js) and NULL
+  // everywhere else so ordinary runs use defaultQ / plain greedy. initialQ = prior value of an unseen
+  // (state, action); unexploredBonus = selection-time optimism for an untried action.
+  initialQ: null,
+  unexploredBonus: null,
 
   // --- exploration ---
   // 'egreedy': ε-random exploration — the DEFAULT (ε=0.01). Stage-3 prelim (N=5) found foraging is a

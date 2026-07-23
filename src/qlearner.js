@@ -20,7 +20,12 @@ var QLearner = class QLearner {
 
   getQ(state, action) {
     const v = this.Q.get(this.key(state, action));
-    return v === undefined ? PARAMETERS.defaultQ : v;
+    if (v !== undefined) return v;
+    // an unseen (state, action): use the evolved per-action prior (initialQ instinct) if one is active
+    // (evolution mode sets PARAMETERS.initialQ per individual), else the default. Null everywhere else,
+    // so non-evo runs are unchanged.
+    const iq = PARAMETERS.initialQ;
+    return iq ? iq[action] : PARAMETERS.defaultQ;
   }
 
   getCount(state, action) {

@@ -3,6 +3,33 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-23 — v1b.2: per-action instinct-vector machinery (initialQ + unexplored-bonus)
+
+**Done:** Built the evolved-INSTINCT machinery — the direct attack on the 5a "attack never bootstraps"
+wall. Two per-ACTION vector genes (`Genome.VGENES`, length nActions):
+- **initialQ[a]** — prior VALUE of an unseen (state, a). `QLearner.getQ` returns it for unseen pairs when
+  `PARAMETERS.initialQ` is set (evo mode), else `defaultQ`. A positive prior makes an action worth trying
+  before any experience (and seeds the bootstrap target through it).
+- **unexploredBonus[a]** — selection-time optimism for an UNTRIED (state, a). New `LayeredAgent.
+  selectInstinct` adds it, weighted by layer reliance (fades as the action is sampled), mirroring selectUCB.
+Genome vector-gene support (random(nActions)/crossover/mutate/clone element-wise); stepForager sets both
+vectors per individual; genStats reports population-mean vectors.
+
+**Guarded:** `initialQ`/`unexploredBonus` default NULL in params → getQ falls back to defaultQ and act
+falls back to plain argmax everywhere outside evolution. Proven inert: smoke's `L base-sweep
+steps-to-clear=33.1` is IDENTICAL to pre-change (the getQ path is untouched when null).
+
+**Changed:** `evolution.js` (VGENES + vector Genome + wiring), `qlearner.js` (getQ prior), `agent.js`
+(selectInstinct), `params.js` (null defaults), `evosmoke.mjs`/`smoketest.mjs` (report + bounds-check vectors).
+
+**State:** smoke **PASS** @ v0.7.0-4-g89b6bd1 (`E evo 39.8→103.4`). evosmoke meanFit 114→332. The eat
+instinct barely moved (initialQ ~−0.04, bonus ~0.2) — EXPECTED: eat is trivially learned in ~1 visit, so
+no bootstrap problem for evolution to solve there. The machinery is proven wired + inert-safe; its PURPOSE
+(cracking a hard-to-bootstrap action) is untested until goats are in the evo world.
+
+**Next:** the real test — wire GOATS into EvoWorld (confounds designed out) and see whether an evolved
+attack-instinct produces hunting. Needs a confound-clean design + Chris's nod first (5a taught us why).
+
 ## 2026-07-23 — v1b.1: full scalar genome + the felt-reward / fitness split
 
 **Done:** Started Stage 6 **v1b** (decomposed into v1b.1–.4). Landed **v1b.1**: the genome grows from

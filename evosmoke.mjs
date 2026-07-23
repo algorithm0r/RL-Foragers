@@ -15,7 +15,7 @@ for (const f of ['util.js', 'params.js', 'engine.js', 'qlearner.js', 'utree.js',
   src = src.replace(/^\s*(['"])use strict\1;?/, '');
   indirectEval(src);
 }
-const { PARAMETERS: P, evolve } = globalThis;
+const { PARAMETERS: P, World, evolve } = globalThis;
 // seed deterministically so the trend is reproducible run-to-run
 Math.random = (function (a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })(20260722);
 
@@ -58,4 +58,10 @@ console.log(
   ' | felt rGather ' + g0.rewardGather.toFixed(2) + '→' + gN.rewardGather.toFixed(2) +
   ' rStep ' + g0.rewardStep.toFixed(2) + '→' + gN.rewardStep.toFixed(2) +
   ' -> ' + (pass ? 'PASS' : 'FAIL'));
+
+// evolved INSTINCTS for the eat action (the only "special" action in this food world) — the mechanism
+// that will target `attack` once goats are in the evo world (v1b.2 goats test / v1b.3).
+const eatIdx = World.buildActions().indexOf('eat');
+console.log('instinct[eat]: initialQ ' + hist[0].vgenes.initialQ[eatIdx].toFixed(2) + '→' + hist[G - 1].vgenes.initialQ[eatIdx].toFixed(2) +
+  '  unexploredBonus ' + hist[0].vgenes.unexploredBonus[eatIdx].toFixed(2) + '→' + hist[G - 1].vgenes.unexploredBonus[eatIdx].toFixed(2));
 process.exit(pass ? 0 : 1);

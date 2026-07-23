@@ -195,15 +195,16 @@ P.nTypes = 1; P.gridN = 16; P.nFood = 24; P.maxStepsPerEpisode = 500;
 P.evoPopSize = 8; P.evoGenerations = 6; P.evoRuns = 3; P.evoBatchSize = 4; P.evoProtect = 2;
 P.evoLifetime = 250; P.evoCull = 0.5; P.evoMutRate = 0.5;
 // genome ops respect bounds (random → crossover → heavy mutation all clamp)
+const nActE = World.buildActions().length;
 let genesOk = true;
 for (let i = 0; i < 200; i++) {
-  const gm = Genome.random().crossover(Genome.random()).mutate(1);
+  const gm = Genome.random(nActE).crossover(Genome.random(nActE)).mutate(1);
   for (const k in Genome.GENES) { const g = Genome.GENES[k]; if (!(gm[k] >= g.min && gm[k] <= g.max)) genesOk = false; }
+  for (const k in Genome.VGENES) { const g = Genome.VGENES[k]; if (gm[k].length !== nActE || gm[k].some((x) => !(x >= g.min && x <= g.max))) genesOk = false; }
 }
 // a batch of persistent individuals forages a shared map, moves, and accrues fitness (multi-forager
 // step + renewable food + shared-map load all work)
-const nActE = World.buildActions().length;
-const indsE = [0, 1, 2, 3].map(() => makeIndividual(Genome.random(), nActE));
+const indsE = [0, 1, 2, 3].map(() => makeIndividual(Genome.random(nActE), nActE));
 new EvoWorld(indsE, makeMap()).runLifetime();
 const evoRan = indsE.reduce((s, A) => s + A.fitness, 0) > 0;
 // the loop raises fitness over generations: last-generation mean above the first

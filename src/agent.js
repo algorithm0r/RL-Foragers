@@ -151,6 +151,25 @@ var LayeredAgent = class LayeredAgent {
     return best[randomInt(best.length)];
   }
 
+  // greedy pick over the combined Q, plus the evolved UNEXPLORED-BONUS instinct: an untried (state,a) in
+  // a relied-on layer gets +unexploredBonus[a] (weighted by that layer's reliance, so it fades as the
+  // action is sampled). This is the innate DRIVE that makes an agent try e.g. attack enough to learn it.
+  selectInstinct(states, combined) {
+    const ub = PARAMETERS.unexploredBonus, w = combined.weights, q = combined.q;
+    let m = -Infinity; const best = [];
+    for (let a = 0; a < this.nActions; a++) {
+      let bonus = 0;
+      for (let i = 0; i < this.layers.length; i++) {
+        if (w[i] === 0) continue;
+        if (this.layers[i].learner.getCount(states[i], a) === 0) bonus += w[i] * ub[a];
+      }
+      const v = q[a] + bonus;
+      if (v > m) { m = v; best.length = 0; best.push(a); }
+      else if (v === m) best.push(a);
+    }
+    return best[randomInt(best.length)];
+  }
+
   act(world) {
     const states = this.statesFor(world);
     const combined = this.combine(states);
@@ -158,7 +177,8 @@ var LayeredAgent = class LayeredAgent {
     this.lastRandom = PARAMETERS.explore === 'egreedy' && Math.random() < PARAMETERS.epsilon;
     const action = PARAMETERS.explore === 'ucb' ? this.selectUCB(states, combined)
       : this.lastRandom ? randomInt(this.nActions)
-        : this.argmax(combined.q); // 'greedy' — exploration comes from the strategic init (defaultQ)
+        : PARAMETERS.unexploredBonus ? this.selectInstinct(states, combined)
+          : this.argmax(combined.q); // 'greedy' — exploration comes from the strategic init (defaultQ)
 
     const outcome = world.applyAction(action);
     const nextStates = outcome.done ? null : this.statesFor(world);

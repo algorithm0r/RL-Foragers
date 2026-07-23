@@ -50,8 +50,9 @@ protected. **UI:** `PARAM_SCHEMA` rows carry `group` (collapsible) + `showIf` (c
 - Curriculum "eat then hunt" — Chris has another idea (TBD).
 
 ## Next action
-Build **v1b.2**: per-action instinct vectors (initial-Q + unexplored-bonus) — evolved-instinct machinery
-(QLearner/agent support) + the goats-in-world test of whether an innate `attack` drive produces hunting.
+**Decision pending (Chris):** the goats-in-evo hunting test design (confounds out) — then wire goats into
+EvoWorld and test whether an evolved `attack` instinct produces hunting (the 5a wall). Instinct MACHINERY
+(v1b.2) is built + proven inert-safe; it needs a hard-to-bootstrap action (attack) to show its purpose.
 
 ## Blockers
 - none

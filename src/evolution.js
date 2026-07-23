@@ -25,35 +25,54 @@
 // --- Genome: the evolvable meta-params. One flat record of numbers → serialises cleanly for the DB.
 // GENES centralises each gene's bounds + mutation scale + the range initial genomes are drawn from,
 // so random()/mutate()/clamp stay DRY as we add genes (reward weights, instinct vectors) in v1b.
-var Genome = class Genome {
-  constructor(values) { for (const k in Genome.GENES) this[k] = values[k]; }
+var evoClamp = function (x, lo, hi) { return Math.max(lo, Math.min(hi, x)); };
 
-  static random() {
+var Genome = class Genome {
+  constructor(values, vectors) {
+    for (const k in Genome.GENES) this[k] = values[k];
+    for (const k in Genome.VGENES) this[k] = vectors[k];   // per-ACTION vectors (length nActions)
+  }
+
+  static random(nActions) {
     const v = {};
     for (const k in Genome.GENES) { const g = Genome.GENES[k]; v[k] = g.init[0] + Math.random() * (g.init[1] - g.init[0]); }
-    return new Genome(v);
-  }
-
-  clone() { const v = {}; for (const k in Genome.GENES) v[k] = this[k]; return new Genome(v); }
-
-  // uniform crossover: each gene independently inherited from one parent or the other
-  crossover(other) {
-    const v = {};
-    for (const k in Genome.GENES) v[k] = Math.random() < 0.5 ? this[k] : other[k];
-    return new Genome(v);
-  }
-
-  // Gaussian mutation per gene (scaled by the gene's sd), clamped to bounds. `rate` = per-gene
-  // probability of being perturbed. Returns a NEW genome (parents are never mutated in place).
-  mutate(rate) {
-    const v = {};
-    for (const k in Genome.GENES) {
-      const g = Genome.GENES[k];
-      let x = this[k];
-      if (Math.random() < rate) x += gaussian() * g.sd;
-      v[k] = Math.max(g.min, Math.min(g.max, x));
+    const vec = {};
+    for (const k in Genome.VGENES) {
+      const g = Genome.VGENES[k]; vec[k] = [];
+      for (let a = 0; a < nActions; a++) vec[k].push(g.init[0] + Math.random() * (g.init[1] - g.init[0]));
     }
-    return new Genome(v);
+    return new Genome(v, vec);
+  }
+
+  clone() {
+    const v = {}, vec = {};
+    for (const k in Genome.GENES) v[k] = this[k];
+    for (const k in Genome.VGENES) vec[k] = this[k].slice();
+    return new Genome(v, vec);
+  }
+
+  // uniform crossover: each gene (and each element of a vector gene) independently from one parent
+  crossover(other) {
+    const v = {}, vec = {};
+    for (const k in Genome.GENES) v[k] = Math.random() < 0.5 ? this[k] : other[k];
+    for (const k in Genome.VGENES) { vec[k] = this[k].map((x, a) => (Math.random() < 0.5 ? x : other[k][a])); }
+    return new Genome(v, vec);
+  }
+
+  // Gaussian mutation per gene / per vector element (scaled by the gene's sd), clamped to bounds.
+  // `rate` = per-gene probability of being perturbed. Returns a NEW genome (parents untouched).
+  mutate(rate) {
+    const v = {}, vec = {};
+    for (const k in Genome.GENES) {
+      const g = Genome.GENES[k]; let x = this[k];
+      if (Math.random() < rate) x += gaussian() * g.sd;
+      v[k] = evoClamp(x, g.min, g.max);
+    }
+    for (const k in Genome.VGENES) {
+      const g = Genome.VGENES[k];
+      vec[k] = this[k].map((x) => evoClamp(Math.random() < rate ? x + gaussian() * g.sd : x, g.min, g.max));
+    }
+    return new Genome(v, vec);
   }
 };
 // gene → { bounds, mutation sd, [init lo, init hi] }. Init ranges span the good regime AND a lot of
@@ -69,6 +88,17 @@ Genome.GENES = {
   rewardGather: { min: 0.1,  max: 3,     sd: 0.15, init: [0.5,  1.5]  }, // felt: value of an eat/drink
   rewardStep:   { min: -3,   max: 0,     sd: 0.15, init: [-1.5, -0.2] }, // felt: cost of a move / failed act
   confidenceK:  { min: 1,    max: 100,   sd: 6,    init: [10,   50]   }, // layered coupling: count→confidence saturation
+};
+// per-ACTION vector genes — evolved INSTINCTS (one value per action). These are the direct attack on the
+// 5a "attack never bootstraps" wall: an innate prior/drive on `attack` makes an agent SAMPLE it enough to
+// discover the hunt's value, without a hand-set curriculum.
+//   initialQ[a]        — the prior VALUE of an unseen (state, a): a positive prior makes action a worth
+//                        trying before any experience (and seeds the bootstrap target through it).
+//   unexploredBonus[a] — selection-time optimism for an UNTRIED (state, a): an innate urge to sample a,
+//                        weighted by layer reliance so it fades as the action gets tried.
+Genome.VGENES = {
+  initialQ:        { min: -2, max: 2, sd: 0.2, init: [-0.3, 0.3] },
+  unexploredBonus: { min: 0,  max: 3, sd: 0.2, init: [0.0,  0.4] },
 };
 
 // standard-normal sample (Box–Muller). Uses Math.random, so a seeded harness makes it deterministic.
@@ -123,6 +153,7 @@ var EvoWorld = class EvoWorld extends World {
     // learns on its felt reward (rewardGather/rewardStep); fitness below counts TRUE food, not felt.
     PARAMETERS.epsilon = g.epsilon; PARAMETERS.alpha = g.alpha; PARAMETERS.gamma = g.gamma;
     PARAMETERS.rewardGather = g.rewardGather; PARAMETERS.rewardStep = g.rewardStep; PARAMETERS.confidenceK = g.confidenceK;
+    PARAMETERS.initialQ = g.initialQ; PARAMETERS.unexploredBonus = g.unexploredBonus; // evolved instincts (per action)
     this.ax = f.x; this.ay = f.y;
     const before = this.food;
     f.ind.policy.act(this);
@@ -184,10 +215,17 @@ var genStats = function (pop) {
   const P = pop.length, fits = pop.map((A) => A.fitness).sort((a, b) => b - a);
   const mean = fits.reduce((a, b) => a + b, 0) / P;
   const g = {}; for (const k in Genome.GENES) g[k] = 0;
+  const nA = pop[0].genome.initialQ.length, vg = {};
+  for (const k in Genome.VGENES) vg[k] = new Array(nA).fill(0);
   let age = 0;
-  for (const A of pop) { for (const k in g) g[k] += A.genome[k]; age += A.age; }
+  for (const A of pop) {
+    for (const k in g) g[k] += A.genome[k];
+    for (const k in vg) for (let a = 0; a < nA; a++) vg[k][a] += A.genome[k][a];
+    age += A.age;
+  }
   for (const k in g) g[k] /= P;
-  return { mean, best: fits[0], worst: fits[P - 1], meanAge: age / P, genes: g };
+  for (const k in vg) for (let a = 0; a < nA; a++) vg[k][a] /= P;
+  return { mean, best: fits[0], worst: fits[P - 1], meanAge: age / P, genes: g, vgenes: vg };
 };
 
 // the whole loop: seed a random population of individuals, evolve nGenerations, return the per-generation
@@ -195,7 +233,7 @@ var genStats = function (pop) {
 var evolve = function (nGenerations, popSize) {
   const nActions = World.buildActions().length;
   let pop = [];
-  for (let i = 0; i < popSize; i++) pop.push(makeIndividual(Genome.random(), nActions));
+  for (let i = 0; i < popSize; i++) pop.push(makeIndividual(Genome.random(nActions), nActions));
   const history = [];
   for (let gen = 0; gen < nGenerations; gen++) {
     evaluatePopulation(pop);

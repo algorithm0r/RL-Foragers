@@ -362,9 +362,12 @@ in DEVLOG 2026-07-21/22. Original scope as built:
     fitness stays the TRUE objective (food). Proven: evolution can't cheat (fitness ≠ felt reward) — it
     SOFTENED the felt step-cost −0.77→−0.31 (hand-tuned −1 is too punishing for dense foraging), left
     rGather ~0.8, meanFit 115→342. The reward-shaping payoff, made concrete.
-  - [ ] **v1b.2 — per-action instinct vectors.** initial-Q per action + unexplored-bonus per action
-    (evolved INSTINCTS; an innate `attack` drive directly attacks the 5a "attack never bootstraps" wall).
-    Needs QLearner/agent support (getQ + selection consult per-genome vectors) + goats in-world to test.
+  - **v1b.2 — per-action instinct vectors:**
+    - [x] **machinery.** initialQ[a] (getQ prior for unseen pairs) + unexploredBonus[a] (LayeredAgent.
+      selectInstinct optimism, reliance-weighted). Genome vector genes; guarded NULL → inert outside evo
+      (smoke L=33.1 identical). Food-world eat-instinct ~flat (eat needs no bootstrapping — expected).
+    - [ ] **goats-in-evo hunting test.** Wire goats into EvoWorld (confounds designed out) → does an
+      evolved `attack` instinct produce hunting? The 5a wall. Needs confound-clean design + Chris's nod.
   - [ ] **v1b.3 — placed-shelter regime, fitness = banked stock.** Spaced (non-random) shelters appearing
     in the LAST QUARTER; return-and-rest to bank; +pit/rest/collapse reward genes + shelter-timing gene.
   - [ ] **v1b.4 — browser viz of generations** (fitness curve + evolved-gene readout).
