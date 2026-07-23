@@ -3,6 +3,40 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-23 — UI catch-up (declutter) + Stage 6 v1a: the evolutionary loop works
+
+**Done:**
+- **UI catch-up.** The control panel had drifted ~2 arcs behind the sim: rocks, all six goat knobs,
+  `qReplayRecent` (the replay that solved hunting), shelter gating, `strategicLayer`, `gamma`, and the
+  subsumption/dqn architectures had no browser control. Reworked `PARAM_SCHEMA` with `group`
+  (collapsible `<details>` sections) + `showIf` (a param key or `P=>bool`) so the panel shows only what
+  applies to the current model — default food-sweep ~14 rows, not a wall of 30; goat/shelter/replay
+  knobs appear as their feature is switched on. Agent checkbox → `flat/layered/subsumption/dqn` select.
+  Readout gained `+rocks/+goats` + correct subsumption/dqn labels + a `hunted/goat-pit/alive` line.
+- **Stage 6 v1a — evolution foundation (new `src/evolution.js`).** `Genome` {ε, α, γ} with
+  random/crossover/Gaussian-mutate/clone. `EvoWorld extends World` and REUSES its grid/sensing/
+  applyAction unchanged — per tick it points the world's `ax/ay` and the global ε/α/γ at each forager,
+  calls that forager's own `agent.act(this)`, reads back move + food delta as fitness. Per-agent
+  Q-tables, learning independently (broadcast/culture deferred to v1c). Renewable food (gatherResult
+  override respawns + never clears), time-boxed lifetime. Discrete generations: rank by food foraged,
+  cull bottom 50%, elitism + crossover/mutation refill.
+
+**Changed:** `params.js` (+evo params, +10 UI rows, agent select); `ui.js` (grouped panel + visibility +
+readout); `index.html` (section CSS, evolution.js script tag); `smoketest.mjs` (+E evo bar); new
+`evosmoke.mjs`. DEVPLAN Stage 6 → ACTIVE; STATUS rewritten.
+
+**State:** smoke **PASS** @ v0.7.0-1-g9cde8f2 (all bars incl. new `E evo=true, meanFit 6.3→12.5`).
+`evosmoke.mjs` (30×30, pop 16, 25 gens, seeded): mean fitness **20.6→55.5** (first-q 35.0 → last-q
+50.7). And the genes evolution CHOSE on a dense renewable world are legible: **ε 0.222→0.002**
+(near-greedy — grab nearby food, coverage is free when food is everywhere & respawns), **α 0.305→0.653**
+(fast adaptation in a short life), **γ 0.807→0.623** (shorter horizon — reward is immediate, no delayed
+shelter bank). The loop optimises fitness and we can read its choices — exactly the Stage-6 Done-when.
+
+**Next:** v1b — full genome (reward weights + per-action initial-Q / unexplored-bonus INSTINCT vectors,
+the direct attack on the 5a "attack never bootstraps" wall) + shelters-in-last-quarter world regime +
+browser viz of generations. Then v1c per-agent tables + `broadcastRange` (culture hypothesis), v1d DB
+persistence of genomes/tables.
+
 ## 2026-07-23 — SESSION CLOSE: goats + hunting arc resolved (replay); evolution (Stage 6) spec'd
 
 **Done:** (detail in the per-arc entries below, 2026-07-20→23; this is the through-line.) Built the

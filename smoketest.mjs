@@ -14,12 +14,12 @@ import path from 'path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const indirectEval = eval;
-for (const f of ['util.js', 'params.js', 'engine.js', 'qlearner.js', 'utree.js', 'dqn.js', 'agent.js', 'world.js']) {
+for (const f of ['util.js', 'params.js', 'engine.js', 'qlearner.js', 'utree.js', 'dqn.js', 'agent.js', 'world.js', 'evolution.js']) {
   let src = readFileSync(path.join(__dirname, 'src', f), 'utf8');
   src = src.replace(/^\s*(['"])use strict\1;?/, '');
   indirectEval(src);
 }
-const { PARAMETERS: P, World, GameEngine } = globalThis;
+const { PARAMETERS: P, World, GameEngine, Genome, EvoWorld, evolve } = globalThis;
 // seed the whole smoke deterministically → the competence bars are reproducible run-to-run (no more
 // unseeded flakiness, e.g. the DQN clear-count and the hunt-emergence kill rate).
 Math.random = (function (a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; })(20260722);
@@ -188,7 +188,27 @@ for (const arr of [AD.W1, AD.W2]) for (let i = 0; i < arr.length; i++) if (!Numb
 const qProbe = AD.qValues(AD.encode(wD));
 const dqnOk = finiteW && qProbe.every(Number.isFinite) && wD.cleared > 3; // ran, learned to clear some, no blow-up (unseeded → loose bar)
 
-const ok = mechanics && decoupled && learned && sheltered && goatsOk && huntEmerges && pitsOk && dqnOk;
+// --- E: evolution (Stage 6 v1a) — genome ops stay in-bounds; a population raises mean fitness over
+// a few generations (the loop selects). Small + short so it barely adds to the smoke's runtime.
+base(); P.agent = 'layered'; P.layers = [1, 3, 5]; P.explore = 'egreedy';
+P.nTypes = 1; P.gridN = 16; P.nFood = 24; P.maxStepsPerEpisode = 500;
+P.evoPopSize = 8; P.evoGenerations = 6; P.evoLifetime = 300; P.evoCull = 0.5; P.evoMutRate = 0.5;
+// genome ops respect bounds (random → crossover → heavy mutation all clamp)
+let genesOk = true;
+for (let i = 0; i < 200; i++) {
+  const gm = Genome.random().crossover(Genome.random()).mutate(1);
+  for (const k in Genome.GENES) { const g = Genome.GENES[k]; if (!(gm[k] >= g.min && gm[k] <= g.max)) genesOk = false; }
+}
+// a short lifetime moves foragers and accrues fitness (the multi-forager step + renewable food work)
+const wE = new EvoWorld([Genome.random(), Genome.random(), Genome.random(), Genome.random()]);
+wE.runLifetime();
+const evoRan = wE.foragers.length === 4 && wE.foragers.reduce((s, f) => s + f.fitness, 0) > 0;
+// the loop raises fitness: last-generation mean above the first
+const eHist = evolve(P.evoGenerations, P.evoPopSize);
+const evoRises = eHist[eHist.length - 1].mean > eHist[0].mean;
+const evoOk = genesOk && evoRan && evoRises;
+
+const ok = mechanics && decoupled && learned && sheltered && goatsOk && huntEmerges && pitsOk && dqnOk && evoOk;
 console.log('smoke:' +
   ' M mech=' + mechanics + ' (eat=' + mEat + ' clear=' + mClear + ' drink=' + mDrink + ' rest=' + mRest +
   ' stick=' + mStick + ' pit=' + mPit + ' rock=' + mRock + ' collapse=' + mCollapse + ' time=' + mTime +
@@ -201,5 +221,6 @@ console.log('smoke:' +
   ' hunt1act=' + huntEmerges + ' (kills ' + killsEarly.toFixed(2) + '→' + killsLate.toFixed(2) + ')' +
   ' | P pits death(last2k)=' + pDeath.toFixed(3) + ' (' + wP.cleared + ' cleared)' +
   ' | D dqn=' + dqnOk + ' (cleared=' + wD.cleared + ')' +
+  ' | E evo=' + evoOk + ' (meanFit ' + eHist[0].mean.toFixed(1) + '→' + eHist[eHist.length - 1].mean.toFixed(1) + ')' +
   ' -> ' + (ok ? 'PASS' : 'FAIL'));
 process.exit(ok ? 0 : 1);

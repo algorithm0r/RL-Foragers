@@ -154,6 +154,16 @@ var PARAMETERS = {
   ucbC: 1.0,              // UCB exploration constant (higher = explore longer); only when explore='ucb'
   epsilon: 0.01,          // ε-random rate; only when explore='egreedy'
 
+  // --- evolution (Stage 6) — a fixed population of foragers evolves its RL meta-params over DISCRETE
+  //   generations: forage one time-boxed lifetime on a shared renewable world, rank by food foraged,
+  //   cull the bottom, breed the top (crossover + mutation). The genome (Genome.GENES in evolution.js)
+  //   starts as {ε, α, γ}; the evo runner sets a larger gridN + food density for viable foraging. ---
+  evoPopSize: 16,         // population size (all forage the same world simultaneously) — sweepable
+  evoGenerations: 40,     // generations to run
+  evoLifetime: 1500,      // ticks per generation each forager acts before being scored (a "lifetime")
+  evoCull: 0.5,           // fraction culled each generation (bottom 50% by fitness); top breed back to full
+  evoMutRate: 0.5,        // per-gene probability an offspring's gene takes a Gaussian mutation step
+
   // --- engine ---
   updatesPerDraw: 20,     // fast-forward: sim updates per rendered frame (learning is fast, drawing slow)
 

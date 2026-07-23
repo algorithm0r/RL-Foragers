@@ -347,7 +347,23 @@ in DEVLOG 2026-07-21/22. Original scope as built:
   doesn't hit it.
 **5b — wolves + shared worlds:** wolves (fight back, bites, HP), then predators/prey as peer learners.
 
-### Stage 6 — EVOLUTION + culture: evolve the meta-params we've been hand-tuning  [ PLANNED — next build, Chris spec 2026-07-23 ]
+### Stage 6 — EVOLUTION + culture: evolve the meta-params we've been hand-tuning  [ ACTIVE — v1a done 2026-07-23 ]
+**Build order (incremental, each proven headless before the next):**
+- [x] **v1a — the loop.** `src/evolution.js`: `Genome` {ε,α,γ}, `EvoWorld extends World` (multi-forager,
+  renewable food, time-boxed lifetime, per-agent Q-tables), discrete generations (cull bottom 50%,
+  elitism + crossover/mutation). **Proven:** `evosmoke.mjs` 30×30/pop16/25gens → mean fitness 20.6→55.5;
+  evolution chose ε→0.002, α→0.65, γ→0.62 on a dense renewable world (near-greedy fast-adapting forager).
+- [ ] **v1b — full genome + real regime.** Add the rest of the meta-params (reward weights: gather/step/
+  pit/rest/collapse — the *felt* reward — plus confidenceK, shelter-online timing) AND the two evolved-
+  prior gene vectors tagged PER ACTION: (a) initial-Q per action, (b) unexplored-bonus per action —
+  evolved INSTINCTS (an innate `attack` drive directly attacks the 5a "attack never bootstraps" wall).
+  World regime: placed/spaced multiple shelters appearing in the LAST QUARTER; fitness = banked stock.
+  Plus browser viz of generations (fitness curve + evolved-gene readout).
+- [ ] **v1c — culture.** Per-agent tables already exist; add `broadcastRange` so each transition updates
+  agents in range (∞ ≡ shared, local ≡ CULTURE, 0 ≡ individual). Test the hunting-culture hypothesis.
+- [ ] **v1d — persistence.** Store genomes + Q-tables in the DB (lineages, resume, analysis).
+
+The payoff of the whole reward-shaping/meta-param struggle: **stop tuning it, select it.** The details
 The payoff of the whole reward-shaping/meta-param struggle: **stop tuning it, select it.** The details
 we've debated (shelter timing, reward weights, ε, replay) become GENES and the population evolves them.
 - **World:** larger (20×20 / 50×50 / 100×100 — sweep). Multiple SHELTERS at PLACED (non-random, spaced/
