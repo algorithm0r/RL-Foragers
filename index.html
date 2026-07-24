@@ -19,6 +19,10 @@
     .ctl-group > summary::before { content: '▸'; color: #5a5f68; display: inline-block; width: 14px; }
     .ctl-group[open] > summary::before { content: '▾'; }
     button { background: #2b6cf6; color: #fff; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+    #tabs { display: flex; gap: 3px; margin-bottom: 10px; }
+    .tab { flex: 1; background: #1b2029; color: #8a8f98; border: 1px solid #2b3240; border-radius: 6px 6px 0 0; padding: 7px 4px; font-size: 12px; }
+    .tab.active { background: #2b6cf6; color: #fff; border-color: #2b6cf6; }
+    .restart { font-size: 11px; padding: 4px 10px; margin-bottom: 12px; background: #333a47; }
     #status { font-size: 12px; color: #8a8f98; margin-top: 12px; }
     canvas { background: #0b0e13; display: block; }
     #dataPanel { padding: 14px; box-sizing: border-box; flex: none; }
@@ -30,10 +34,16 @@
 <body>
   <div id="controlPanel">
     <h3>RLLayers</h3>
-    <button onclick="reset()">Reset</button>
-    <button onclick="toggleEvolution()">Evolve ⇄ Sim</button>
-    <button onclick="toggleEcology()">Ecology ⇄ Sim</button>
+    <div id="tabs">
+      <button id="tab-sim" class="tab active" onclick="selectTab('sim')">Sim</button>
+      <button id="tab-evo" class="tab" onclick="selectTab('evo')">Evolution</button>
+      <button id="tab-eco" class="tab" onclick="selectTab('eco')">Ecology</button>
+    </div>
     <div id="status"></div>
+    <button class="restart" onclick="selectTab(currentTab)">Restart run</button>
+    <div id="panel-sim"></div>
+    <div id="panel-evo"></div>
+    <div id="panel-eco"></div>
   </div>
   <canvas id="gameWorld" width="600" height="600"></canvas>
   <div id="dataPanel">

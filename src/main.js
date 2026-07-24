@@ -53,11 +53,9 @@ var EvoRunner = class EvoRunner {
 };
 
 var evoRunner = null;
-function toggleEvolution() {
-  if (evoRunner) { evoRunner = null; reset(); return; }   // back to the normal single-agent sim
-  ecoRunner = null;
+function startEvolution() {
   gameEngine.clear();
-  evoRunner = new EvoRunner(document.getElementById('graphCanvas').getContext('2d'));
+  evoRunner = new EvoRunner(graphCtx());
   gameEngine.add(evoRunner);
   if (typeof setStatus === 'function') setStatus('evolving — ' + PARAMETERS.gridN + '×' + PARAMETERS.gridN + ' · pop ' + PARAMETERS.evoPopSize);
 }
@@ -81,21 +79,42 @@ var EcoRunner = class EcoRunner {
 };
 
 var ecoRunner = null;
-function toggleEcology() {
-  if (ecoRunner) { ecoRunner = null; reset(); return; }   // back to the normal single-agent sim
-  evoRunner = null;
-  PARAMETERS.gridN = 30;                                    // a roomy arena for a population
+function startEcology() {
   gameEngine.clear();
-  ecoRunner = new EcoRunner(document.getElementById('graphCanvas').getContext('2d'));
+  ecoRunner = new EcoRunner(graphCtx());
   gameEngine.add(ecoRunner);
   if (typeof setStatus === 'function') setStatus('ecology — ' + PARAMETERS.gridN + '×' + PARAMETERS.gridN + ' · founding pop ' + PARAMETERS.ecoPop0);
+}
+
+function graphCtx() { return document.getElementById('graphCanvas').getContext('2d'); }
+
+// --- Tabs: each tab is a sim MODE with its own controls. Selecting a tab switches the running mode
+// (Sim / Evolution / Ecology) and shows only that mode's inputs.
+var currentTab = 'sim';
+function buildAllTabs() {
+  buildTab(PARAM_SCHEMA, document.getElementById('panel-sim'), function () { if (currentTab === 'sim') reset(); });
+  buildTab(EVO_SCHEMA, document.getElementById('panel-evo'), function () { if (currentTab === 'evo') startEvolution(); });
+  buildTab(ECO_SCHEMA, document.getElementById('panel-eco'), function () { if (currentTab === 'eco') startEcology(); });
+}
+function selectTab(name) {
+  currentTab = name;
+  if (name === 'eco' && PARAMETERS.gridN < 20) PARAMETERS.gridN = 30;   // a roomy arena for a population
+  syncControls();
+  for (const t of ['sim', 'evo', 'eco']) {
+    const p = document.getElementById('panel-' + t); if (p) p.style.display = t === name ? '' : 'none';
+    const b = document.getElementById('tab-' + t); if (b) b.className = 'tab' + (t === name ? ' active' : '');
+  }
+  evoRunner = null; ecoRunner = null;
+  if (name === 'sim') reset();
+  else if (name === 'evo') startEvolution();
+  else if (name === 'eco') startEcology();
 }
 
 window.onload = function () {
   const canvas = document.getElementById('gameWorld');
   gameEngine = new GameEngine();
   gameEngine.init(canvas.getContext('2d'));
-  buildControls();
-  reset();
+  buildAllTabs();
+  selectTab('sim');
   gameEngine.start();
 };

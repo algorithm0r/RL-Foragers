@@ -267,3 +267,41 @@ var PARAM_SCHEMA = [
   { key: 'subsumptionHazardArb', label: 'Subsumption hazard-arb', type: 'checkbox', group: 'Advanced', showIf: (P) => P.agent === 'subsumption' },
   { key: 'relevanceFilter', label: 'Relevance filter (U-Tree)', type: 'checkbox', group: 'Advanced' },
 ];
+
+// The EVOLUTION tab (browser GA viz). `resets: true` restarts the run; others take effect on the next
+// generation. (The browser evo is the simplified single-run-per-gen loop; evoRuns/evoBatchSize are
+// headless-only and omitted here.)
+var EVO_SCHEMA = [
+  { key: 'enableGoats', label: '+ Goats (prey)', type: 'checkbox', resets: true },
+  { key: 'enableShelter', label: '+ Shelter (bank stock)', type: 'checkbox', resets: true },
+  { key: 'enablePits', label: '+ Pits (death)', type: 'checkbox', resets: true },
+  { key: 'gridN', label: 'Arena N', min: 10, max: 40, step: 2, resets: true },
+  { key: 'nFood', label: 'Food', min: 0, max: 120, step: 5, resets: true },
+  { key: 'nGoats', label: 'Goats', min: 0, max: 12, step: 1, resets: true, showIf: 'enableGoats' },
+  { key: 'nPits', label: 'Pits', min: 0, max: 12, step: 1, resets: true, showIf: 'enablePits' },
+  { key: 'evoPopSize', label: 'Population', min: 4, max: 64, step: 2, resets: true },
+  { key: 'evoLifetime', label: 'Lifetime (ticks)', min: 100, max: 2000, step: 100 },
+  { key: 'evoProtect', label: 'Juvenile protect (gens)', min: 0, max: 10, step: 1 },
+  { key: 'evoMaxAge', label: 'Max age (gens)', min: 2, max: 50, step: 1 },
+  { key: 'evoCull', label: 'Cull fraction', min: 0.1, max: 0.9, step: 0.05 },
+  { key: 'evoMutRate', label: 'Mutation rate', min: 0, max: 1, step: 0.05 },
+  { key: 'evoUseInstincts', label: 'Instincts (initialQ)', type: 'checkbox' },
+  { key: 'updatesPerDraw', label: 'Speed', min: 1, max: 500, step: 1 },
+];
+
+// The ECOLOGY tab (natural-selection ecology). Most knobs are read live each tick, so changing them
+// steers the running world immediately; only the `resets: true` ones (world size / founding stock) rebuild.
+var ECO_SCHEMA = [
+  { key: 'gridN', label: 'Arena N', min: 10, max: 60, step: 2, resets: true },
+  { key: 'ecoPop0', label: 'Founding pop', min: 10, max: 200, step: 5, resets: true },
+  { key: 'ecoFoodPerTick', label: 'Food arriving / tick', min: 0, max: 40, step: 1 },
+  { key: 'ecoFoodValue', label: 'Energy per food', min: 1, max: 60, step: 1 },
+  { key: 'ecoMetabolism', label: 'Metabolism / tick', min: 0.05, max: 3, step: 0.05 },
+  { key: 'ecoReproThreshold', label: 'Reproduce threshold T', min: 20, max: 400, step: 10 },
+  { key: 'ecoBirthEnergy', label: 'Birth energy', min: 20, max: 600, step: 10 },
+  { key: 'ecoHazard', label: 'Random death / tick', min: 0, max: 0.005, step: 0.0001 },
+  { key: 'ecoFoodDensity', label: 'Initial food density', min: 0, max: 0.3, step: 0.01, resets: true },
+  { key: 'evoMutRate', label: 'Mutation rate', min: 0, max: 1, step: 0.05 },
+  { key: 'ecoMaxPop', label: 'Population cap', min: 50, max: 1500, step: 50, resets: true },
+  { key: 'updatesPerDraw', label: 'Speed', min: 1, max: 500, step: 1 },
+];

@@ -6,111 +6,70 @@
 // after these in first-seen order. Collapsing the opt-in/rare sections keeps the panel short.
 var CONTROL_GROUP_ORDER = ['Model', 'Learning', 'Replay', 'Goats', 'Shelter', 'Advanced'];
 var CONTROL_GROUPS_COLLAPSED = ['Replay', 'Advanced'];
-var _ctlRows = [];      // { spec, el } for every built row — drives showIf visibility
-var _ctlSections = {};  // group name -> its <details> element (hidden when all its rows are)
+var _ctlRows = [];       // {spec, el} across ALL tabs — drives showIf visibility + value sync
+var _ctlSections = [];   // {el, rows} — a group section hidden when all its rows are
 
-function buildControls() {
-  const panel = document.getElementById('controlPanel');
-  _ctlRows = []; _ctlSections = {};
-  const groups = {}, order = CONTROL_GROUP_ORDER.slice();
-  for (const spec of PARAM_SCHEMA) {
-    const g = spec.group || 'Model';
-    if (!groups[g]) { groups[g] = []; if (!order.includes(g)) order.push(g); }
-    groups[g].push(spec);
-  }
-  for (const g of order) {
-    if (!groups[g]) continue;
-    const det = document.createElement('details');
-    det.className = 'ctl-group';
-    det.open = !CONTROL_GROUPS_COLLAPSED.includes(g);
-    const sum = document.createElement('summary');
-    sum.textContent = g;
-    det.appendChild(sum);
-    for (const spec of groups[g]) {
-      const el = spec.type === 'checkbox' ? buildCheckbox(spec)
-        : spec.type === 'select' ? buildSelect(spec) : buildSlider(spec);
-      det.appendChild(el);
-      _ctlRows.push({ spec, el });
+// Build one TAB's controls into `panel`, wiring each change to `restart` (that mode's restart callback).
+// A schema with `group` fields renders collapsible sections; a flat schema renders a plain list.
+function buildTab(schema, panel, restart) {
+  if (schema.some((s) => s.group)) {
+    const groups = {}, order = CONTROL_GROUP_ORDER.slice();
+    for (const spec of schema) { const g = spec.group || 'Model'; if (!groups[g]) { groups[g] = []; if (!order.includes(g)) order.push(g); } groups[g].push(spec); }
+    for (const g of order) {
+      if (!groups[g]) continue;
+      const det = document.createElement('details'); det.className = 'ctl-group'; det.open = !CONTROL_GROUPS_COLLAPSED.includes(g);
+      const sum = document.createElement('summary'); sum.textContent = g; det.appendChild(sum);
+      const rows = [];
+      for (const spec of groups[g]) { const el = buildRow(spec, restart); det.appendChild(el); const r = { spec, el }; _ctlRows.push(r); rows.push(r); }
+      _ctlSections.push({ el: det, rows }); panel.appendChild(det);
     }
-    _ctlSections[g] = det;
-    panel.appendChild(det);
+  } else {
+    for (const spec of schema) { const el = buildRow(spec, restart); panel.appendChild(el); _ctlRows.push({ spec, el }); }
   }
-  refreshControlVisibility();
+}
+function buildRow(spec, restart) {
+  return spec.type === 'checkbox' ? buildCheckbox(spec, restart) : spec.type === 'select' ? buildSelect(spec, restart) : buildSlider(spec, restart);
 }
 
-// Apply every row's showIf, then hide any section left with no visible rows. Called after any
-// control change so toggling a feature reveals/hides its dependent knobs (and its whole section).
+// apply every row's showIf; hide any section whose rows are all hidden. Called after any control change.
 function refreshControlVisibility() {
   const P = PARAMETERS;
-  for (const r of _ctlRows) {
-    const s = r.spec.showIf;
-    const show = !s || (typeof s === 'function' ? s(P) : !!P[s]);
-    r.el.style.display = show ? '' : 'none';
-  }
-  for (const g in _ctlSections) {
-    const anyVisible = _ctlRows.some((r) => (r.spec.group || 'Model') === g && r.el.style.display !== 'none');
-    _ctlSections[g].style.display = anyVisible ? '' : 'none';
-  }
+  for (const r of _ctlRows) { const s = r.spec.showIf; r.el.style.display = (!s || (typeof s === 'function' ? s(P) : !!P[s])) ? '' : 'none'; }
+  for (const sec of _ctlSections) sec.el.style.display = sec.rows.some((r) => r.el.style.display !== 'none') ? '' : 'none';
 }
+// re-read PARAMETERS into every widget (shared params like gridN reflect changes made on another tab)
+function syncControls() { for (const r of _ctlRows) if (r.el._sync) r.el._sync(); refreshControlVisibility(); }
 
 // a dropdown for a small set of mutually-exclusive string values (e.g. exploration method)
-function buildSelect(spec) {
-  const wrap = document.createElement('label');
-  wrap.className = 'ctl';
+function buildSelect(spec, restart) {
+  const wrap = document.createElement('label'); wrap.className = 'ctl';
   wrap.appendChild(document.createTextNode(spec.label + ' '));
   const sel = document.createElement('select');
-  for (const opt of spec.options) {
-    const o = document.createElement('option');
-    o.value = opt; o.textContent = opt;
-    if (PARAMETERS[spec.key] === opt) o.selected = true;
-    sel.appendChild(o);
-  }
-  sel.onchange = function () {
-    PARAMETERS[spec.key] = sel.value;
-    refreshControlVisibility();
-    if (typeof reset === 'function') reset();
-  };
-  wrap.appendChild(sel);
-  return wrap;
+  for (const opt of spec.options) { const o = document.createElement('option'); o.value = opt; o.textContent = opt; if (PARAMETERS[spec.key] === opt) o.selected = true; sel.appendChild(o); }
+  sel.onchange = function () { PARAMETERS[spec.key] = sel.value; refreshControlVisibility(); if (restart) restart(); };
+  wrap._sync = function () { sel.value = PARAMETERS[spec.key]; };
+  wrap.appendChild(sel); return wrap;
 }
 
 // a boolean/enum toggle. `onVal`/`offVal` map the checkbox to non-boolean params (e.g. agent).
-function buildCheckbox(spec) {
-  const wrap = document.createElement('label');
-  wrap.className = 'ctl ctl-check';
-  const input = document.createElement('input');
-  input.type = 'checkbox';
-  const on = spec.onVal !== undefined ? spec.onVal : true;
-  const off = spec.offVal !== undefined ? spec.offVal : false;
+function buildCheckbox(spec, restart) {
+  const wrap = document.createElement('label'); wrap.className = 'ctl ctl-check';
+  const input = document.createElement('input'); input.type = 'checkbox';
+  const on = spec.onVal !== undefined ? spec.onVal : true, off = spec.offVal !== undefined ? spec.offVal : false;
   input.checked = PARAMETERS[spec.key] === on;
-  input.onchange = function () {
-    PARAMETERS[spec.key] = input.checked ? on : off;
-    refreshControlVisibility(); // a feature toggle reveals/hides its dependent knobs
-    if (typeof reset === 'function') reset(); // a model flip always rebuilds the sim
-  };
-  wrap.appendChild(input);
-  wrap.appendChild(document.createTextNode(' ' + spec.label));
-  return wrap;
+  input.onchange = function () { PARAMETERS[spec.key] = input.checked ? on : off; refreshControlVisibility(); if (restart) restart(); };
+  wrap._sync = function () { input.checked = PARAMETERS[spec.key] === on; };
+  wrap.appendChild(input); wrap.appendChild(document.createTextNode(' ' + spec.label)); return wrap;
 }
 
-function buildSlider(spec) {
-  const wrap = document.createElement('label');
-  wrap.className = 'ctl';
+function buildSlider(spec, restart) {
+  const wrap = document.createElement('label'); wrap.className = 'ctl';
   wrap.appendChild(document.createTextNode(spec.label + ' '));
-  const input = document.createElement('input');
-  input.type = 'range';
-  input.min = spec.min; input.max = spec.max; input.step = spec.step;
-  input.value = PARAMETERS[spec.key];
-  const val = document.createElement('span');
-  val.textContent = ' ' + PARAMETERS[spec.key];
-  input.oninput = function () {
-    PARAMETERS[spec.key] = parseFloat(input.value);
-    val.textContent = ' ' + input.value;
-    if (spec.resets && typeof reset === 'function') reset();
-  };
-  wrap.appendChild(input);
-  wrap.appendChild(val);
-  return wrap;
+  const input = document.createElement('input'); input.type = 'range'; input.min = spec.min; input.max = spec.max; input.step = spec.step; input.value = PARAMETERS[spec.key];
+  const val = document.createElement('span'); val.textContent = ' ' + PARAMETERS[spec.key];
+  input.oninput = function () { PARAMETERS[spec.key] = parseFloat(input.value); val.textContent = ' ' + input.value; if (spec.resets && restart) restart(); };
+  wrap._sync = function () { input.value = PARAMETERS[spec.key]; val.textContent = ' ' + PARAMETERS[spec.key]; };
+  wrap.appendChild(input); wrap.appendChild(val); return wrap;
 }
 
 function setStatus(msg) {

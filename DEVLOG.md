@@ -3,6 +3,23 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-23 — UI: tabs per sim mode (Sim / Evolution / Ecology) + live ecology knobs
+
+**Done (Chris):** the control panel is now **three tabs**, one per run mode, each showing only that mode's
+inputs; selecting a tab switches the running mode.
+- `PARAM_SCHEMA` (sim) unchanged; new `EVO_SCHEMA` (world toggles, gridN/food, pop/lifetime/protect/maxAge/
+  cull/mutRate/instincts/speed) and `ECO_SCHEMA` (all the ecology magic numbers).
+- **Ecology tab exposes every energetics knob** — food/tick, energy per food, metabolism, reproduce
+  threshold T, birth energy, random-death hazard, initial food density, mutation, pop cap, arena, speed.
+  Most are read live each tick, so dragging a slider **steers the running world immediately** (bump
+  metabolism and watch the population thin); only world-size / founding-stock rebuild.
+- `buildControls`→`buildTab(schema, panel, restart)` (tab-aware, per-tab restart callback); `syncControls`
+  re-reads PARAMETERS into every widget so shared params (gridN, mutRate) stay consistent across tabs.
+  `selectTab` shows the panel + starts the mode. `EcoRunner`/`EvoRunner`/normal sim wired to the tabs.
+
+**State:** view files syntax-clean; smoke PASS. Needs a browser open to confirm the visual (can't render
+headless). The Restart-run button re-runs the current tab with current params.
+
 ## 2026-07-23 — browser viz catch-up: fix evo readout crash + add the ECOLOGY viz
 
 **Done:** the visualization had drifted behind the code again.
