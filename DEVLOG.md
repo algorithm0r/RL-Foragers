@@ -3,6 +3,26 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-23 — Stage 7 v2c.1: central-place ecology (energy only from the shelter) — reactivates rewardRest
+
+**Done (Chris redesign):** the ecology becomes central-place foraging with survival stakes. Eating food in
+the FIELD now yields carried **stock** (not energy); **energy is gained ONLY by resting at a shelter**,
+converting stock → energy with felt reward `rewardRest · stock^restExponent`. So as energy drains on an
+excursion an agent must *see a shelter and return* to refuel, or collapse. `EcoWorld` gains a `ecoShelterGrid`²
+grid of shelters (findable, no bearing), a carried-`stock` field, a `rest` action, and a 5-level energy
+sense (return-urgency + reproduction-readiness). This puts **rewardRest + restExponent under real selection**
+(inert before) — an agent whose rewardRest isn't positive never refuels and dies.
+
+**Result** (`ecosmoke.mjs`, 30×30, seeded): the central-place ecology **self-sustains** through the founding
+bottleneck I flagged — pop 67 → dips to **28** as fresh founders learn the collect→return→refuel loop →
+recovers to ~100 (a lower carrying capacity than food-only's 163, from the excursion overhead). rGather
+selected up (0→0.57), ε→0.04, births≈deaths. Seeding **rewardRest positive** (init [0.5,1]) softened the
+bottleneck (28 vs 18 without it) — the same founder-drive bootstrap trick as rewardReproduce.
+
+**State:** smoke PASS (rewardRest gene inactive in non-central-place modes; the init change is bounds-safe).
+The central-place bootstrap is still somewhat precarious (a harsher seed could crash) — a robustness pass
+(denser shelters / more runway) is possible if needed. Next: v2c.2 water (immediate second need).
+
 ## 2026-07-23 — gene-distribution histograms on the ecology tab (ported from redistribution-dynamics)
 
 **Done (Chris):** ported the neighboring `redistribution-dynamics/histogram.js` pattern — a distribution

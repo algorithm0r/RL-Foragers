@@ -195,6 +195,8 @@ var PARAMETERS = {
   ecoBirthEnergy: 500,    // energy an offspring starts with (its runway = birthEnergy/metab = 500 ticks to learn foraging)
   ecoHazard: 0.0004,      // per-tick random death probability (nothing is immortal)
   ecoFoodDensity: 0.08,   // INITIAL food stock (fraction of cells); thereafter food arrives at ecoFoodPerTick
+  ecoShelterGrid: 5,      // central place: a g×g grid of shelters (g²). Energy is gained ONLY by resting here
+                          //   (converting carried stock). More/denser = easier for a low-energy forager to find one.
   ecoMaxPop: 600,         // hard safety cap on population (prevents runaway — a healthy run stays well under)
 
   // --- engine ---

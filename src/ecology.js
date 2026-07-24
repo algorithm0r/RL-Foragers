@@ -11,7 +11,7 @@
 //   • Food is renewable → the population size is EMERGENT (crowding → starvation regulates carrying capacity).
 // EcoWorld reuses World's grid + window sensing + the agent/genome/cfg/feltReward machinery.
 
-var ECO_ACTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 'eat', 'reproduce'];
+var ECO_ACTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 'eat', 'rest', 'reproduce'];
 
 var EcoWorld = class EcoWorld extends World {
   constructor(genomes) {
@@ -22,6 +22,10 @@ var EcoWorld = class EcoWorld extends World {
     this.actions = ECO_ACTIONS; this.nActions = ECO_ACTIONS.length;
     this.goats = []; this.goatAt = new Array(this.N * this.N).fill(-1);
     this.foodCount = 0; this.seedFood(Math.floor(PARAMETERS.ecoFoodDensity * this.N * this.N));
+    // CENTRAL PLACE: a grid of shelters. Energy is gained ONLY by resting here (converting carried stock);
+    // multiple + spaced so a low-energy forager can SEE one in its window and return (no bearing).
+    this.shelterCells = [];
+    { const g = PARAMETERS.ecoShelterGrid, N = this.N; for (let i = 0; i < g; i++) for (let j = 0; j < g; j++) { const x = Math.floor(N * (i + 0.5) / g), y = Math.floor(N * (j + 0.5) / g); if (this.grid[y][x] === World.FOOD) this.foodCount--; this.grid[y][x] = World.SHELTER; this.shelterCells.push([x, y]); } }
     this.time = 0; this.births = 0; this.starved = 0; this.hazardDeaths = 0;
     this.agents = [];
     const empties = this.emptyCells();
@@ -44,27 +48,32 @@ var EcoWorld = class EcoWorld extends World {
   spawnAgent(genome, x, y, energy) {
     const policy = makeAgent(this.nActions), cfg = genome.express();
     if (policy.setCfg) policy.setCfg(cfg);              // FRESH table + this genome's precomputed cfg
-    this.agents.push({ x, y, genome, policy, cfg, energy, age: 0, alive: true });
+    this.agents.push({ x, y, genome, policy, cfg, energy, stock: 0, age: 0, alive: true });
   }
 
   // a coarse energy sense appended to every window state, so the agent can LEARN to reproduce only when
   // it can afford to: '0' below T (can't), '1' sexual-ready (≥T), '2' asexual-ready (≥2T).
-  energyCode(e) { const T = PARAMETERS.ecoReproThreshold; return e >= 2 * T ? '2' : e >= T ? '1' : '0'; }
+  // 5-level energy sense (buckets of T/2): 0 = near collapse … 4 = well-fed / asexual-ready. Gives the
+  // agent both return-urgency AND reproduction-readiness resolution.
+  energyCode(e) { const b = Math.floor(e / (PARAMETERS.ecoReproThreshold / 2)); return (b < 0 ? 0 : b > 4 ? 4 : b).toString(36); }
   senseWindow(r, channel) { return super.senseWindow(r, channel) + this.energyCode(this.curAgent.energy); }
 
   applyAction(i) {
     this.steps++;
     const act = this.actions[i];
     if (act === 'reproduce') return this.doReproduce();
+    if (act === 'rest') {                              // CENTRAL PLACE: at a shelter, convert carried stock → energy
+      if (this.grid[this.ay][this.ax] === World.SHELTER) { const s = this.curAgent.stock; this.curAgent.energy += s * PARAMETERS.ecoFoodValue; this.curAgent.stock = 0; return { reward: 0, done: false, event: 'rest', stock: s }; }
+      return { reward: 0, done: false, event: 'step' }; // rested off a shelter — wasted
+    }
     if (typeof act === 'number') {                     // move (torus; agents don't block each other)
       const d = World.DIRS[act], N = this.N;
       this.ax = ((this.ax + d[0]) % N + N) % N; this.ay = ((this.ay + d[1]) % N + N) % N;
       return { reward: 0, done: false, event: 'step' };
     }
-    // eat
+    // eat: FIELD food → carried STOCK (energy is gained only by resting it at a shelter)
     if (this.grid[this.ay][this.ax] === World.FOOD) {
-      this.grid[this.ay][this.ax] = World.EMPTY; this.foodCount--;
-      this.curAgent.energy += PARAMETERS.ecoFoodValue;
+      this.grid[this.ay][this.ax] = World.EMPTY; this.foodCount--; this.curAgent.stock++;
       return { reward: 0, done: false, event: 'gather' };
     }
     return { reward: 0, done: false, event: 'step' };  // ate nothing

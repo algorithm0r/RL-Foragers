@@ -96,7 +96,7 @@ Genome.GENES = {
   gamma:        { min: 0,  max: 0.999 }, // discount (not 1)
   rewardGather: { min: -1, max: 1     }, // felt: value of an eat/drink
   rewardStep:   { min: -1, max: 1     }, // felt: cost/reward of a move / failed act
-  rewardRest:   { min: -1, max: 1     }, // felt: rest banks rewardRest · stock^restExponent
+  rewardRest:   { min: -1, max: 1, init: [0.5, 1.0] }, // felt: rest banks rewardRest·stock^restExponent — init positive so founders value refueling (central-place bootstrap)
   rewardPit:    { min: -1, max: 1     }, // felt: reward on entering a pit (a reward like any other — can be negative)
   restExponent: { min: 0,  max: 2     }, // exponent on stock in the rest reward (was hardcoded 2)
   rewardReproduce: { min: -1, max: 1, init: [0.6, 1.0] }, // felt reward for the REPRODUCE action (ecology). init

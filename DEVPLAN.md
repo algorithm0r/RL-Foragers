@@ -450,8 +450,14 @@ Drop the genetic algorithm entirely. No external fitness, no discrete generation
   births≈deaths. Endogenous selection: rewardGather UP (0.02→0.87), ε DOWN (0.41→0.06), rewardReproduce
   stays viable (~0.51). No GA. (An earlier refill-to-density run blew to the hard cap and drove reproduction
   negative — a cap artifact, not real regulation; the food-flow model fixed it.)
-- [ ] **v2b — mate-finding dynamics** (the sexual/asexual balance, spatial mate search).
-- [ ] **v2c — the full world under natural selection** (goats/shelter/pits + the instinct-selection test).
+- [x] **v2c.1 — central-place energy** (Chris redesign): eat food → carried STOCK (not energy); energy
+  gained ONLY by resting at a shelter (stock→energy, felt `rewardRest·stock^restExponent`). Multi-shelter
+  grid (findable, no bearing). Reactivates rewardRest/restExponent under selection. Self-sustains through a
+  founding bottleneck (67→28→~100); positive rewardRest init softens it. rGather↑, ε↓.
+- [ ] **v2c.2 — water as an immediate second need** (`rewardDrink`): hydration + thirst; water drunk IN THE
+  MOMENT (not banked) — the asymmetry vs food. Die if hydration hits 0.
+- [ ] **v2c.3/.4 — pits (rewardPit) + goats** (hunting → the instinct-selection climax under juvenile mortality).
+- [ ] **v2b — mate-finding dynamics** (observe the sexual/asexual balance; already built in v2a).
 **Done when:** a population self-regulates at an emergent carrying capacity over long continuous time, and
 we can read the life-history strategy natural selection produced (forage/breed/hoard balance, and whether
 the instinct priors now evolve non-neutrally).
