@@ -347,7 +347,7 @@ in DEVLOG 2026-07-21/22. Original scope as built:
   doesn't hit it.
 **5b — wolves + shared worlds:** wolves (fight back, bites, HP), then predators/prey as peer learners.
 
-### Stage 6 — EVOLUTION + culture: evolve the meta-params we've been hand-tuning  [ ACTIVE — v1a done 2026-07-23 ]
+### Stage 6 — EVOLUTION + culture: evolve the meta-params we've been hand-tuning  [ DONE 2026-07-24 — GA built + replicated; culture (v1c) SUPERSEDED by Stage 7 natural selection ]
 **Build order (incremental, each proven headless before the next):**
 - [x] **v1a — the loop.** `src/evolution.js`: `Genome` {ε,α,γ}; PERSISTENT individuals (genome + own
   learned Q-tables); `EvoWorld extends World` (multi-forager, renewable food, time-boxed). Evaluation

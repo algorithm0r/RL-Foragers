@@ -1,64 +1,52 @@
 # rllayers — STATUS
 *One screen. The current pulse. Overwritten, never appended — for history read DEVLOG.*
 
-**Updated:** 2026-07-23 — refreshed every session close; may carry unverified claims
+**Updated:** 2026-07-24 — refreshed every session close; may carry unverified claims
 **Verified:** 2026-07-18 (scaffold) — last cold audit (`/audit`); the State section is trusted only as of this date
 
 ## Stage
-**Stage 6 (EVOLUTION) — ACTIVE. v1a (the loop) is BUILT and proven.** A fixed population of foragers
-evolves its RL meta-params over discrete generations on a shared renewable world; fitness = food
-foraged; top breed, bottom culled. The evolutionary loop raises fitness and we can READ what evolution
-chose for the params we used to hand-tune. Also this session: the **control panel was caught up** to the
-sim (goat/replay/shelter knobs, subsumption/dqn) and decluttered (contextual visibility). Prior arcs
-done: goats + hunting-by-replay (5a), pits (3F), no-INT shelter, DQN/budget, layered thesis.
+**Stage 7 (NATURAL SELECTION / ecology) — ACTIVE.** The project pivoted from a genetic algorithm to an
+endogenous **artificial-life ecology**: no external fitness, no generations — selection IS survival +
+reproduction. `EcoWorld` (continuous time, energy/metabolism, reproduce-as-action, starvation/hazard death,
+fresh-table offspring, emergent carrying capacity). v2a (food-only) + v2c.1 (central-place: energy only from
+resting stock at a shelter) built & self-sustaining. **Stage 6 (GA evolution) DONE** — Genome, EvoWorld,
+persistent Lamarckian individuals, K shared-map eval, felt-reward + instinct genome, replicates; culture
+(v1c) superseded by this pivot. Prior stages done: goats/hunting (5a, replay), pits (3F), shelter, layered.
 
 ## State
-`GridForager` toggles: food · +water · +shelter · +pits · +rocks · +goats (prey agents). Agents:
-flat / layered / subsumption / multis / DQN. **Evolution (`src/evolution.js`):** `Genome` {ε,α,γ};
-PERSISTENT individuals (genome + own learned Q-tables + age + fitness); `EvoWorld extends World` —
-multi-forager, renewable food, time-boxed, reusing World's grid/sensing/applyAction unchanged (per tick
-it aims `ax/ay` + global ε/α/γ at each forager, calls its own persistent `policy.act`, reads back move +
-food delta as fitness). Eval: `evaluatePopulation` runs evoRuns SHARED maps/gen, reshuffling the pop into
-batches of evoBatchSize each run (learning persists across runs); `nextGeneration` culls only MATURE
-(age ≥ evoProtect) within the worst evoCull·P slots, survivors keep tables (Lamarckian), newborns fresh +
-protected. **UI:** `PARAM_SCHEMA` rows carry `group` (collapsible) + `showIf` (contextual). smoke PASS.
+`GridForager` (sim) + `EvoWorld` (GA) + `EcoWorld` (ecology) share the agent/genome/cfg/feltReward core.
+**Genome:** normalized [0,1] genes, single mutation sd, symmetric sign-free reward genes (gather/step/rest/
+pit/reproduce + restExponent/confidenceK) + per-action `initialQ` instinct; agents run off a precomputed
+per-agent cfg (no per-tick global-swap) and compute their own felt reward from world `event`s. **Ecology:**
+eat→stock, rest-at-shelter→energy (`rewardRest·stock^restExponent`), reproduce (sexual @T each / asexual
+@2T), die from starvation/hazard; shelters at precoded spots (count slider). **Browser:** 3 tabs (Sim/Evo/
+Ecology, opens on Ecology) with per-mode controls + live eco energetics knobs; gene-distribution histograms
+(heat-strips) on the ecology tab. smoke PASS @ v0.7.0-28-gbe5fa6c (non-evo byte-identical, L=33.1).
 
-## Metrics (this session) — 8-seed REPLICATED (`evoreps`), supersedes earlier one-seed numbers
-- **CONFIRMED across 8 seeds:** the evolutionary loop raises fitness (8/8 in every condition); the **pit
-  knife-edge** (`full` fitRise 55±19 vs `full-pits` 2.6±2.9, deaths 1.44); **hunting BEHAVIOR tracks
-  scarcity** (greedy kills scarce ~16–18 vs dense ~3–4).
-- **REFUTED by replication** (were one-seed noise): "attack INSTINCT tracks scarcity" — evolved attack
-  initialQ ~0 in ALL conditions (scarce 0.01±0.13, dense 0.00±0.13; 4/8 = chance), and hunting is the SAME
-  instincts-ON vs OFF → hunting is driven by **learning + scarcity, NOT the gene** (instinct vectors built
-  correctly but INERT here). "Felt-step softening" — food rStep −0.78±0.29, within noise of init ~−0.85.
-- **Full genome + regimes built + proven:** felt reward (gather/step/perUnit/confidenceK), per-action
-  instincts, central-place no-INT multi-shelter, combined world (+pits), persistent Lamarckian individuals,
-  K shared-map batched eval + juvenile protection, browser evo viz. 64-rep DB in `evoreps`.
-- **Prior (unchanged):** hunting resolved by replay (greedy kills 0.05→~3.0, 3 seeds); no-INT shelter wins
-  EV; pits layered+ε-greedy survives+clears. All universal "unlearnable" claims retracted.
+## Metrics (this session)
+- **Ecology self-sustains** (`ecosmoke.mjs`, seeded): food-only carrying capacity ~163; central-place ~78–100
+  through a founding bottleneck (dip ~22–28, recovers). rGather selected ↑ (0→~0.7), ε ↓ (0.46→~0.05),
+  births≈deaths. Metabolism pinned at 1 (energy constants rescaled, ratio-preserving).
+- **Instinct question SETTLED** (8-seed `evoreps` + pess/neutral/opt init): `initialQ[attack]` TRACKS its
+  init (pess −0.89 / opt +0.79, no convergence) → a NEUTRAL gene; hunting is LEARNED, not instinct-driven.
+  200-gen drift probe: selected genes converge & hold, neutral genes wander (no pole-collapse).
+- **GA replicated:** loop-works 8/8; pit knife-edge (`full` fitRise 55±19 vs `full-pits` 2.6±2.9); refuted
+  the one-seed attack-instinct-tracks-scarcity + felt-step-softening claims. 80+ packets in Mongo `evoreps`.
 
 ## Branches
-- `main` (pushed to origin)
+- `main` (pushed to origin, through v0.7.0-28-gbe5fa6c)
 
 ## Open / decisions pending
-- **v1b (next build):** full genome (reward weights + confidenceK + shelter-timing) PLUS per-action
-  evolved-instinct vectors (initial-Q + unexplored-bonus — the direct attack on the 5a "attack never
-  bootstraps" wall); world regime with placed shelters in the last quarter, fitness = banked stock;
-  browser viz of generations. Then v1c `broadcastRange` (culture), v1d DB persistence.
-- v1a defaults chosen (amendable): discrete generations, 30×30, pop 16, lifetime 1500, cull 50%.
-- Wolves (5b): HP/bite-back → the conjunction-state (health×window) question.
-- Curriculum "eat then hunt" — Chris has another idea (TBD).
+- **Collapse penalty NOT implemented** — collapsing agents are killed (starvation) but don't LEARN from it
+  (selection-only). Add `rewardCollapse` gene + `learnTerminal` so they learn to refuel (Chris's design).
+- **v2c.2 water** — immediate second need (`rewardDrink`, die if hydration 0); the food-banked/water-immediate asymmetry.
+- **v2c.3/.4 pits + goats** — activates rewardPit; goats = hunting → the instinct-selection climax under real juvenile mortality.
+- Central-place bootstrap is somewhat precarious on a harsh seed (harden via more shelters / runway if needed).
+- Browser viz confirmed only by syntax + logic (can't render headless) — visual is Chris's to eyeball.
 
 ## Next action
-**Genome/architecture REFACTORED (Chris, Refactors 1–3):** per-agent precomputed cfg (NO per-tick
-global-swap), agent-computed felt reward from world `event`s, genes normalized [0,1] + single mutation sd,
-symmetric sign-free reward ranges, `restExponent` gene, pit-as-reward, single `initialQ` instinct
-(`unexploredBonus` dropped). smoke PASS (non-evo byte-identical); MODEL.md updated. **Definitive instinct
-result** (clean instrument, pess/neutral/opt init × 8 seeds): `initialQ[attack]` TRACKS its init
-(pess −0.89, opt +0.79 — no convergence) → a NEUTRAL gene hitchhiking on the elite; hunting is LEARNED, not
-instinct-driven. Chris's degeneracy fix turned the ambiguous ~0 into a definitive null. **Next: v1c —
-culture** (per-agent tables + `broadcastRange`) — a persistent-effect mechanism, which an evolved
-initial-VALUE prior cannot be. Deferred: pit signal-collapse fix; a clean all-new-genome `evoreps` sweep.
+Add the **collapse felt-penalty** (`rewardCollapse` + `learnTerminal`) so agents LEARN to return-and-refuel,
+then **v2c.2 water**.
 
 ## Blockers
 - none

@@ -3,6 +3,41 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-24 — SESSION CLOSE: evolution built + refactored, then pivoted to a natural-selection ecology
+
+**Done:** (detail in the per-arc entries below, 2026-07-23→24; this is the through-line.) A long session
+that (1) built the whole **Stage-6 GA evolution** layer end to end — Genome, `EvoWorld`, persistent
+individuals with Lamarckian survivors + juvenile protection + old age, K shared-map batched eval, felt-
+reward genome, per-action instinct vectors, and the goats/shelter/pits/combined worlds — plus an 8-seed
+`evoreps` **replicates** harness; (2) **refactored the core** at Chris's direction: agents now run off a
+precomputed per-agent cfg (no per-tick global-swap) and compute their own felt reward from world events;
+the genome is **normalized [0,1]** with a single mutation sd and symmetric sign-free reward ranges
+(`rewardRest`/`rewardPit`/`restExponent`/`rewardReproduce` added, `unexploredBonus` dropped); (3) settled
+the **instinct question definitively** — with the degeneracy broken (pess/neutral/opt init × 8 seeds),
+`initialQ[attack]` TRACKS its init, i.e. a NEUTRAL gene; hunting is LEARNED, not instinct-driven; a 200-gen
+drift probe shows selected genes converge while neutral ones wander (and don't pole-collapse); (4) **pivoted
+to Stage 7 — NATURAL SELECTION (no GA):** `EcoWorld`, a continuous ecology where selection IS survival +
+reproduction (energy/metabolism, reproduce-as-action with two thresholds, starvation/hazard death, fresh-
+table offspring, emergent carrying capacity), then Chris's **central-place** redesign (energy only from
+resting stock at a shelter). (5) UI: **three tabs** (Sim/Evolution/Ecology) with per-mode controls + live
+ecology energetics knobs; a **gene-distribution histogram** heat-strip (ported from redistribution-dynamics)
+on the ecology tab; opens on the Ecology tab; shelters as a count slider over precoded spots.
+
+**Changed:** new `src/ecology.js`, `src/histogram.js`; heavy changes to `evolution.js`, `agent.js`,
+`qlearner.js`, `world.js`, `params.js`, `ui.js`, `main.js`, `observer.js`, `index.html`; new runners
+(`evosmoke/evohunt/evofull/evoshelter/evoreps/evodrift/ecosmoke.mjs` + `evoreps-run.sh`/`evoreps-agg.mjs`);
+`MODEL.md` (gene/model description); DEVPLAN Stage 6 → DONE, Stage 7 ACTIVE.
+
+**State:** smoke **PASS** @ v0.7.0-28-gbe5fa6c (non-evo byte-identical through all refactors: L=33.1). Evo
+runners green. Ecology **self-sustains**: food-only ~163, central-place ~78–100 through a founding
+bottleneck (dip to ~22–28, recovers). `evoreps` = 80+ replicate packets in Mongo. Browser viz needs an
+actual browser to confirm (can't render headless). **Open gap:** the collapse felt-PENALTY Chris specified
+is NOT implemented — collapsing agents are killed (starvation) but don't LEARN from it (selection-only).
+
+**Next:** add the collapse penalty (`rewardCollapse` gene + `learnTerminal`) so agents LEARN to refuel;
+then v2c.2 water (immediate second need, `rewardDrink`), v2c.3/.4 pits + goats (the instinct-selection
+climax under real juvenile mortality).
+
 ## 2026-07-23 — Stage 7 v2c.1: central-place ecology (energy only from the shelter) — reactivates rewardRest
 
 **Done (Chris redesign):** the ecology becomes central-place foraging with survival stakes. Eating food in
