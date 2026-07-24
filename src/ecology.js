@@ -13,6 +13,17 @@
 
 var ECO_ACTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 'eat', 'rest', 'reproduce'];
 
+// fixed, precoded shelter locations (fractions of the arena), ORDERED for progressive coverage — centre,
+// then quadrants, edges, and fill-ins — so the `ecoShelters` slider (first N of these) stays well-spread.
+var ECO_SHELTER_SPOTS = [
+  [0.50, 0.50],
+  [0.22, 0.22], [0.78, 0.22], [0.22, 0.78], [0.78, 0.78],
+  [0.50, 0.16], [0.50, 0.84], [0.16, 0.50], [0.84, 0.50],
+  [0.35, 0.35], [0.65, 0.35], [0.35, 0.65], [0.65, 0.65],
+  [0.16, 0.16], [0.84, 0.16], [0.16, 0.84], [0.84, 0.84],
+  [0.50, 0.34], [0.50, 0.66], [0.34, 0.50], [0.66, 0.50],
+];
+
 var EcoWorld = class EcoWorld extends World {
   constructor(genomes) {
     super(800, 600);                                  // builds a throwaway grid + agent; we rebuild below
@@ -25,7 +36,13 @@ var EcoWorld = class EcoWorld extends World {
     // CENTRAL PLACE: a grid of shelters. Energy is gained ONLY by resting here (converting carried stock);
     // multiple + spaced so a low-energy forager can SEE one in its window and return (no bearing).
     this.shelterCells = [];
-    { const g = PARAMETERS.ecoShelterGrid, N = this.N; for (let i = 0; i < g; i++) for (let j = 0; j < g; j++) { const x = Math.floor(N * (i + 0.5) / g), y = Math.floor(N * (j + 0.5) / g); if (this.grid[y][x] === World.FOOD) this.foodCount--; this.grid[y][x] = World.SHELTER; this.shelterCells.push([x, y]); } }
+    { const N = this.N, n = Math.min(PARAMETERS.ecoShelters, ECO_SHELTER_SPOTS.length);
+      for (let k = 0; k < n; k++) {
+        const x = Math.min(N - 1, Math.floor(ECO_SHELTER_SPOTS[k][0] * N)), y = Math.min(N - 1, Math.floor(ECO_SHELTER_SPOTS[k][1] * N));
+        if (this.grid[y][x] === World.SHELTER) continue;                  // two fractions can collide on a small grid
+        if (this.grid[y][x] === World.FOOD) this.foodCount--;
+        this.grid[y][x] = World.SHELTER; this.shelterCells.push([x, y]);
+      } }
     this.time = 0; this.births = 0; this.starved = 0; this.hazardDeaths = 0;
     this.agents = [];
     const empties = this.emptyCells();

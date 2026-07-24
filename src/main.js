@@ -154,6 +154,6 @@ window.onload = function () {
   gameEngine = new GameEngine();
   gameEngine.init(canvas.getContext('2d'));
   buildAllTabs();
-  selectTab('sim');
+  selectTab('eco');
   gameEngine.start();
 };
