@@ -188,11 +188,11 @@ var PARAMETERS = {
   //   asexual solo at 2T), and DIE from starvation (energy≤0) or a random hazard. Continuous time; the
   //   population size is EMERGENT (food supply → carrying capacity). Offspring get FRESH Q-tables. ---
   ecoPop0: 60,            // founding population size
-  ecoFoodValue: 12,       // energy gained per food eaten
-  ecoMetabolism: 0.5,     // energy drained per tick (cost of living)
+  ecoFoodValue: 24,       // energy gained per food eaten (= foodValue/metab = 24 ticks of life per food)
+  ecoMetabolism: 1,       // energy drained per tick (cost of living) — the reference unit
   ecoFoodPerTick: 8,      // NEW food items per tick (a food FLOW) → carrying capacity ≈ ecoFoodPerTick·foodValue/metab
-  ecoReproThreshold: 130, // T: energy to reproduce sexually (each parent pays T); asexual needs 2T
-  ecoBirthEnergy: 250,    // energy an offspring starts with (its runway = birthEnergy/metab ticks to learn foraging)
+  ecoReproThreshold: 260, // T: energy to reproduce sexually (each parent pays T); asexual needs 2T
+  ecoBirthEnergy: 500,    // energy an offspring starts with (its runway = birthEnergy/metab = 500 ticks to learn foraging)
   ecoHazard: 0.0004,      // per-tick random death probability (nothing is immortal)
   ecoFoodDensity: 0.08,   // INITIAL food stock (fraction of cells); thereafter food arrives at ecoFoodPerTick
   ecoMaxPop: 600,         // hard safety cap on population (prevents runaway — a healthy run stays well under)
