@@ -78,7 +78,7 @@ var EcoRunner = class EcoRunner {
     const per = Math.ceil(ECO_HIST_GENES.length / 2);
     for (let i = 0; i < ECO_HIST_GENES.length; i++) {
       const onQ = i < per, row = onQ ? i : i - per;
-      const h = new Histogram(6, row * 76 + 6, 330, 62, { label: ECO_HIST_GENES[i], data: [], means: [] });
+      const h = new Histogram(6, row * 76 + 15, 330, 56, { label: ECO_HIST_GENES[i], data: [], means: [] }); // +15 leaves room for the label above each strip
       this.histos.push({ gene: ECO_HIST_GENES[i], hist: h, ctx: onQ ? this.qCtx : this.q3Ctx });
     }
   }

@@ -30,7 +30,7 @@ var Histogram = class Histogram {
       ctx.stroke();
     }
     ctx.font = '10px monospace'; ctx.fillStyle = this.labelColor; ctx.textAlign = 'left';
-    ctx.fillText(this.label, this.x + 3, this.y + 10);
+    ctx.fillText(this.label, this.x + 2, this.y - 3);   // label ABOVE the strip (needs a few px of clearance above)
     ctx.strokeStyle = '#2b3240'; ctx.lineWidth = 1; ctx.strokeRect(this.x + 0.5, this.y + 0.5, this.width, this.height);
   }
 
