@@ -3,6 +3,22 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-23 — browser viz catch-up: fix evo readout crash + add the ECOLOGY viz
+
+**Done:** the visualization had drifted behind the code again.
+- **Fixed a crash in the evolution readout** (`renderEvoReadout`): it referenced genes renamed in Refactor 2
+  (`rewardPerUnit`→`rewardRest`, `pitPenalty`→`rewardPit`) and dropped in Refactor 1 (`unexploredBonus`) —
+  `undefined.toFixed()` → hard crash whenever goats/shelter/pits were on. Now reads the current genes.
+- **Added the Stage-7 ECOLOGY viz:** an "Ecology ⇄ Sim" button → `EcoRunner` (main.js) runs the continuous
+  natural-selection world live, Speed-driven. `drawEcoWorld` (observer.js) paints food + the living
+  population as circles coloured by ENERGY (dark = starving, bright = breeding-ready); a population-over-
+  time curve + a gene readout (ε/α/γ, felt gather/step/reproduce, births/starved/hazard) update as it runs.
+  You can watch the founding pop bootstrap, hit carrying capacity, and the genes shift under selection.
+
+**State:** all view files syntax-clean; smoke PASS. Visual itself needs a browser open (can't render one
+headless). The browser evo remains the simplified single-run-per-gen loop; headless runners are the faithful
+science.
+
 ## 2026-07-23 — Stage 7 v2a: natural selection (no GA) — a continuous self-regulating ecology
 
 **Done (Chris's spec):** dropped the genetic algorithm entirely. New `src/ecology.js` — `EcoWorld`, a

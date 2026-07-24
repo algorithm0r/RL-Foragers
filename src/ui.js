@@ -164,10 +164,10 @@ function renderEvoReadout(st, gen) {
   L.push('');
   L.push('genes  ε ' + g.epsilon.toFixed(3) + '   α ' + g.alpha.toFixed(2) + '   γ ' + g.gamma.toFixed(2));
   L.push('felt   gather ' + g.rewardGather.toFixed(2) + '  step ' + g.rewardStep.toFixed(2) +
-    (PARAMETERS.enableShelter ? '  restPerUnit ' + g.rewardPerUnit.toFixed(0) : '') +
-    (PARAMETERS.enablePits ? '  pitPen ' + g.pitPenalty.toFixed(0) : ''));
+    (PARAMETERS.enableShelter ? '  rest ' + g.rewardRest.toFixed(2) + '^' + g.restExponent.toFixed(1) : '') +
+    (PARAMETERS.enablePits ? '  pit ' + g.rewardPit.toFixed(2) : ''));
   const ai = World.buildActions().indexOf('attack');
-  if (ai >= 0 && st.vgenes) L.push('instinct  attack initialQ ' + st.vgenes.initialQ[ai].toFixed(2) + '  bonus ' + st.vgenes.unexploredBonus[ai].toFixed(2));
+  if (ai >= 0 && st.vgenes) L.push('instinct  attack initialQ ' + st.vgenes.initialQ[ai].toFixed(2));
   el.textContent = L.join('\n');
 }
 
@@ -190,6 +190,38 @@ function drawEvoCurve(ctx, history) {
   plot('best', '#e8b23a'); plot('mean', '#3fbf6f');
   ctx.fillStyle = '#5a5f68'; ctx.font = '10px monospace';
   ctx.fillText('fitness/gen  (best gold, mean green)  peak ' + mx.toFixed(0), 6, 12);
+}
+
+// --- Ecology viz (Stage 7): a live readout + a population-over-time curve, driven by EcoRunner (main.js).
+function renderEcoReadout(s) {
+  const el = document.getElementById('stats');
+  if (!el || !s) return;
+  const g = s.genes, L = [];
+  L.push('ECOLOGY — natural selection, no GA (survive + reproduce)');
+  L.push('time    ' + s.time);
+  L.push('pop     ' + s.pop + (s.pop === 0 ? '   *** EXTINCT ***' : ''));
+  L.push('births ' + s.births + '   starved ' + s.starved + '   hazard ' + s.hazard);
+  L.push('meanEnergy ' + s.meanEnergy.toFixed(0) + '   meanAge ' + s.meanAge.toFixed(0));
+  L.push('');
+  L.push('genes  ε ' + g.epsilon.toFixed(3) + '   α ' + g.alpha.toFixed(2) + '   γ ' + g.gamma.toFixed(2));
+  L.push('felt   gather ' + g.rewardGather.toFixed(2) + '  step ' + g.rewardStep.toFixed(2) + '  reproduce ' + g.rewardReproduce.toFixed(2));
+  el.textContent = L.join('\n');
+}
+
+// population over time (green), auto-scaled to the peak seen
+function drawEcoCurve(ctx, hist) {
+  const W = ctx.canvas.width, H = ctx.canvas.height, n = hist.length;
+  ctx.clearRect(0, 0, W, H);
+  ctx.strokeStyle = '#222'; ctx.lineWidth = 1; ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
+  if (!n) return;
+  let mx = 1; for (const h of hist) if (h.pop > mx) mx = h.pop;
+  ctx.strokeStyle = '#3fbf6f'; ctx.lineWidth = 1.5; ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const x = n > 1 ? 4 + (i / (n - 1)) * (W - 8) : 4, y = H - 4 - (hist[i].pop / mx) * (H - 8);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.fillStyle = '#5a5f68'; ctx.font = '10px monospace'; ctx.fillText('population / time   peak ' + mx, 6, 12);
 }
 
 // A browser-only engine entity that renders the off-canvas data view each frame: it ignores the

@@ -55,10 +55,40 @@ var EvoRunner = class EvoRunner {
 var evoRunner = null;
 function toggleEvolution() {
   if (evoRunner) { evoRunner = null; reset(); return; }   // back to the normal single-agent sim
+  ecoRunner = null;
   gameEngine.clear();
   evoRunner = new EvoRunner(document.getElementById('graphCanvas').getContext('2d'));
   gameEngine.add(evoRunner);
   if (typeof setStatus === 'function') setStatus('evolving — ' + PARAMETERS.gridN + '×' + PARAMETERS.gridN + ' · pop ' + PARAMETERS.evoPopSize);
+}
+
+// --- Browser ecology viz (Stage 7). A GameEngine entity that runs the continuous natural-selection
+// ecology — update() advances one tick (× updatesPerDraw per frame via the Speed knob) and draws the
+// living population, a population-over-time curve, and a gene readout. No GA — just survive + reproduce.
+var EcoRunner = class EcoRunner {
+  constructor(graphCtx) {
+    this.graphCtx = graphCtx;
+    const genomes = [];
+    for (let i = 0; i < PARAMETERS.ecoPop0; i++) genomes.push(Genome.random(ECO_ACTIONS.length));
+    this.world = new EcoWorld(genomes);
+    this.hist = []; this.last = null;
+  }
+  update() {
+    this.world.advance();
+    if (this.world.time % 20 === 0) { this.last = this.world.snapshot(); this.hist.push(this.last); if (this.hist.length > 400) this.hist.shift(); }
+  }
+  draw(ctx) { drawEcoWorld(ctx, this.world); if (this.last) { drawEcoCurve(this.graphCtx, this.hist); renderEcoReadout(this.last); } }
+};
+
+var ecoRunner = null;
+function toggleEcology() {
+  if (ecoRunner) { ecoRunner = null; reset(); return; }   // back to the normal single-agent sim
+  evoRunner = null;
+  PARAMETERS.gridN = 30;                                    // a roomy arena for a population
+  gameEngine.clear();
+  ecoRunner = new EcoRunner(document.getElementById('graphCanvas').getContext('2d'));
+  gameEngine.add(ecoRunner);
+  if (typeof setStatus === 'function') setStatus('ecology — ' + PARAMETERS.gridN + '×' + PARAMETERS.gridN + ' · founding pop ' + PARAMETERS.ecoPop0);
 }
 
 window.onload = function () {

@@ -75,3 +75,19 @@ var drawEvoWorld = function (ctx, w) {
     ctx.beginPath(); ctx.arc((f.x + 0.5) * cell, (f.y + 0.5) * cell, Math.max(2, cell * 0.3), 0, TAU); ctx.fill();
   }
 };
+
+// Render an EcoWorld (a living population): food + agents coloured by ENERGY (dark = starving, bright =
+// well-fed / breeding-ready). DOM-free (takes a ctx). This is the natural-selection ecology (Stage 7).
+var drawEcoWorld = function (ctx, w) {
+  const N = w.N, board = Math.min(ctx.canvas.width, ctx.canvas.height), cell = board / N;
+  const T = PARAMETERS.ecoReproThreshold;
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (w.grid[y][x] === World.FOOD) {
+    ctx.fillStyle = '#2e6b45'; ctx.fillRect(x * cell + 1, y * cell + 1, cell - 2, cell - 2);
+  }
+  for (const a of w.agents) {
+    const e = Math.max(0, Math.min(1, a.energy / (2 * T)));   // 0 = starving, 1 = asexual-ready
+    ctx.fillStyle = hsl(190, 75, 22 + e * 48);                // blue; lightness tracks energy
+    ctx.beginPath(); ctx.arc((a.x + 0.5) * cell, (a.y + 0.5) * cell, Math.max(2, cell * 0.34), 0, TAU); ctx.fill();
+  }
+};
