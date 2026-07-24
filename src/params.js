@@ -197,6 +197,8 @@ var PARAMETERS = {
   ecoFoodDensity: 0.08,   // INITIAL food stock (fraction of cells); thereafter food arrives at ecoFoodPerTick
   ecoShelterGrid: 5,      // central place: a g×g grid of shelters (g²). Energy is gained ONLY by resting here
                           //   (converting carried stock). More/denser = easier for a low-energy forager to find one.
+  ecoSampleEvery: 80,     // ticks between viz samples (population curve + gene histograms). Coarser = each
+                          //   heat-strip spans MORE time before it scrolls, so history persists on screen.
   ecoMaxPop: 600,         // hard safety cap on population (prevents runaway — a healthy run stays well under)
 
   // --- engine ---
@@ -303,6 +305,8 @@ var ECO_SCHEMA = [
   { key: 'ecoBirthEnergy', label: 'Birth energy', min: 20, max: 600, step: 10 },
   { key: 'ecoHazard', label: 'Random death / tick', min: 0, max: 0.005, step: 0.0001 },
   { key: 'ecoFoodDensity', label: 'Initial food density', min: 0, max: 0.3, step: 0.01, resets: true },
+  { key: 'ecoShelterGrid', label: 'Shelter grid (g×g)', min: 1, max: 8, step: 1, resets: true },
+  { key: 'ecoSampleEvery', label: 'Sample every (ticks)', min: 5, max: 500, step: 5 },
   { key: 'evoMutRate', label: 'Mutation rate', min: 0, max: 1, step: 0.05 },
   { key: 'ecoMaxPop', label: 'Population cap', min: 50, max: 1500, step: 50, resets: true },
   { key: 'updatesPerDraw', label: 'Speed', min: 1, max: 500, step: 1 },

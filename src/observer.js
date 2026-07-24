@@ -82,8 +82,10 @@ var drawEcoWorld = function (ctx, w) {
   const N = w.N, board = Math.min(ctx.canvas.width, ctx.canvas.height), cell = board / N;
   const T = PARAMETERS.ecoReproThreshold;
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (w.grid[y][x] === World.FOOD) {
-    ctx.fillStyle = '#2e6b45'; ctx.fillRect(x * cell + 1, y * cell + 1, cell - 2, cell - 2);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const t = w.grid[y][x];
+    if (t === World.FOOD) { ctx.fillStyle = '#2e6b45'; ctx.fillRect(x * cell + 1, y * cell + 1, cell - 2, cell - 2); }
+    else if (t === World.SHELTER) { ctx.fillStyle = '#e8b23a'; ctx.fillRect(x * cell + 1, y * cell + 1, cell - 2, cell - 2); } // refuel base
   }
   for (const a of w.agents) {
     const e = Math.max(0, Math.min(1, a.energy / (2 * T)));   // 0 = starving, 1 = asexual-ready

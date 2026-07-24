@@ -78,13 +78,13 @@ var EcoRunner = class EcoRunner {
     const per = Math.ceil(ECO_HIST_GENES.length / 2);
     for (let i = 0; i < ECO_HIST_GENES.length; i++) {
       const onQ = i < per, row = onQ ? i : i - per;
-      const h = new Histogram(6, row * 40 + 4, 320, 32, { label: ECO_HIST_GENES[i], data: [], means: [] });
+      const h = new Histogram(6, row * 76 + 6, 330, 62, { label: ECO_HIST_GENES[i], data: [], means: [] });
       this.histos.push({ gene: ECO_HIST_GENES[i], hist: h, ctx: onQ ? this.qCtx : this.q3Ctx });
     }
   }
   update() {
     this.world.advance();
-    if (this.world.time % 20 === 0) {
+    if (this.world.time % PARAMETERS.ecoSampleEvery === 0) {   // coarser sampling → strips span more time
       this.last = this.world.snapshot();
       this.popHist.push(this.last); if (this.popHist.length > 400) this.popHist.shift();
       this.sampleGenes();
