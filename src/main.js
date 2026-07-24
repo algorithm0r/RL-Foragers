@@ -63,25 +63,64 @@ function startEvolution() {
 // --- Browser ecology viz (Stage 7). A GameEngine entity that runs the continuous natural-selection
 // ecology — update() advances one tick (× updatesPerDraw per frame via the Speed knob) and draws the
 // living population, a population-over-time curve, and a gene readout. No GA — just survive + reproduce.
+// the scalar genes shown as distribution heat-strips (initialQ vector genes excluded for now)
+var ECO_HIST_GENES = ['epsilon', 'alpha', 'gamma', 'rewardGather', 'rewardStep', 'rewardRest', 'rewardPit', 'restExponent', 'rewardReproduce', 'confidenceK'];
+
 var EcoRunner = class EcoRunner {
-  constructor(graphCtx) {
-    this.graphCtx = graphCtx;
+  constructor(graphCtx, qCtx, q3Ctx) {
+    this.graphCtx = graphCtx; this.qCtx = qCtx; this.q3Ctx = q3Ctx;
     const genomes = [];
     for (let i = 0; i < PARAMETERS.ecoPop0; i++) genomes.push(Genome.random(ECO_ACTIONS.length));
     this.world = new EcoWorld(genomes);
-    this.hist = []; this.last = null;
+    this.popHist = []; this.last = null;
+    // one distribution heat-strip per scalar gene, laid out across the two data canvases (5 each)
+    this.histos = [];
+    const per = Math.ceil(ECO_HIST_GENES.length / 2);
+    for (let i = 0; i < ECO_HIST_GENES.length; i++) {
+      const onQ = i < per, row = onQ ? i : i - per;
+      const h = new Histogram(6, row * 40 + 4, 320, 32, { label: ECO_HIST_GENES[i], data: [], means: [] });
+      this.histos.push({ gene: ECO_HIST_GENES[i], hist: h, ctx: onQ ? this.qCtx : this.q3Ctx });
+    }
   }
   update() {
     this.world.advance();
-    if (this.world.time % 20 === 0) { this.last = this.world.snapshot(); this.hist.push(this.last); if (this.hist.length > 400) this.hist.shift(); }
+    if (this.world.time % 20 === 0) {
+      this.last = this.world.snapshot();
+      this.popHist.push(this.last); if (this.popHist.length > 400) this.popHist.shift();
+      this.sampleGenes();
+    }
   }
-  draw(ctx) { drawEcoWorld(ctx, this.world); if (this.last) { drawEcoCurve(this.graphCtx, this.hist); renderEcoReadout(this.last); } }
+  // bucket each gene's EXPRESSED value across the population into NB bins over the gene's [min,max] range,
+  // and record the normalised population mean — one snapshot per sample, pushed into each strip's data.
+  sampleGenes() {
+    const NB = 16, agents = this.world.agents, n = agents.length;
+    for (const gh of this.histos) {
+      const spec = Genome.GENES[gh.gene], b = new Array(NB).fill(0); let sum = 0;
+      for (const a of agents) {
+        const v = a.genome.expr(gh.gene); let bk = Math.floor((v - spec.min) / (spec.max - spec.min) * NB);
+        bk = bk < 0 ? 0 : bk >= NB ? NB - 1 : bk; b[bk]++; sum += v;
+      }
+      gh.hist.data.push(b);
+      gh.hist.means.push(n ? ((sum / n) - spec.min) / (spec.max - spec.min) : 0.5);
+      if (gh.hist.data.length > gh.hist.width) { gh.hist.data.shift(); gh.hist.means.shift(); }
+    }
+  }
+  draw(ctx) {
+    drawEcoWorld(ctx, this.world);
+    if (!this.last) return;
+    drawEcoCurve(this.graphCtx, this.popHist);
+    renderEcoReadout(this.last);
+    if (this.qCtx) this.qCtx.clearRect(0, 0, this.qCtx.canvas.width, this.qCtx.canvas.height);
+    if (this.q3Ctx) this.q3Ctx.clearRect(0, 0, this.q3Ctx.canvas.width, this.q3Ctx.canvas.height);
+    for (const gh of this.histos) if (gh.ctx) gh.hist.draw(gh.ctx);
+  }
 };
 
 var ecoRunner = null;
 function startEcology() {
   gameEngine.clear();
-  ecoRunner = new EcoRunner(graphCtx());
+  const qc = document.getElementById('qCanvas'), q3c = document.getElementById('q3Canvas');
+  ecoRunner = new EcoRunner(graphCtx(), qc && qc.getContext('2d'), q3c && q3c.getContext('2d'));
   gameEngine.add(ecoRunner);
   if (typeof setStatus === 'function') setStatus('ecology — ' + PARAMETERS.gridN + '×' + PARAMETERS.gridN + ' · founding pop ' + PARAMETERS.ecoPop0);
 }

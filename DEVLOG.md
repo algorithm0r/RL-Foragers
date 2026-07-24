@@ -3,6 +3,22 @@ Newest entry on top. **Append only — never edit past entries.**
 
 <!-- append new entries above this line -->
 
+## 2026-07-23 — gene-distribution histograms on the ecology tab (ported from redistribution-dynamics)
+
+**Done (Chris):** ported the neighboring `redistribution-dynamics/histogram.js` pattern — a distribution
+HEAT-STRIP over time (snapshots → x, value-buckets → y, log-scaled colour = share, + a white population-mean
+line) — into `src/histogram.js` (adapted to our conventions: DOM-free `var Histogram = class`, takes a ctx).
+Their `graph.js` we already had as `charts.js` `LineGraph`.
+- **Wired into the Ecology viz:** `EcoRunner` now builds one heat-strip per SCALAR gene (ε, α, γ, gather,
+  step, rest, pit, restExponent, reproduce, confidenceK — `initialQ` vectors excluded for now), samples the
+  population's expressed values into 16 bins each 20 ticks, and renders them across the two data canvases
+  (5 + 5) beside the population curve. Ecology tab only.
+- This is the drift-vs-selection instrument made live: a SELECTED gene (rewardGather, ε) collapses to a
+  tight bright band that holds; a NEUTRAL-ish gene stays a broad, wandering smear — visible in real time.
+
+**State:** view files syntax-clean; smoke PASS (histogram.js is browser-only, not in the headless load).
+Visual needs a browser open to confirm.
+
 ## 2026-07-23 — UI: tabs per sim mode (Sim / Evolution / Ecology) + live ecology knobs
 
 **Done (Chris):** the control panel is now **three tabs**, one per run mode, each showing only that mode's
